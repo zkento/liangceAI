@@ -5,7 +5,7 @@
         <div class="header-content">
           <router-link to="/" class="logo">
             良策AI
-            <span class="subtitle">智能分析平台</span>
+            <span class="subtitle">智能分析平台Demo</span>
           </router-link>
         </div>
       </el-header>

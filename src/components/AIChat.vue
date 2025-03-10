@@ -74,7 +74,7 @@
                 class="upload-alert"
                 title="温馨提示"
                 type="info"
-                description="为了获得最佳分析效果，请确保上传的征信报告内容完整、清晰。分析过程可能需要几秒钟时间。"
+                description="为了获得最佳分析效果，请确保上传的征信报告内容完整、清晰。分析过程可能需要几十秒钟时间。"
                 show-icon
                 :closable="false"
               />
@@ -151,12 +151,12 @@
             <!-- 左侧分析结果区域 -->
             <div class="result-left">
               <div class="panel-header">
-                <h3>征信报告AI分析结果</h3>
+                <h3>征信报告AI分析结果 <span v-if="analysisDuration > 0" class="analysis-duration">耗时{{analysisDuration}}秒</span></h3>
                 <div class="header-actions">
-                  <el-button size="small" type="primary" @click="downloadResult">
+                  <el-button size="small" type="primary" class="action-button" @click="downloadResult">
                     <el-icon><Download /></el-icon> 下载分析结果
                   </el-button>
-                  <el-button size="small" type="warning" @click="resetAnalysis">
+                  <el-button size="small" type="warning" class="action-button" @click="resetAnalysis">
                     <el-icon><Upload /></el-icon> 重新上传报告
                   </el-button>
                 </div>
@@ -175,13 +175,15 @@
                   <div class="header-actions">
                     <el-button-group>
                       <el-button 
-                        size="small" 
+                        size="small"
+                        class="action-button"
                         :type="showOriginalFile ? 'primary' : 'default'"
                         @click="showOriginalFile = true">
                         <el-icon><Document /></el-icon> 显示原文件
                       </el-button>
                       <el-button 
-                        size="small" 
+                        size="small"
+                        class="action-button"
                         :type="!showOriginalFile ? 'primary' : 'default'"
                         @click="showOriginalFile = false">
                         <el-icon><Reading /></el-icon> 显示提取结果
@@ -203,7 +205,15 @@
               <!-- 下方对话区域 -->
               <div class="result-chat">
                 <div class="panel-header">
-                  <h3>继续向AI咨询</h3>
+                  <h3>
+                    继续向AI咨询
+                    <span v-if="followupThinkingTimer > 0" class="thinking-status">
+                      AI正在思考中{{followupThinkingDots}}，{{followupThinkingTimer}}秒
+                    </span>
+                    <span v-else-if="followupResponseStatus" class="response-status">
+                      {{followupResponseStatus}}，耗时{{followupResponseTime}}秒
+                    </span>
+                  </h3>
                 </div>
                 <div class="panel-content chat-messages">
                   <div v-for="(message, index) in followupMessages" 
@@ -281,6 +291,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { Upload, Document, Check, Delete, CaretRight, RefreshLeft, Download, Reading } from '@element-plus/icons-vue'
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
 
 export default {
   name: 'AIChat',
@@ -319,7 +331,8 @@ export default {
       isImageFile: false,
       extractedText: '',
       analysisStartTime: 0,
-      analysisElapsedTime: 0,
+      analysisEndTime: 0,
+      analysisDuration: 0,
       analysisTimerInterval: null,
       followupMessages: [],
       followupInput: '',
@@ -334,7 +347,12 @@ export default {
       isTaskCancelled: false,
       cancelTokenSource: null,
       analysisTimer: 0,
-      showOriginalFile: true
+      showOriginalFile: true,
+      followupThinkingTimer: 0,
+      followupThinkingInterval: null,
+      followupThinkingDots: '',
+      followupResponseStatus: '',
+      followupResponseTime: 0
     }
   },
   computed: {
@@ -720,6 +738,7 @@ export default {
     },
     startAnalysisTimer() {
       this.analysisTimer = 0
+      this.analysisStartTime = Date.now()
       this.analysisTimerInterval = setInterval(() => {
         this.analysisTimer++
       }, 1000)
@@ -728,8 +747,41 @@ export default {
       if (this.analysisTimerInterval) {
         clearInterval(this.analysisTimerInterval)
         this.analysisTimerInterval = null
+        this.analysisEndTime = Date.now()
+        this.analysisDuration = Math.round((this.analysisEndTime - this.analysisStartTime) / 1000)
       }
     },
+    startFollowupThinking() {
+      this.followupThinkingTimer = 0
+      this.followupThinkingDots = ''
+      this.followupResponseStatus = ''
+      this.followupResponseTime = 0
+      
+      // 启动计时器
+      this.followupThinkingInterval = setInterval(() => {
+        this.followupThinkingTimer++
+        // 动态更新省略号
+        this.followupThinkingDots = '.'.repeat((this.followupThinkingTimer % 3) + 1)
+      }, 1000)
+    },
+    
+    stopFollowupThinking(status = 'success', error = '') {
+      if (this.followupThinkingInterval) {
+        clearInterval(this.followupThinkingInterval)
+        this.followupThinkingInterval = null
+        this.followupResponseTime = this.followupThinkingTimer
+        this.followupThinkingTimer = 0
+        this.followupThinkingDots = ''
+        
+        // 设置响应状态
+        if (status === 'success') {
+          this.followupResponseStatus = 'AI已回复'
+        } else {
+          this.followupResponseStatus = error || '请求失败'
+        }
+      }
+    },
+    
     async sendFollowupMessage() {
       if (!this.followupInput.trim() || this.followupLoading) return
       
@@ -742,28 +794,30 @@ export default {
       this.followupInput = ''
       this.followupLoading = true
       
+      // 启动思考状态显示
+      this.startFollowupThinking()
+      
       try {
-        // 创建一个包含原始分析和后续问题的消息数组
         const contextMessages = [
-          // 添加系统消息，指示AI继续回答基于原始内容的问题
           {
             role: 'system',
             content: '请结合本次对话刚开始时提供的待分析的内容，继续回答'
           },
-          // 添加原始用户上传的消息和AI的分析结果
           ...this.messages,
-          // 添加用户的后续问题
           userMessage
         ]
         
         const response = await sendMessage(contextMessages, this.chatType)
         this.followupMessages.push(response)
+        // 成功获取回复
+        this.stopFollowupThinking('success')
       } catch (error) {
+        // 发生错误
+        this.stopFollowupThinking('error', error.message || '发送消息失败，请重试')
         ElMessage.error('发送消息失败，请重试')
       } finally {
         this.followupLoading = false
         this.$nextTick(() => {
-          // 滚动到对话区域底部
           const chatMessages = document.querySelector('.chat-messages')
           if (chatMessages) {
             chatMessages.scrollTop = chatMessages.scrollHeight
@@ -776,21 +830,66 @@ export default {
     handleShiftEnter(e) {
       // 不阻止默认行为，允许换行
     },
-    downloadResult() {
+    async downloadResult() {
       try {
-        const content = this.messages[this.messages.length - 1].content
+        ElMessage.info('正在生成PDF，请稍候...')
         
-        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' })
+        const content = document.querySelector('.result-content')
+        if (!content) {
+          throw new Error('未找到分析结果内容')
+        }
+
+        // 创建一个临时容器来优化PDF布局
+        const tempContainer = document.createElement('div')
+        tempContainer.style.width = '800px'
+        tempContainer.style.padding = '40px'
+        tempContainer.style.position = 'absolute'
+        tempContainer.style.left = '-9999px'
+        tempContainer.innerHTML = content.innerHTML
+        document.body.appendChild(tempContainer)
+
+        // 确保所有图片都加载完成
+        const images = tempContainer.getElementsByTagName('img')
+        await Promise.all(Array.from(images).map(img => {
+          if (img.complete) return Promise.resolve()
+          return new Promise(resolve => {
+            img.onload = resolve
+            img.onerror = resolve
+          })
+        }))
+
+        // 生成PDF
+        const canvas = await html2canvas(tempContainer, {
+          scale: 2,
+          useCORS: true,
+          logging: false
+        })
+
+        // 移除临时容器
+        document.body.removeChild(tempContainer)
+
+        const imgData = canvas.toDataURL('image/jpeg', 1.0)
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'pt',
+          format: 'a4'
+        })
+
+        const pdfWidth = pdf.internal.pageSize.getWidth()
+        const pdfHeight = pdf.internal.pageSize.getHeight()
+        const imgWidth = canvas.width
+        const imgHeight = canvas.height
+        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight)
+        const imgX = (pdfWidth - imgWidth * ratio) / 2
+        const imgY = 30
+
+        pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio)
+
+        // 生成文件名
+        const fileName = `征信报告分析结果_${new Date().toISOString().slice(0, 10)}.pdf`
         
-        const link = document.createElement('a')
-        link.href = URL.createObjectURL(blob)
-        link.download = `征信报告分析结果_${new Date().toISOString().slice(0, 10)}.md`
-        
-        document.body.appendChild(link)
-        link.click()
-        
-        document.body.removeChild(link)
-        URL.revokeObjectURL(link.href)
+        // 下载PDF
+        pdf.save(fileName)
         
         ElMessage.success('分析结果已下载')
       } catch (error) {
@@ -1006,6 +1105,8 @@ export default {
     if (this.resizeThrottleTimeout) {
       clearTimeout(this.resizeThrottleTimeout)
     }
+    
+    this.stopFollowupThinking()
   }
 }
 </script>
@@ -1215,9 +1316,11 @@ export default {
 }
 
 .action-button {
-  min-width: 120px;
-  height: 40px;
-  font-size: 14px;
+  height: 34px !important;
+  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .upload-instructions {
@@ -1288,12 +1391,14 @@ export default {
 }
 
 .panel-header {
-  padding: 12px 16px;
+  padding: 0 16px;
+  height: 50px;
   border-bottom: 1px solid #ebeef5;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background-color: #f5f7fa;
+  z-index: 1;
 }
 
 .panel-header h3 {
@@ -1406,31 +1511,9 @@ export default {
   border-bottom: 1px solid #dcdfe6;
 }
 
-.panel-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid #ebeef5;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background-color: #f5f7fa;
-  z-index: 1;
-}
-
 .header-actions {
   display: flex;
   gap: 8px;
-}
-
-.panel-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0;
-  position: relative;
-}
-
-.result-content {
-  padding: 20px;
-  line-height: 1.6;
 }
 
 .chat-messages {
@@ -1700,5 +1783,54 @@ export default {
 
 .back-button {
   display: none;
+}
+
+.analysis-duration {
+  font-size: 14px;
+  color: #909399;
+  font-weight: normal;
+  margin-left: 8px;
+}
+
+.thinking-status {
+  font-size: 14px;
+  color: #909399;
+  font-weight: normal;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.thinking-status::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background-color: #409EFF;
+  border-radius: 50%;
+  margin-right: 6px;
+  animation: pulse 1s infinite;
+}
+
+.response-status {
+  font-size: 14px;
+  color: #909399;
+  font-weight: normal;
+  margin-left: 8px;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
 }
 </style> 
