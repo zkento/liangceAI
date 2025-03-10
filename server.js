@@ -20,7 +20,12 @@ const PORT = process.env.PORT || 3000;
 
 // DeepSeek API配置
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1';
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+
+// 检查API密钥是否设置
+if (!DEEPSEEK_API_KEY) {
+  console.error('错误: DEEPSEEK_API_KEY环境变量未设置，请在.env文件中配置');
+}
 
 // 配置文件上传
 const storage = multer.diskStorage({
@@ -209,6 +214,11 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
       console.log('开始调用DeepSeek API进行分析...');
       console.log('提取的文本长度:', extractedText.length);
       
+      // 检查API密钥是否设置
+      if (!DEEPSEEK_API_KEY) {
+        throw new Error('DEEPSEEK_API_KEY环境变量未设置，无法调用AI服务');
+      }
+      
       // 调用DeepSeek API
       const deepseekResponse = await axios.post(`${DEEPSEEK_API_URL}/chat/completions`, {
         model: 'deepseek-chat',
@@ -348,6 +358,11 @@ app.post('/api/chat', async (req, res) => {
     try {
       console.log('开始调用DeepSeek API进行聊天...');
       console.log(`用户最后一条消息长度: ${lastUserMessage.content.length}`);
+      
+      // 检查API密钥是否设置
+      if (!DEEPSEEK_API_KEY) {
+        throw new Error('DEEPSEEK_API_KEY环境变量未设置，无法调用AI服务');
+      }
       
       // 设置axios请求超时
       const axiosConfig = {

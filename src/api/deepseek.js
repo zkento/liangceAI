@@ -1,8 +1,12 @@
-// 最后修改时间: 2024-03-19
+// 最后修改时间: 2024-05-15
 
 import axios from 'axios'
-// 从环境变量中读取API密钥，而不是从config/api.js文件
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-784a796030234715aed3c35ca3b13826'
+// 从环境变量中读取API密钥
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY
+// 如果没有设置API密钥，记录错误
+if (!DEEPSEEK_API_KEY) {
+  console.error('错误: DEEPSEEK_API_KEY环境变量未设置，请在.env文件中配置')
+}
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1'
 import { getPromptConfig } from '@/config/prompts'
 
@@ -160,6 +164,30 @@ function buildPrecisePrompt(type, preprocessedData) {
  * @returns {Promise<Object>} - AI 响应结果
  */
 export async function chatWithAI(content, type = 'personal-credit') {
+  // 检查API密钥是否设置
+  if (!DEEPSEEK_API_KEY) {
+    throw new Error('DEEPSEEK_API_KEY环境变量未设置，无法调用AI服务')
+  }
+  
+  // 获取缓存键
+  const cacheKey = generateCacheKey(type, content)
+  
+  // 尝试从缓存获取
+  const cachedResult = getFromCache(cacheKey)
+  if (cachedResult) {
+    console.log('从缓存中获取AI响应')
+    return cachedResult
+  }
+  
+  // 预处理数据
+  let preprocessedData = content
+  if (type === 'personal-credit') {
+    preprocessedData = preprocessCreditReport(content)
+  }
+  
+  // 构建提示词
+  const prompt = buildPrecisePrompt(type, preprocessedData)
+  
   try {
     // 检查内容是否为 PDF 文件内容（以 %PDF 开头）
     if (typeof content === 'string' && content.startsWith('%PDF')) {
@@ -212,9 +240,12 @@ export async function chatWithAI(content, type = 'personal-credit') {
       throw new Error('AI 响应为空')
     }
     
+    const aiResponse = response.data.choices[0].message.content
+    setCache(cacheKey, { data: aiResponse, timestamp: Date.now() })
+    
     return {
       success: true,
-      data: response.data.choices[0].message.content
+      data: aiResponse
     }
     
   } catch (error) {
