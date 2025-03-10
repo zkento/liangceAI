@@ -276,9 +276,13 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
 // 获取提示词配置
 function getPromptConfigForType(chatType) {
   try {
-    // 尝试从配置文件中获取提示词配置
+    // 从配置文件中获取提示词配置
     const { getPromptConfig } = require('./src/config/prompts/index.js');
     const config = getPromptConfig(chatType);
+    
+    if (!config) {
+      throw new Error(`未找到类型 ${chatType} 的提示词配置`);
+    }
     
     return {
       systemPrompt: config.role,
@@ -286,38 +290,7 @@ function getPromptConfigForType(chatType) {
     };
   } catch (error) {
     console.error('加载提示词配置失败:', error);
-    
-    // 如果加载失败，使用默认配置
-    const promptConfigs = {
-      'personal-credit': {
-        systemPrompt: `你是一位专业的个人征信分析师，擅长分析个人征信报告并提供专业建议。
-请按照以下要求分析用户上传的个人征信报告：
-1. 分析报告中的基本信息、贷款信息、信用卡信息、担保信息和查询记录等各个部分
-2. 对重要数据进行高亮显示，使用<span style="color:green">绿色</span>标记良好状况，使用<span style="color:red">红色</span>标记风险项
-3. 提供专业的分析和建议，帮助用户理解自己的征信状况
-4. 使用Markdown格式输出，保证结构清晰
-5. 如果发现征信报告中存在异常或风险项，请明确指出并提供改善建议`
-      },
-      'business-credit': {
-        systemPrompt: `你是一位专业的企业征信分析师，擅长分析企业征信报告并提供专业建议。
-请按照以下要求分析用户上传的企业征信报告：
-1. 分析报告中的企业基本信息、财务状况、信贷记录、对外担保和查询记录等各个部分
-2. 对重要数据进行高亮显示，使用<span style="color:green">绿色</span>标记良好状况，使用<span style="color:red">红色</span>标记风险项
-3. 评估企业的整体信用状况和融资能力
-4. 使用Markdown格式输出，保证结构清晰
-5. 如果发现征信报告中存在异常或风险项，请明确指出并提供改善建议`
-      },
-      'default': {
-        systemPrompt: `你是一位专业的文档分析师，擅长分析各类文档并提取关键信息。
-请按照以下要求分析用户上传的文档：
-1. 识别文档类型并提取关键信息
-2. 对重要数据进行高亮显示
-3. 提供专业的分析和建议
-4. 使用Markdown格式输出，保证结构清晰`
-      }
-    };
-    
-    return promptConfigs[chatType] || promptConfigs['default'];
+    throw error; // 向上抛出错误，而不是使用默认配置
   }
 }
 

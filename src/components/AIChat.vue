@@ -1440,19 +1440,19 @@ export default {
 }
 
 .chat-input {
-  padding: 12px;
-  border-top: 1px solid #ebeef5;
   display: flex;
-  gap: 12px;
-  background-color: white;
-}
-
-.chat-input .el-input {
-  flex: 1;
-}
-
-.chat-input .el-button {
-  align-self: flex-end;
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid #eee;
+  
+  .el-textarea {
+    flex: 1;
+  }
+  
+  .el-button {
+    height: auto;
+    align-self: stretch;
+  }
 }
 
 .resizer-horizontal {
@@ -1534,6 +1534,7 @@ export default {
 .message.user .text {
   background: #f8f7f5;
   color: black;
+  white-space: pre-wrap;
 }
 
 /* Markdown样式 */
@@ -1655,54 +1656,46 @@ export default {
 
 .extraction-overlay {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 50px;
+  right: 20px;
+  z-index: 1000;
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 100;
-  pointer-events: none;
-  background: none;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: rgba(20, 20, 20, 0.7);
 }
 
 .overlay-content {
-  text-align: center;
-  color: #303133;
-  background-color: rgba(255, 255, 255, 0.9);
-  padding: 20px 40px;
-  border-radius: 8px;
-  pointer-events: auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.loading-animation {
-  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid rgba(64, 158, 255, 0.3);
+  width: 20px;
+  height: 20px;
+  border: 2px solid #fff;
+  border-top-color: transparent;
   border-radius: 50%;
-  border-top-color: #409EFF;
-  animation: spin 1s ease-in-out infinite;
-  margin: 0 auto;
+  animation: spin 1s linear infinite;
+}
+
+.overlay-message {
+  color: #fff;
+  font-size: 14px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.overlay-timer {
+  color: #fff;
+  font-size: 12px;
+  margin: 0;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-.overlay-message {
-  font-size: 18px;
-  margin: 16px 0 8px;
-  color: #303133;
-}
-
-.overlay-timer {
-  font-size: 14px;
-  color: #606266;
 }
 
 .back-button {

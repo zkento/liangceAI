@@ -6,7 +6,7 @@ module.exports = {
   
   // 文件上传提示
   uploadTip: {
-    title: '请上传融资相关资料',·
+    title: '请上传融资相关资料',
     description: '支持PDF文件或清晰的财务资料照片',
     accept: '.pdf,.jpg,.jpeg,.png',
     maxSize: 10, // MB

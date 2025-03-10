@@ -138,62 +138,19 @@ function preprocessCreditReport(content) {
  * @returns {string} - 完整的提示词
  */
 function buildPrecisePrompt(type, preprocessedData) {
+  // 获取提示词配置
+  const promptConfig = getPromptConfig(type);
+  if (!promptConfig) {
+    throw new Error(`未找到类型 ${type} 的提示词配置`);
+  }
+
   // 如果有原始内容，优先使用原始内容
-  const reportContent = preprocessedData.originalContent || JSON.stringify(preprocessedData.sections, null, 2)
+  const reportContent = preprocessedData.originalContent || JSON.stringify(preprocessedData.sections, null, 2);
   
-  const basePrompt = `你是一个专业的征信分析师。请仔细分析以下征信报告内容，并提供详细的分析结果。
-
-征信报告原文：
-\`\`\`
-${reportContent}
-\`\`\`
-
-分析要求：
-1. 严格基于报告内容进行分析，禁止添加任何虚构信息
-2. 如果某部分信息缺失，请明确标注"此部分信息报告中未提供"
-3. 提供的每个结论都必须引用具体数据支持
-4. 保持数据的原始值，不进行推测或计算
-
-请按以下格式输出分析结果：
-
-<div class="credit-report">
-  <section class="basic-info">
-    <h3>基本信息分析</h3>
-    [分析内容]
-  </section>
+  // 构建完整的提示词
+  const fullPrompt = `${promptConfig.role}\n\n${promptConfig.basePrompt}\n\n征信报告原文：\n\`\`\`\n${reportContent}\n\`\`\``;
   
-  <section class="loan-info">
-    <h3>贷款信息分析</h3>
-    [分析内容]
-  </section>
-  
-  <section class="credit-card-info">
-    <h3>信用卡信息分析</h3>
-    [分析内容]
-  </section>
-  
-  <section class="guarantee-info">
-    <h3>担保信息分析</h3>
-    [分析内容]
-  </section>
-  
-  <section class="query-info">
-    <h3>查询记录分析</h3>
-    [分析内容]
-  </section>
-  
-  <section class="summary">
-    <h3>总体评估</h3>
-    [基于以上分析的总结]
-  </section>
-</div>
-
-注意：
-- 每个部分必须基于实际数据
-- 如发现异常或风险，请用红色文字标注
-- 保持客观专业的分析语言`
-
-  return basePrompt
+  return fullPrompt;
 }
 
 /**
@@ -202,7 +159,7 @@ ${reportContent}
  * @param {string} type - 分析类型
  * @returns {Promise<Object>} - AI 响应结果
  */
-export async function chatWithAI(content, type = 'credit') {
+export async function chatWithAI(content, type = 'personal-credit') {
   try {
     // 检查内容是否为 PDF 文件内容（以 %PDF 开头）
     if (typeof content === 'string' && content.startsWith('%PDF')) {
