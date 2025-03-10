@@ -8,6 +8,8 @@ const multer = require('multer');
 const fs = require('fs');
 const axios = require('axios');
 const FormData = require('form-data');
+const pdfParse = require('pdf-parse');
+const { createWorker } = require('tesseract.js');
 
 // 导入本地文档处理服务
 const { extractTextFromPDF, extractTextFromImage } = require('./src/api/documentService');
@@ -205,6 +207,7 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
     
     try {
       console.log('开始调用DeepSeek API进行分析...');
+      console.log('提取的文本长度:', extractedText.length);
       
       // 调用DeepSeek API
       const deepseekResponse = await axios.post(`${DEEPSEEK_API_URL}/chat/completions`, {
@@ -225,17 +228,20 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-        }
+        },
+        timeout: 180000 // 3分钟超时
       });
       
       // 提取DeepSeek的回复
       const aiResponse = deepseekResponse.data.choices[0].message.content;
       
       console.log('成功获取AI分析结果');
+      console.log('AI回复长度:', aiResponse.length);
       
       // 返回文件信息和分析结果
       res.json({
         success: true,
+        extractedText: extractedText, // 添加提取的文本
         file: {
           filename: req.file.filename,
           originalname: req.file.originalname,
@@ -249,14 +255,24 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
       });
     } catch (error) {
       console.error('AI分析失败:', error);
+      console.error('错误详情:', error.response?.data || error.message);
       
-      // 如果API调用失败，返回错误信息
-      res.status(500).json({ 
+      let errorMessage = '服务器处理超时，请稍后重试';
+      let statusCode = 500;
+      
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        statusCode = 504;
+      } else if (error.response) {
+        statusCode = error.response.status;
+        errorMessage = error.response.data?.error || error.message;
+      }
+      
+      res.status(statusCode).json({ 
         error: 'AI分析失败', 
-        details: error.message,
+        details: errorMessage,
         message: {
           role: 'assistant',
-          content: `很抱歉，AI分析过程中出现错误: ${error.message}。请稍后重试或联系系统管理员。`
+          content: `很抱歉，AI分析过程中出现错误: ${errorMessage}`
         }
       });
     }
@@ -409,62 +425,42 @@ app.post('/api/chat', async (req, res) => {
 // 添加PDF文本提取API端点
 app.post('/api/extract-text', upload.single('file'), handleMulterError, async (req, res) => {
   console.log('收到文件上传请求');
-  // 设置更长的请求超时时间
-  req.setTimeout(300000); // 5分钟超时
-  res.setTimeout(300000); // 5分钟超时
+  console.log('文件信息:', {
+    filename: req.file?.originalname,
+    mimetype: req.file?.mimetype,
+    size: req.file?.size ? `${(req.file.size / 1024 / 1024).toFixed(2)}MB` : 'unknown'
+  });
   
   try {
     if (!req.file) {
-      console.error('未找到文件');
-      return res.status(400).json({ success: false, error: '未找到文件' });
+      throw new Error('未找到文件');
     }
-
-    const file = req.file;
-    const filePath = file.path;
-    const fileName = file.originalname;
-    const fileType = file.mimetype;
     
-    console.log(`开始处理文件:
-      文件名: ${fileName}
-      类型: ${fileType}
-      大小: ${(file.size / 1024 / 1024).toFixed(2)}MB
-      临时路径: ${filePath}
-    `);
+    const filePath = req.file.path;
+    const fileType = req.file.mimetype;
     
     let extractedText = '';
     
-    if (fileType.includes('pdf')) {
-      try {
-        console.log('开始读取PDF文件...');
-        const fileBuffer = fs.readFileSync(filePath);
-        console.log(`文件读取成功，大小: ${fileBuffer.length} 字节`);
-        
-        console.log('开始解析PDF...');
-        console.time('pdf-parse');
-        extractedText = await extractTextFromPDF(fileBuffer, fileName);
-        console.timeEnd('pdf-parse');
-        
-        console.log(`PDF解析完成，提取文本长度: ${extractedText.length}`);
-      } catch (pdfError) {
-        console.error('PDF处理错误:', pdfError);
-        throw new Error(`PDF处理失败: ${pdfError.message}`);
-      }
+    if (fileType === 'application/pdf') {
+      console.log('开始提取PDF文本...');
+      const dataBuffer = fs.readFileSync(filePath);
+      const data = await pdfParse(dataBuffer);
+      extractedText = data.text;
+      console.log('PDF文本提取完成，文本长度:', extractedText.length);
+    } else if (fileType.startsWith('image/')) {
+      console.log('开始OCR图片文本...');
+      const worker = await createWorker('chi_sim');
+      const { data: { text } } = await worker.recognize(filePath);
+      await worker.terminate();
+      extractedText = text;
+      console.log('OCR文本提取完成，文本长度:', extractedText.length);
     } else {
-      throw new Error('不支持的文件类型，仅支持PDF文件');
+      throw new Error('不支持的文件类型');
     }
     
-    // 清理临时文件
-    try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        console.log(`临时文件已删除: ${filePath}`);
-      }
-    } catch (cleanupError) {
-      console.error('清理临时文件失败:', cleanupError);
-    }
+    // 记录提取的文本内容（用于调试）
+    console.log('提取的文本内容预览:', extractedText.substring(0, 200) + '...');
     
-    // 返回提取的文本
-    console.log(`准备返回提取的文本，长度: ${extractedText.length}`);
     res.json({
       success: true,
       text: extractedText
@@ -473,6 +469,7 @@ app.post('/api/extract-text', upload.single('file'), handleMulterError, async (r
     
   } catch (error) {
     console.error('文本提取错误:', error);
+    console.error('错误详情:', error.stack);
     res.status(500).json({
       success: false,
       error: error.message || '文本提取失败'

@@ -211,7 +211,7 @@
                       AI正在思考中{{followupThinkingDots}}，{{followupThinkingTimer}}秒
                     </span>
                     <span v-else-if="followupResponseStatus" class="response-status">
-                      {{followupResponseStatus}}，耗时{{followupResponseTime}}秒
+                      {{followupResponseStatus}} 耗时{{followupResponseTime}}秒
                     </span>
                   </h3>
                 </div>
@@ -291,8 +291,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { Upload, Document, Check, Delete, CaretRight, RefreshLeft, Download, Reading } from '@element-plus/icons-vue'
-import html2canvas from 'html2canvas'
-import { jsPDF } from 'jspdf'
 
 export default {
   name: 'AIChat',
@@ -466,7 +464,7 @@ export default {
           this.activeStep = 2 // 进入第二步：提取报告内容
           this.startExtractionAnimation()
           
-          const isPDF = fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')
+        const isPDF = fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')
           const isImage = fileType.startsWith('image/')
           
           if (isPDF || isImage) {
@@ -485,101 +483,103 @@ export default {
                 // 不设置超时，使用服务器端的超时控制
               })
               .then(response => {
-                if (this.isTaskCancelled) return;
+                if (this.isTaskCancelled) return
                 
                 if (!response.ok) {
                   // 处理HTTP错误状态
                   if (response.status === 504) {
-                    throw new Error('请求超时，文件可能过大或服务器处理时间过长');
+                    throw new Error('请求超时，文件可能过大或服务器处理时间过长')
                   } else if (response.status === 413) {
-                    throw new Error('文件大小超过限制（20MB）');
-        } else {
+                    throw new Error('文件大小超过限制（20MB）')
+                  } else {
                     return response.text().then(text => {
                       try {
                         // 尝试解析JSON
-                        const errorData = JSON.parse(text);
-                        throw new Error(errorData.error || `服务器错误 (${response.status})`);
+                        const errorData = JSON.parse(text)
+                        throw new Error(errorData.error || `服务器错误 (${response.status})`)
                       } catch (e) {
                         // 如果不是JSON，直接使用文本
-                        throw new Error(`服务器错误 (${response.status}): ${text.substring(0, 100)}`);
+                        throw new Error(`服务器错误 (${response.status}): ${text.substring(0, 100)}`)
                       }
-                    });
+                    })
                   }
                 }
-                return response.json();
+                return response.json()
               })
               .then(data => {
-                if (this.isTaskCancelled) return;
+                if (this.isTaskCancelled) return
                 
                 if (data.success) {
                   // 显示提取的文本
-                  this.extractedText = data.text;
-                  this.extractionProgress = 100;
+                  this.extractedText = data.text
+                  console.log('提取的文本长度:', this.extractedText.length)
+                  this.extractionProgress = 100
                   
                   // 延迟进入下一步
                   setTimeout(() => {
-                    if (this.isTaskCancelled) return;
+                    if (this.isTaskCancelled) return
                     
                     // 进入AI分析阶段，显示蒙层
-                    this.activeStep = 3;
+                    this.activeStep = 3
                     // 启动分析计时器
-                    this.startAnalysisTimer();
+                    this.startAnalysisTimer()
                     
                     // 调用API进行分析
                     uploadPDFFile(file, this.chatType).then(response => {
-                      if (this.isTaskCancelled) return;
+                      if (this.isTaskCancelled) return
                       
-                      console.log(`${isPDF ? 'PDF' : '图片'}上传成功，获取到响应:`, response);
+                      console.log(`${isPDF ? 'PDF' : '图片'}上传成功，获取到响应:`, response)
                       
-          const userMessage = {
-            role: 'user',
+            const userMessage = {
+              role: 'user',
                         content: `我上传了征信报告${isPDF ? 'PDF文件' : '图片'}：${fileName}，请帮我分析。`
-                      };
-                      
-                      this.messages.push(userMessage);
-                      this.messages.push(response);
-                      
+            }
+            
+            this.messages.push(userMessage)
+            this.messages.push(response)
+            
                       // 确保只有在成功获取AI分析结果后才更新状态
                       this.$nextTick(() => {
-                        if (this.isTaskCancelled) return;
+                        if (this.isTaskCancelled) return
                         
-                        this.analysisCompleted = true;
-                        this.analysisState = 'result';
-                        this.activeStep = 4;
-                        this.stopAnalysisTimer();
-                        this.scrollToBottom();
-                      });
+                        this.analysisCompleted = true
+            this.analysisState = 'result'
+            this.activeStep = 4
+                        this.stopAnalysisTimer()
+                        this.scrollToBottom()
+                      })
                     }).catch(error => {
-                      if (this.isTaskCancelled) return;
+                      if (this.isTaskCancelled) return
                       
-                      console.error(`${isPDF ? 'PDF' : '图片'}处理错误详情:`, error);
-                      ElMessage.error(`${isPDF ? 'PDF' : '图片'}处理失败: ${error.message || '未知错误'}`);
-                      this.resetAnalysis();
-                    });
-                  }, 2000);
-                } else {
-                  throw new Error(data.error || '文本提取失败');
+                      console.error(`${isPDF ? 'PDF' : '图片'}处理错误详情:`, error)
+                      const errorMessage = error.message || '未知错误'
+                      ElMessage.error(`${isPDF ? 'PDF' : '图片'}处理失败: ${errorMessage}`)
+            this.resetAnalysis()
+                    })
+                  }, 2000)
+        } else {
+                  throw new Error(data.error || '文本提取失败')
                 }
               })
               .catch(error => {
-                if (this.isTaskCancelled) return;
+                if (this.isTaskCancelled) return
                 
                 // 处理网络错误、超时等
-                let errorMessage = error.message || '未知错误';
+                let errorMessage = error.message || '未知错误'
                 
                 // 特殊处理常见错误
                 if (error.name === 'AbortError') {
-                  errorMessage = '请求超时，文件可能过大或网络连接不稳定';
+                  errorMessage = '请求超时，文件可能过大或网络连接不稳定'
                 } else if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-                  errorMessage = '网络连接错误，请检查您的网络连接';
+                  errorMessage = '网络连接错误，请检查您的网络连接'
                 } else if (errorMessage.includes('SyntaxError')) {
-                  errorMessage = '服务器返回了无效的数据格式';
+                  errorMessage = '服务器返回了无效的数据格式'
                 }
                 
-                console.error('文本提取错误:', error);
-                ElMessage.error(`文本提取失败: ${errorMessage}`);
-                this.resetAnalysis();
-              });
+                console.error('文本提取错误:', error)
+                ElMessage.error(`文本提取失败: ${errorMessage}`)
+                this.resetAnalysis()
+              })
       } catch (error) {
               if (this.isTaskCancelled) return
               
@@ -832,65 +832,38 @@ export default {
     },
     async downloadResult() {
       try {
-        ElMessage.info('正在生成PDF，请稍候...')
-        
         const content = document.querySelector('.result-content')
         if (!content) {
           throw new Error('未找到分析结果内容')
         }
 
-        // 创建一个临时容器来优化PDF布局
-        const tempContainer = document.createElement('div')
-        tempContainer.style.width = '800px'
-        tempContainer.style.padding = '40px'
-        tempContainer.style.position = 'absolute'
-        tempContainer.style.left = '-9999px'
-        tempContainer.innerHTML = content.innerHTML
-        document.body.appendChild(tempContainer)
+        // 获取原始markdown文本
+        const markdownContent = this.messages[this.messages.length - 1].content
 
-        // 确保所有图片都加载完成
-        const images = tempContainer.getElementsByTagName('img')
-        await Promise.all(Array.from(images).map(img => {
-          if (img.complete) return Promise.resolve()
-          return new Promise(resolve => {
-            img.onload = resolve
-            img.onerror = resolve
-          })
-        }))
+        // 添加标题和元信息
+        const header = `# 征信报告分析结果\n\n` +
+          `- 生成时间：${new Date().toLocaleString()}\n` +
+          `- 分析耗时：${this.analysisDuration}秒\n\n` +
+          `---\n\n`
 
-        // 生成PDF
-        const canvas = await html2canvas(tempContainer, {
-          scale: 2,
-          useCORS: true,
-          logging: false
-        })
+        const fullContent = header + markdownContent
 
-        // 移除临时容器
-        document.body.removeChild(tempContainer)
+        // 创建Blob对象
+        const blob = new Blob([fullContent], { type: 'text/markdown;charset=utf-8' })
 
-        const imgData = canvas.toDataURL('image/jpeg', 1.0)
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'pt',
-          format: 'a4'
-        })
+        // 创建下载链接
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = `征信报告分析结果_${new Date().toISOString().slice(0, 10)}.md`
 
-        const pdfWidth = pdf.internal.pageSize.getWidth()
-        const pdfHeight = pdf.internal.pageSize.getHeight()
-        const imgWidth = canvas.width
-        const imgHeight = canvas.height
-        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight)
-        const imgX = (pdfWidth - imgWidth * ratio) / 2
-        const imgY = 30
+        // 触发下载
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
 
-        pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio)
+        // 清理URL对象
+        URL.revokeObjectURL(link.href)
 
-        // 生成文件名
-        const fileName = `征信报告分析结果_${new Date().toISOString().slice(0, 10)}.pdf`
-        
-        // 下载PDF
-        pdf.save(fileName)
-        
         ElMessage.success('分析结果已下载')
       } catch (error) {
         console.error('下载分析结果时出错:', error)
@@ -1127,7 +1100,7 @@ export default {
 .chat-container {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 0 20px 20px 20px;
   background: white;
 }
 
@@ -1806,7 +1779,7 @@ export default {
   display: inline-block;
   width: 6px;
   height: 6px;
-  background-color: #409EFF;
+  background-color: #1b5dd3;
   border-radius: 50%;
   margin-right: 6px;
   animation: pulse 1s infinite;
