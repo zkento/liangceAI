@@ -1,0 +1,56 @@
+---
+description: 项目文件应该遵循的目录结构规范
+globs: 
+---
+
+# 项目文件应该遵循的目录结构规范
+- main.ts
+- App.vue
+- index.html // 如果只有一个页面的话，可以直接在这里写
+- assets // 静态资源的目录可以放在对应的组件目录里，也可以这里有个全局的一个目录
+  - images
+    - url.png
+  - icon
+    - bbb.svg
+- components
+  - h5 // 下面也可以分为pc、h5、甚至common
+    - staff-info
+      - index.ts
+      - example
+        - index.vue
+      - src
+        - StaffInfo.vue
+- config
+  - index.ts
+  - h5 // config里面也可以分目录，比如pc、h5、common
+- pages
+  - h5
+    - info-card // 每个目录作为一个页面，页面之间可能存在复用和嵌套的情况
+      - index.vue
+- api // api请求层，也可以叫service层，但是我觉得service层叫的比较重
+  - getToolsReq.ts
+  - index.ts
+  - mergeReq.ts
+- entries // 对于多入口项目可以增加一个entry目录
+  - h5
+    - adapter // 该页面的一些适配器可以放在这个里面
+    - main.ts
+    - index.html
+    - App.vue
+  - pc
+    - main.ts
+    - index.html
+    - App.vue
+- router
+  - h5 // 这样各个目录之间的路由说不定也可以复用一定程度
+    - index.ts
+  - pc
+    - index.ts
+- store // 这样各个store之间说不定也可以共用一定程度
+  - h5
+    - index.ts
+  - pc
+    - index.ts
+- utils // 原则上放一些与具体页面没有关联的抽象工具类
+  - index.ts
+  - urlBridge.ts // 这个文件可以放到entry里

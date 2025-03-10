@@ -1,0 +1,12 @@
+---
+description: 项目所使用的技术栈
+globs: 
+---
+
+# 项目所使用的技术栈
+- 使用Vue3
+- 使用webpack5进行构建
+- 使用Npm包进行管理
+- 使用element-plus作为组件库
+- 使用Node.js v16版本
+- 项目使用js，不使用ts

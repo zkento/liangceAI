@@ -1,0 +1,29 @@
+---
+description: Vue组件目录结构创建规范
+globs: 
+---
+
+# Vue组件目录结构创建规范
+
+- 当我需要你创建一个Vue组件时，你应该判断这是一个复杂组件还是简单组件，你可以从我告诉你的需求中判断是否有明确提及这是一个复杂或者简单的组件，如果没有提及，你可以自行判断，并给出判断结论
+- 如果是简单的Vue组件，在创建时，可以只存在一个简单的 `.vue` 文件导出使用即可
+- 如果是复杂的Vue组件，你需要先创建一个组件同名的中划线命名目录（如果组件名不是中划线命名请自动转换一下）
+  - 目录下面的结构和功能如下所示：
+    ```
+    - new-vue-comp-name-dir
+      - index.js `默认导出NewVueCompName.vue组件，也可能还需要导出别的组件`
+      - src
+        - assets `该组件所使用的静态资源`
+        - NewVueCompName.vue `默认导出的Vue组件`
+        - ... `其他拆分的Vue组件`
+- index.js文件导出的内容，要求先统一导入，然后在文件末尾统一进行导出，类似如下：
+    ```
+    import Link from './src/Link.vue';
+    import Btn from './src/Btn.vue';
+
+    export {
+            Btn,
+            Link
+    };
+    export default Link;
+    ```
