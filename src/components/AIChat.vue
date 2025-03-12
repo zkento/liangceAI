@@ -208,7 +208,7 @@
                   <h3>
                     继续向AI咨询
                     <span v-if="followupThinkingTimer > 0" class="thinking-status">
-                      AI正在思考中{{followupThinkingDots}}，{{followupThinkingTimer}}秒
+                      AI正在准备回答中{{followupThinkingDots}}，{{followupThinkingTimer}}秒
                     </span>
                     <span v-else-if="followupResponseStatus" class="response-status">
                       {{followupResponseStatus}} 耗时{{followupResponseTime}}秒
