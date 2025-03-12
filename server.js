@@ -1,4 +1,4 @@
-// 最后修改记录时间 -> 2024-06-05 17:35
+// 最后修改记录时间 -> 2024-06-12 11:30
 
 require('dotenv').config();
 const express = require('express');
@@ -10,6 +10,7 @@ const axios = require('axios');
 const FormData = require('form-data');
 const pdfParse = require('pdf-parse');
 const { createWorker } = require('tesseract.js');
+const chokidar = require('chokidar'); // 添加文件监控库
 
 // 导入本地文档处理服务
 const { extractTextFromPDF, extractTextFromImage } = require('./src/api/documentService');
@@ -105,6 +106,35 @@ app.use((req, res, next) => {
 
 // 静态文件服务
 app.use(express.static(path.join(__dirname, 'dist')));
+
+// 设置提示词文件监控
+const promptsDir = path.join(__dirname, 'src', 'config', 'prompts');
+console.log(`设置提示词文件监控: ${promptsDir}`);
+
+// 初始化文件监控
+const watcher = chokidar.watch(promptsDir, {
+  ignored: /(^|[\/\\])\../, // 忽略隐藏文件
+  persistent: true,
+  ignoreInitial: true // 忽略初始化时的文件添加事件
+});
+
+// 当提示词文件发生变化时清除缓存
+watcher.on('change', filePath => {
+  console.log(`提示词文件已修改: ${filePath}`);
+  clearPromptsCache();
+});
+
+// 清除所有提示词相关的缓存
+function clearPromptsCache() {
+  console.log('清除所有提示词缓存...');
+  Object.keys(require.cache).forEach(function(key) {
+    if (key.includes('prompts')) {
+      delete require.cache[key];
+      console.log(`已清除提示词缓存: ${key}`);
+    }
+  });
+  console.log('提示词缓存清除完成');
+}
 
 // 上传文件接口
 app.post('/api/upload', upload.single('file'), handleMulterError, async (req, res) => {
@@ -302,9 +332,9 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
 // 获取提示词配置
 function getPromptConfigForType(chatType) {
   try {
-    // 清除提示词配置的缓存
+    // 只清除当前chatType对应的提示词缓存
     Object.keys(require.cache).forEach(function(key) {
-      if (key.includes('prompts')) {
+      if (key.includes('prompts') && (key.includes(chatType) || key.includes('index.js'))) {
         delete require.cache[key];
         console.log(`已清除提示词缓存: ${key}`);
       }
@@ -318,7 +348,9 @@ function getPromptConfigForType(chatType) {
       throw new Error(`未找到类型 ${chatType} 的提示词配置`);
     }
     
-    console.log(`已加载${chatType}提示词配置，提示词版本号: ${config.basePrompt.version}`);
+    console.log(`已加载${chatType}提示词配置，基础提示词长度: ${config.basePrompt.length}`);
+    console.log(`基础提示词版本号: ${config.version || '未设置'}`);
+    
     return {
       systemPrompt: config.role,
       basePrompt: config.basePrompt
@@ -403,7 +435,6 @@ app.post('/api/chat', async (req, res) => {
           content: aiResponse
         }
       });
-      console.log(`AI回复内容: ${aiResponse}`);
     } catch (error) {
       console.error('聊天请求处理错误:', error);
       
@@ -515,4 +546,5 @@ app.get('*', (req, res) => {
 // 启动服务器
 app.listen(PORT, () => {
   console.log(`服务器运行在端口 ${PORT}`);
+  console.log(`提示词文件监控已启动，目录: ${promptsDir}`);
 }); 
