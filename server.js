@@ -302,6 +302,14 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
 // 获取提示词配置
 function getPromptConfigForType(chatType) {
   try {
+    // 清除提示词配置的缓存
+    Object.keys(require.cache).forEach(function(key) {
+      if (key.includes('prompts')) {
+        delete require.cache[key];
+        console.log(`已清除提示词缓存: ${key}`);
+      }
+    });
+    
     // 从配置文件中获取提示词配置
     const { getPromptConfig } = require('./src/config/prompts/index.js');
     const config = getPromptConfig(chatType);
@@ -310,6 +318,7 @@ function getPromptConfigForType(chatType) {
       throw new Error(`未找到类型 ${chatType} 的提示词配置`);
     }
     
+    console.log(`已加载${chatType}提示词配置，提示词版本号: ${config.basePrompt.version}`);
     return {
       systemPrompt: config.role,
       basePrompt: config.basePrompt
@@ -394,6 +403,7 @@ app.post('/api/chat', async (req, res) => {
           content: aiResponse
         }
       });
+      console.log(`AI回复内容: ${aiResponse}`);
     } catch (error) {
       console.error('聊天请求处理错误:', error);
       
