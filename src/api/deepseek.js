@@ -1,24 +1,33 @@
 // 最后修改时间: 2024-05-15
 
 import axios from 'axios'
-// 从环境变量中读取API密钥
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY
-// 如果没有设置API密钥，记录错误
-if (!DEEPSEEK_API_KEY) {
-  console.error('错误: DEEPSEEK_API_KEY环境变量未设置，请在.env文件中配置')
-}
+import dotenv from 'dotenv'
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1'
 import { getPromptConfig } from '@/config/prompts'
 
-// 创建axios实例
+// 创建基础axios实例
 const deepseekApi = axios.create({
   baseURL: DEEPSEEK_API_URL,
   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+    'Content-Type': 'application/json'
   },
   timeout: 90000 // 增加超时时间到90秒
 })
+
+// 添加请求拦截器，实时从.env获取API密钥
+deepseekApi.interceptors.request.use(config => {
+  // 重新加载.env文件
+  const env = dotenv.config().parsed || {};
+  const DEEPSEEK_API_KEY = env.DEEPSEEK_API_KEY;
+  
+  if (!DEEPSEEK_API_KEY) {
+    throw new Error('DEEPSEEK_API_KEY环境变量未设置，请在.env文件中配置')
+  }
+  
+  // 设置最新的Authorization header
+  config.headers.Authorization = `Bearer ${DEEPSEEK_API_KEY}`;
+  return config;
+});
 
 // 简单的内存缓存实现
 const cache = new Map()
@@ -164,11 +173,6 @@ function buildPrecisePrompt(type, preprocessedData) {
  * @returns {Promise<Object>} - AI 响应结果
  */
 export async function chatWithAI(content, type = 'personal-credit') {
-  // 检查API密钥是否设置
-  if (!DEEPSEEK_API_KEY) {
-    throw new Error('DEEPSEEK_API_KEY环境变量未设置，无法调用AI服务')
-  }
-  
   // 获取缓存键
   const cacheKey = generateCacheKey(type, content)
   

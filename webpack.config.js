@@ -2,15 +2,6 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { VueLoaderPlugin } = require('vue-loader');
 const webpack = require('webpack');
-const dotenv = require('dotenv');
-
-// 加载.env文件
-const env = dotenv.config().parsed || {};
-// 将环境变量转换为webpack可用的格式
-const envKeys = Object.keys(env).reduce((prev, next) => {
-  prev[`process.env.${next}`] = JSON.stringify(env[next]);
-  return prev;
-}, {});
 
 module.exports = {
   mode: 'development',
@@ -53,8 +44,7 @@ module.exports = {
       template: './src/index.html',
       filename: 'index.html'
     }),
-    new VueLoaderPlugin(),
-    new webpack.DefinePlugin(envKeys)
+    new VueLoaderPlugin()
   ],
   devServer: {
     static: {

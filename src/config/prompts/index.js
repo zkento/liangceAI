@@ -1,5 +1,5 @@
 // 最后修改时间: 2024-06-12 12:35
-const personalCredit = require('./personal-credit-new');
+const personalCredit = require('./personal-credit');
 const businessCredit = require('./business-credit');
 const propertyAdvice = require('./property-advice');
 const financingAdvice = require('./financing-advice');

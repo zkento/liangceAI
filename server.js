@@ -11,6 +11,7 @@ const FormData = require('form-data');
 const pdfParse = require('pdf-parse');
 const { createWorker } = require('tesseract.js');
 const chokidar = require('chokidar'); // 添加文件监控库
+const dotenv = require('dotenv');
 
 // 导入本地文档处理服务
 const { extractTextFromPDF, extractTextFromImage } = require('./src/api/documentService');
@@ -21,12 +22,30 @@ const PORT = process.env.PORT || 3000;
 
 // DeepSeek API配置
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1';
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
-// 检查API密钥是否设置
-if (!DEEPSEEK_API_KEY) {
-  console.error('错误: DEEPSEEK_API_KEY环境变量未设置，请在.env文件中配置');
-}
+// 创建axios实例
+const deepseekApi = axios.create({
+  baseURL: DEEPSEEK_API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  timeout: 90000
+});
+
+// 添加请求拦截器，实时从.env获取API密钥
+deepseekApi.interceptors.request.use(config => {
+  // 重新加载.env文件
+  const env = dotenv.config().parsed || {};
+  const apiKey = env.DEEPSEEK_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error('DEEPSEEK_API_KEY环境变量未设置，请在.env文件中配置');
+  }
+  
+  // 设置最新的Authorization header
+  config.headers.Authorization = `Bearer ${apiKey}`;
+  return config;
+});
 
 // 配置文件上传
 const storage = multer.diskStorage({
@@ -244,13 +263,8 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
       console.log('开始调用DeepSeek API进行分析...');
       console.log('提取的文本长度:', extractedText.length);
       
-      // 检查API密钥是否设置
-      if (!DEEPSEEK_API_KEY) {
-        throw new Error('DEEPSEEK_API_KEY环境变量未设置，无法调用AI服务');
-      }
-      
       // 调用DeepSeek API
-      const deepseekResponse = await axios.post(`${DEEPSEEK_API_URL}/chat/completions`, {
+      const deepseekResponse = await deepseekApi.post('/chat/completions', {
         model: 'deepseek-chat',
         messages: [
           {
@@ -264,12 +278,6 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
         ],
         temperature: 0.3,
         max_tokens: 2000
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-        },
-        timeout: 180000 // 3分钟超时
       });
       
       // 提取DeepSeek的回复
@@ -400,27 +408,13 @@ app.post('/api/chat', async (req, res) => {
       console.log('开始调用DeepSeek API进行聊天...');
       console.log(`用户最后一条消息长度: ${lastUserMessage.content.length}`);
       
-      // 检查API密钥是否设置
-      if (!DEEPSEEK_API_KEY) {
-        throw new Error('DEEPSEEK_API_KEY环境变量未设置，无法调用AI服务');
-      }
-      
-      // 设置axios请求超时
-      const axiosConfig = {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-        },
-        timeout: 120000 // 2分钟超时
-      };
-      
       // 调用DeepSeek API
-      const deepseekResponse = await axios.post(`${DEEPSEEK_API_URL}/chat/completions`, {
+      const deepseekResponse = await deepseekApi.post('/chat/completions', {
         model: 'deepseek-chat',
         messages: deepseekMessages,
         temperature: 0.3,
         max_tokens: 2000
-      }, axiosConfig);
+      });
       
       // 提取DeepSeek的回复
       const aiResponse = deepseekResponse.data.choices[0].message.content;

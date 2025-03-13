@@ -16,6 +16,7 @@ try {
   const config = getPromptConfig('personal-credit');
   console.log('个人征信提示词配置:');
   console.log('角色:', config.role);
+  console.log('版本号:', config.version);
   console.log('基础提示词前100个字符:', config.basePrompt.substring(0, 100));
   console.log('基础提示词长度:', config.basePrompt.length);
 } catch (error) {
