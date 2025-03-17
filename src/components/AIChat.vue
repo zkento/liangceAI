@@ -2,11 +2,11 @@
   <div class="ai-chat">
     <div class="chat-container" ref="chatContainer">
       <!-- 文件上传提示区域 - 仅在个人征信分析页面显示且处于上传状态 -->
-      <div v-if="chatType === 'personal-credit' && analysisState === 'upload'" class="upload-container">
+      <div v-if="(chatType === 'personal-credit' || chatType === 'business-credit') && analysisState === 'upload'" class="upload-container">
         <div class="upload-layout">
           <!-- 左侧上传区域 -->
           <div class="upload-main">
-            <h2 class="upload-title"><el-icon><Document /></el-icon> 请上传个人征信报告</h2>
+            <h2 class="upload-title"><el-icon><Document /></el-icon> 请上传{{ chatType === 'personal-credit' ? '个人' : '企业' }}征信报告</h2>
             
             <div class="upload-dropzone" 
                  :class="{'is-dragover': isDragover, 'has-file': fileList.length > 0}"
@@ -84,7 +84,7 @@
       </div>
       
       <!-- 分析处理流程区域 - 在开始分析后显示 -->
-      <div v-if="chatType === 'personal-credit' && analysisState !== 'upload'" class="analysis-flow">
+      <div v-if="(chatType === 'personal-credit' || chatType === 'business-credit') && analysisState !== 'upload'" class="analysis-flow">
         <!-- 顶部步骤条 -->
         <div class="steps-header">
           <el-steps :active="activeStep" finish-status="success" process-status="process" simple>
@@ -252,8 +252,8 @@
         </div>
       </div>
       
-      <!-- 常规聊天消息区域 - 仅在非个人征信分析页面显示 -->
-      <div v-if="chatType !== 'personal-credit'" class="messages">
+      <!-- 常规聊天消息区域 - 仅在非征信分析页面显示 -->
+      <div v-if="chatType !== 'personal-credit' && chatType !== 'business-credit'" class="messages">
         <div v-for="(message, index) in messages" 
              :key="index" 
              :class="['message', message.role]">
@@ -266,8 +266,8 @@
       </div>
     </div>
     
-    <!-- 输入区域 - 仅在非个人征信分析页面显示 -->
-    <div class="input-area" v-if="chatType !== 'personal-credit'">
+    <!-- 输入区域 - 仅在非征信分析页面显示 -->
+    <div class="input-area" v-if="chatType !== 'personal-credit' && chatType !== 'business-credit'">
       <el-input
         v-model="userInput"
         type="textarea"
@@ -807,7 +807,7 @@ export default {
           userMessage
         ]
         
-        const response = await sendMessage(contextMessages, this.chatType)
+        const response = await sendMessage(contextMessages, 'followup-chat')
         this.followupMessages.push(response)
         // 成功获取回复
         this.stopFollowupThinking('success')

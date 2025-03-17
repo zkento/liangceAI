@@ -32,6 +32,7 @@
     "openai": "^4.26.0",
     "pdf-parse": "^1.1.1",
     "tesseract.js": "^5.0.4",
+    "tiktoken": "^1.0.20",
     "vue": "^3.4.15",
     "vue-loader": "^17.3.1",
     "vue-router": "^4.2.5",

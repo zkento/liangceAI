@@ -280,6 +280,11 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
         max_tokens: 2000
       });
       
+      // 检查API响应是否包含预期的数据结构
+      if (!deepseekResponse.data || !deepseekResponse.data.choices || !deepseekResponse.data.choices.length) {
+        throw new Error('DeepSeek API返回的数据结构不符合预期');
+      }
+      
       // 提取DeepSeek的回复
       const aiResponse = deepseekResponse.data.choices[0].message.content;
       
@@ -415,6 +420,11 @@ app.post('/api/chat', async (req, res) => {
         temperature: 0.3,
         max_tokens: 2000
       });
+      
+      // 检查API响应是否包含预期的数据结构
+      if (!deepseekResponse.data || !deepseekResponse.data.choices || !deepseekResponse.data.choices.length) {
+        throw new Error('DeepSeek API返回的数据结构不符合预期');
+      }
       
       // 提取DeepSeek的回复
       const aiResponse = deepseekResponse.data.choices[0].message.content;
