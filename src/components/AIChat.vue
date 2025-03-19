@@ -164,8 +164,8 @@
               <div class="panel-content">
         <div class="result-content markdown-content" v-html="renderMarkdown(messages[messages.length - 1].content)"></div>
               </div>
-            </div>
-            
+      </div>
+      
             <!-- 右侧区域 -->
             <div class="result-right">
               <!-- 上方原始文件区域 -->

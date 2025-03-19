@@ -9,18 +9,18 @@
     </div>
     
     <div class="page-content">
-      <AIChat chat-type="finance-advice" />
+      <FinanceAdviceForm />
     </div>
   </div>
 </template>
 
 <script>
-import AIChat from '../components/AIChat.vue'
+import FinanceAdviceForm from '../components/FinanceAdviceForm.vue'
 
 export default {
   name: 'FinanceAdvice',
   components: {
-    AIChat
+    FinanceAdviceForm
   },
   methods: {
     goBack() {
@@ -50,6 +50,7 @@ export default {
 
 .page-content {
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
+  background-color: #f5f7fa;
 }
 </style> 
