@@ -41,7 +41,7 @@
           <!-- 融资需求 -->
           <div class="form-section">
             <div class="section-title">融资需求</div>
-            
+          
             <!-- 贷款方式 - 改为radio平铺 -->
             <div class="form-row">
               <el-form-item label="贷款方式" prop="loanType" class="form-item form-item-full">
@@ -52,386 +52,10 @@
                 </el-radio-group>
               </el-form-item>
             </div>
-            
-            <!-- 贷款金额和还款方式 -->
-            <div class="form-row" v-if="formData.loanType && formData.loanType !== 'mortgage'">
-              <el-form-item label="贷款金额(万元)" prop="loanAmount" class="form-item">
-                <el-input-number 
-                  v-model="formData.loanAmount" 
-                  :min="1" 
-                  :max="10000" 
-                  :precision="0" 
-                  :step="1" 
-                  style="width: 100%" 
-                  @focus="handleInputFocus"
-                  class="bold-number"></el-input-number>
-              </el-form-item>
-              
-              <el-form-item 
-                label="还款方式" 
-                prop="repaymentMethod" 
-                :required="false"
-                class="form-item">
-                <el-checkbox-group v-model="formData.repaymentMethod">
-                  <el-checkbox v-for="item in repaymentOptions" :key="item.value" :label="item.value">{{ item.label }}</el-checkbox>
-                </el-checkbox-group>
-              </el-form-item>
-            </div>
-            
-            <!-- 通用字段 -->
-            <template v-if="formData.loanType && formData.loanType !== 'mortgage'">
-              <!-- 贷款利率 和 贷款期限 -->
-              <div class="form-row">
-                <el-form-item 
-                  label="贷款利率范围(%)" 
-                  prop="minInterestRate" 
-                  class="form-item">
-                  <div class="range-input">
-                    <el-form-item prop="minInterestRate" class="range-item">
-                      <el-input-number 
-                        v-model="formData.minInterestRate" 
-                        :min="0" 
-                        :max="20" 
-                        :precision="2" 
-                        :step="0.1" 
-                        placeholder="最小值" 
-                        @focus="handleInputFocus"
-                        class="bold-number"></el-input-number>
-                    </el-form-item>
-                    <span class="range-separator">至</span>
-                    <el-form-item prop="maxInterestRate" class="range-item">
-                      <el-input-number 
-                        v-model="formData.maxInterestRate" 
-                        :min="0" 
-                        :max="20" 
-                        :precision="2" 
-                        :step="0.1" 
-                        placeholder="最大值" 
-                        @focus="handleInputFocus"
-                        class="bold-number"></el-input-number>
-                    </el-form-item>
-                  </div>
-                </el-form-item>
-                
-                <el-form-item 
-                  label="贷款期限范围(月)" 
-                  prop="minLoanTerm" 
-                  class="form-item">
-                  <div class="range-input">
-                    <el-form-item prop="minLoanTerm" class="range-item">
-                      <el-input-number 
-                        v-model="formData.minLoanTerm" 
-                        :min="1" 
-                        :max="360" 
-                        :step="1" 
-                        placeholder="最小值" 
-                        @focus="handleInputFocus"
-                        class="bold-number"></el-input-number>
-                    </el-form-item>
-                    <span class="range-separator">至</span>
-                    <el-form-item prop="maxLoanTerm" class="range-item">
-                      <el-input-number 
-                        v-model="formData.maxLoanTerm" 
-                        :min="1" 
-                        :max="360" 
-                        :step="1" 
-                        placeholder="最大值" 
-                        @focus="handleInputFocus"
-                        class="bold-number"></el-input-number>
-                    </el-form-item>
-                  </div>
-                </el-form-item>
-              </div>
-            </template>
-            
-            <!-- 按揭贷款特定字段 -->
-            <template v-if="formData.loanType === 'mortgage'">
-              <!-- 贷款类型选择 -->
-              <div class="form-row">
-                <el-form-item label="贷款类型" prop="mortgageType" class="form-item form-item-full">
-                  <el-radio-group v-model="formData.mortgage.mortgageType" @change="handleMortgageTypeChange">
-                    <el-radio label="fund">公积金贷款</el-radio>
-                    <el-radio label="commercial">商业贷款</el-radio>
-                    <el-radio label="mixed">组合贷款</el-radio>
-                  </el-radio-group>
-                </el-form-item>
-              </div>
 
-              <template v-if="formData.mortgage.mortgageType">
-                <!-- 公积金贷款字段 -->
-                <template v-if="['fund', 'mixed'].includes(formData.mortgage.mortgageType)">
-                  <div class="form-row">
-                    <el-form-item label="公积金贷款金额(万元)" prop="fundLoanAmount" class="form-item">
-                      <el-input-number 
-                        v-model="formData.mortgage.fundLoanAmount" 
-                        :min="0" 
-                        :max="120" 
-                        :precision="2" 
-                        :step="1" 
-                        style="width: 100%" 
-                        @focus="handleInputFocus"
-                        class="bold-number"></el-input-number>
-                    </el-form-item>
-                    <el-form-item label="公积金贷款利率范围(%)" prop="fundInterestRate" class="form-item">
-                      <div class="range-input">
-                        <el-form-item prop="minFundRate" class="range-item">
-                          <el-input-number 
-                            v-model="formData.mortgage.minFundRate" 
-                            :min="0" 
-                            :max="20" 
-                            :precision="2" 
-                            :step="0.1" 
-                            placeholder="最小值" 
-                            @focus="handleInputFocus"
-                            class="bold-number"></el-input-number>
-                        </el-form-item>
-                        <span class="range-separator">至</span>
-                        <el-form-item prop="maxFundRate" class="range-item">
-                          <el-input-number 
-                            v-model="formData.mortgage.maxFundRate" 
-                            :min="0" 
-                            :max="20" 
-                            :precision="2" 
-                            :step="0.1" 
-                            placeholder="最大值" 
-                            @focus="handleInputFocus"
-                            class="bold-number"></el-input-number>
-                        </el-form-item>
-                      </div>
-                    </el-form-item>
-                  </div>
-                  <div class="form-row">
-                    <el-form-item label="公积金贷款还款方式" prop="fundRepaymentMethod" class="form-item form-item-full">
-                      <el-radio-group v-model="formData.mortgage.fundRepaymentMethod">
-                        <el-radio label="equal_principal_interest">等额本息</el-radio>
-                        <el-radio label="equal_principal">等额本金</el-radio>
-                      </el-radio-group>
-                    </el-form-item>
-                  </div>
-                </template>
-
-                <!-- 商业贷款字段 -->
-                <template v-if="['commercial', 'mixed'].includes(formData.mortgage.mortgageType)">
-                  <div class="form-row">
-                    <el-form-item label="商业贷款金额(万元)" prop="commercialLoanAmount" class="form-item">
-                      <el-input-number 
-                        v-model="formData.mortgage.commercialLoanAmount" 
-                        :min="0" 
-                        :max="5000" 
-                        :precision="2" 
-                        :step="1" 
-                        style="width: 100%" 
-                        @focus="handleInputFocus"
-                        class="bold-number"></el-input-number>
-                    </el-form-item>
-                    <el-form-item label="商业贷款利率范围(%)" prop="commercialInterestRate" class="form-item">
-                      <div class="range-input">
-                        <el-form-item prop="minCommercialRate" class="range-item">
-                          <el-input-number 
-                            v-model="formData.mortgage.minCommercialRate" 
-                            :min="0" 
-                            :max="20" 
-                            :precision="2" 
-                            :step="0.1" 
-                            placeholder="最小值" 
-                            @focus="handleInputFocus"
-                            class="bold-number"></el-input-number>
-                        </el-form-item>
-                        <span class="range-separator">至</span>
-                        <el-form-item prop="maxCommercialRate" class="range-item">
-                          <el-input-number 
-                            v-model="formData.mortgage.maxCommercialRate" 
-                            :min="0" 
-                            :max="20" 
-                            :precision="2" 
-                            :step="0.1" 
-                            placeholder="最大值" 
-                            @focus="handleInputFocus"
-                            class="bold-number"></el-input-number>
-                        </el-form-item>
-                      </div>
-                    </el-form-item>
-                  </div>
-                  <div class="form-row">
-                    <el-form-item label="商业贷款还款方式" prop="commercialRepaymentMethod" class="form-item form-item-full">
-                      <el-radio-group v-model="formData.mortgage.commercialRepaymentMethod">
-                        <el-radio label="equal_principal_interest">等额本息</el-radio>
-                        <el-radio label="equal_principal">等额本金</el-radio>
-                      </el-radio-group>
-                    </el-form-item>
-                  </div>
-                </template>
-
-                <!-- 按揭贷款期限 -->
-                <div class="form-row">
-                  <el-form-item label="按揭贷款期限范围(月)" prop="mortgageLoanTerm" class="form-item form-item-full">
-                    <div class="range-input">
-                      <el-form-item prop="minMortgageTerm" class="range-item">
-                        <el-input-number 
-                          v-model="formData.mortgage.minMortgageTerm" 
-                          :min="120" 
-                          :max="360" 
-                          :step="12" 
-                          placeholder="最小值" 
-                          @focus="handleInputFocus"
-                          class="bold-number"></el-input-number>
-                      </el-form-item>
-                      <span class="range-separator">至</span>
-                      <el-form-item prop="maxMortgageTerm" class="range-item">
-                        <el-input-number 
-                          v-model="formData.mortgage.maxMortgageTerm" 
-                          :min="120" 
-                          :max="360" 
-                          :step="12" 
-                          placeholder="最大值" 
-                          @focus="handleInputFocus"
-                          class="bold-number"></el-input-number>
-                      </el-form-item>
-                    </div>
-                  </el-form-item>
-                </div>
-
-                <!-- 房产信息 -->
-                <div class="form-row">
-                  <el-form-item label="房产总价(万元)" prop="propertyValue" class="form-item">
-                    <el-input-number 
-                      v-model="formData.mortgage.propertyValue" 
-                      :min="1" 
-                      :max="5000" 
-                      :precision="2" 
-                      :step="1" 
-                      style="width: 100%" 
-                      @focus="handleInputFocus" 
-                      @change="calculateLoanAmount"></el-input-number>
-                  </el-form-item>
-                  <el-form-item label="是否首套房" prop="isFirstProperty" class="form-item">
-                    <el-radio-group v-model="formData.mortgage.isFirstProperty">
-                      <el-radio :value="true">是</el-radio>
-                      <el-radio :value="false">否</el-radio>
-                    </el-radio-group>
-                  </el-form-item>
-                </div>
-
-                <div class="form-row">
-                  <el-form-item label="首付比例(%)" prop="downPaymentRatio" class="form-item">
-                    <el-input-number 
-                      v-model="formData.mortgage.downPaymentRatio" 
-                      :min="20" 
-                      :max="90" 
-                      :step="5" 
-                      style="width: 100%" 
-                      @focus="handleInputFocus" 
-                      @change="calculateLoanAmount"></el-input-number>
-                  </el-form-item>
-                  <el-form-item label="房产类型" prop="propertyType" class="form-item">
-                    <el-select v-model="formData.mortgage.propertyType" placeholder="请选择房产类型" style="width: 100%" @focus="handleInputFocus">
-                      <el-option label="普通住宅" value="residential"></el-option>
-                      <el-option label="别墅" value="villa"></el-option>
-                      <el-option label="公寓" value="apartment"></el-option>
-                      <el-option label="商铺" value="commercial"></el-option>
-                      <el-option label="写字楼" value="office"></el-option>
-                    </el-select>
-                  </el-form-item>
-                </div>
-              </template>
-            </template>
-            
-            <!-- 抵押贷款特定字段 -->
-            <template v-if="formData.loanType === 'secured'">
-              <div class="form-row">
-                <el-form-item label="贷款用途" prop="loanPurpose" class="form-item">
-                  <el-select v-model="formData.secured.loanPurpose" placeholder="请选择贷款用途" style="width: 100%" @change="handleLoanPurposeChange">
-                    <el-option label="个人消费" value="personal"></el-option>
-                    <el-option label="企业经营" value="business"></el-option>
-                    <el-option label="教育支出" value="education"></el-option>
-                    <el-option label="医疗支出" value="medical"></el-option>
-                    <el-option label="装修支出" value="renovation"></el-option>
-                    <el-option label="其他" value="other"></el-option>
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="抵押物类型" prop="collateralType" class="form-item">
-                  <el-select v-model="formData.secured.collateralType" placeholder="请选择抵押物类型" style="width: 100%">
-                    <el-option label="房产" value="property"></el-option>
-                    <el-option label="车位" value="parking"></el-option>
-                    <el-option label="厂房" value="factory"></el-option>
-                    <el-option label="土地" value="land"></el-option>
-                    <el-option label="机器设备" value="equipment"></el-option>
-                    <el-option label="车辆" value="vehicle"></el-option>
-                    <el-option label="存款证明" value="deposit"></el-option>
-                    <el-option label="有价证券" value="securities"></el-option>
-                  </el-select>
-                </el-form-item>
-              </div>
-              <div class="form-row">
-                <el-form-item label="抵押物价值(万元)" prop="collateralValue" class="form-item">
-                  <el-input-number v-model="formData.secured.collateralValue" :min="1" :max="5000" :precision="2" :step="1" style="width: 100%" @focus="handleInputFocus"></el-input-number>
-                </el-form-item>
-                <el-form-item label="抵押率(%)" prop="mortgageRatio" class="form-item">
-                  <el-input-number v-model="formData.secured.mortgageRatio" :min="10" :max="90" :step="5" style="width: 100%" @focus="handleInputFocus"></el-input-number>
-                </el-form-item>
-              </div>
-              
-              <!-- 企业经营相关字段 -->
-              <template v-if="formData.secured.loanPurpose === 'business'">
-                <div class="form-row">
-                  <el-form-item label="企业经营年限" prop="businessYears" class="form-item">
-                    <el-input-number v-model="formData.secured.businessYears" :min="0" :max="100" :step="1" style="width: 100%"@focus="handleInputFocus"></el-input-number>
-                  </el-form-item>
-                  <el-form-item label="是否有营业执照" prop="hasBusinessLicense" class="form-item">
-                    <el-radio-group v-model="formData.secured.hasBusinessLicense">
-                      <el-radio :value="true">是</el-radio>
-                      <el-radio :value="false">否</el-radio>
-                    </el-radio-group>
-                  </el-form-item>
-                </div>
-                <div class="form-row" v-if="formData.secured.hasBusinessLicense">
-                  <el-form-item label="营业执照时长(月)" prop="businessLicenseMonths" class="form-item">
-                    <el-input-number v-model="formData.secured.businessLicenseMonths" :min="0" :max="1200" :step="1" style="width: 100%" @focus="handleInputFocus"></el-input-number>
-                  </el-form-item>
-                </div>
-              </template>
-            </template>
-            
-            <!-- 信用贷款特定字段 -->
-            <template v-if="formData.loanType === 'credit'">
-              <div class="form-row">
-                <el-form-item label="贷款用途" prop="loanPurpose" class="form-item">
-                  <el-select v-model="formData.credit.loanPurpose" placeholder="请选择贷款用途" style="width: 100%">
-                    <el-option label="个人消费" value="personal"></el-option>
-                    <el-option label="教育支出" value="education"></el-option>
-                    <el-option label="医疗支出" value="medical"></el-option>
-                    <el-option label="创业" value="startup"></el-option>
-                    <el-option label="旅游" value="travel"></el-option>
-                    <el-option label="其他" value="other"></el-option>
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="月收入(元)" prop="monthlyIncome" class="form-item">
-                  <el-input-number v-model="formData.credit.monthlyIncome" :min="1000" :max="1000000" :step="1000" style="width: 100%" @focus="handleInputFocus"></el-input-number>
-                </el-form-item>
-              </div>
-              <div class="form-row">
-                <el-form-item label="工作单位性质" prop="employerType" class="form-item">
-                  <el-select v-model="formData.credit.employerType" placeholder="请选择工作单位性质" style="width: 100%">
-                    <el-option label="国企" value="state"></el-option>
-                    <el-option label="外企" value="foreign"></el-option>
-                    <el-option label="民企" value="private"></el-option>
-                    <el-option label="事业单位" value="institution"></el-option>
-                    <el-option label="政府机关" value="government"></el-option>
-                    <el-option label="自由职业" value="freelance"></el-option>
-                    <el-option label="其他" value="other"></el-option>
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="工作年限" prop="workYears" class="form-item">
-                  <el-input-number v-model="formData.credit.workYears" :min="0" :max="50" :step="1" style="width: 100%" @focus="handleInputFocus"  ></el-input-number>
-                </el-form-item>
-              </div>
-            </template>
-          </div>
-
-          <!-- 更多说明文本框 -->
-          <div class="form-section">
+            <!-- 需求描述文本框 -->
             <div class="form-row">
-              <el-form-item label="更多说明" prop="additionalNotes" class="form-item form-item-full" :rules="[{ required: true, message: '请输入更多说明', trigger: 'blur' }]">
+              <el-form-item label="需求描述" prop="additionalNotes" class="form-item form-item-full" :rules="[{ required: true, message: '请输入需求描述', trigger: 'blur' }]">
                 <el-input
                   v-model="formData.additionalNotes"
                   type="textarea"
@@ -441,12 +65,398 @@
                 ></el-input>
               </el-form-item>
             </div>
-          </div>
+            
+            <!-- 可选字段区域 -->
+            <el-collapse v-if="formData.loanType">
+              <el-collapse-item>
+                <template #title>
+                  <div class="collapse-title">
+                    <span>更多选填信息</span>
+                    <span class="collapse-subtitle">（更精准地提供客户的融资需求信息、系统将为客户试算还款计划）</span>
+                  </div>
+                </template>
+                
+                <!-- 贷款金额和还款方式 -->
+                <div class="form-row" v-if="formData.loanType && formData.loanType !== 'mortgage'">
+                  <el-form-item label="贷款金额(万元)" prop="loanAmount" class="form-item">
+                    <el-input-number 
+                      v-model="formData.loanAmount" 
+                      :min="1" 
+                      :max="10000" 
+                      :precision="0" 
+                      :step="1" 
+                      style="width: 100%" 
+                      @focus="handleInputFocus"
+                      class="bold-number"></el-input-number>
+                  </el-form-item>
+                  
+                  <el-form-item 
+                    label="还款方式" 
+                    prop="repaymentMethod" 
+                    :required="false"
+                    class="form-item">
+                    <el-checkbox-group v-model="formData.repaymentMethod">
+                      <el-checkbox v-for="item in repaymentOptions" :key="item.value" :label="item.value">{{ item.label }}</el-checkbox>
+                    </el-checkbox-group>
+                  </el-form-item>
+                </div>
+                
+                <!-- 通用字段 -->
+                <template v-if="formData.loanType && formData.loanType !== 'mortgage'">
+                  <!-- 贷款利率 和 贷款期限 -->
+                  <div class="form-row">
+                    <el-form-item 
+                      label="贷款利率范围(%)" 
+                      prop="minInterestRate" 
+                      class="form-item">
+                      <div class="range-input">
+                        <el-form-item prop="minInterestRate" class="range-item">
+                          <el-input-number 
+                            v-model="formData.minInterestRate" 
+                            :min="0" 
+                            :max="20" 
+                            :precision="2" 
+                            :step="0.1" 
+                            placeholder="最小值" 
+                            @focus="handleInputFocus"
+                            class="bold-number"></el-input-number>
+                        </el-form-item>
+                        <span class="range-separator">至</span>
+                        <el-form-item prop="maxInterestRate" class="range-item">
+                          <el-input-number 
+                            v-model="formData.maxInterestRate" 
+                            :min="0" 
+                            :max="20" 
+                            :precision="2" 
+                            :step="0.1" 
+                            placeholder="最大值" 
+                            @focus="handleInputFocus"
+                            class="bold-number"></el-input-number>
+                        </el-form-item>
+                      </div>
+                    </el-form-item>
+                    
+                    <el-form-item 
+                      label="贷款期限范围(月)" 
+                      prop="minLoanTerm" 
+                      class="form-item">
+                      <div class="range-input">
+                        <el-form-item prop="minLoanTerm" class="range-item">
+                          <el-input-number 
+                            v-model="formData.minLoanTerm" 
+                            :min="1" 
+                            :max="360" 
+                            :step="1" 
+                            placeholder="最小值" 
+                            @focus="handleInputFocus"
+                            class="bold-number"></el-input-number>
+                        </el-form-item>
+                        <span class="range-separator">至</span>
+                        <el-form-item prop="maxLoanTerm" class="range-item">
+                          <el-input-number 
+                            v-model="formData.maxLoanTerm" 
+                            :min="1" 
+                            :max="360" 
+                            :step="1" 
+                            placeholder="最大值" 
+                            @focus="handleInputFocus"
+                            class="bold-number"></el-input-number>
+                        </el-form-item>
+                      </div>
+                    </el-form-item>
+                  </div>
+                </template>
+                
+                <!-- 按揭贷款特定字段 -->
+                <template v-if="formData.loanType === 'mortgage'">
+                  <!-- 贷款类型选择 -->
+                  <div class="form-row">
+                    <el-form-item label="贷款类型" prop="mortgageType" class="form-item form-item-full">
+                      <el-radio-group v-model="formData.mortgage.mortgageType" @change="handleMortgageTypeChange">
+                        <el-radio label="fund">公积金贷款</el-radio>
+                        <el-radio label="commercial">商业贷款</el-radio>
+                        <el-radio label="mixed">组合贷款</el-radio>
+                      </el-radio-group>
+                    </el-form-item>
+                  </div>
 
-          <!-- 提交按钮 -->
-          <div class="form-actions">
-            <el-button type="primary" @click="submitForm" :loading="submitting">获取AI建议报告</el-button>
-            <el-button @click="resetForm">重置</el-button>
+                  <template v-if="formData.mortgage.mortgageType">
+                    <!-- 公积金贷款字段 -->
+                    <template v-if="['fund', 'mixed'].includes(formData.mortgage.mortgageType)">
+                      <div class="form-row">
+                        <el-form-item label="公积金贷款金额(万元)" prop="fundLoanAmount" class="form-item">
+                          <el-input-number 
+                            v-model="formData.mortgage.fundLoanAmount" 
+                            :min="0" 
+                            :max="120" 
+                            :precision="2" 
+                            :step="1" 
+                            style="width: 100%" 
+                            @focus="handleInputFocus"
+                            class="bold-number"></el-input-number>
+                        </el-form-item>
+                        <el-form-item label="公积金贷款利率范围(%)" prop="fundInterestRate" class="form-item">
+                          <div class="range-input">
+                            <el-form-item prop="minFundRate" class="range-item">
+                              <el-input-number 
+                                v-model="formData.mortgage.minFundRate" 
+                                :min="0" 
+                                :max="20" 
+                                :precision="2" 
+                                :step="0.1" 
+                                placeholder="最小值" 
+                                @focus="handleInputFocus"
+                                class="bold-number"></el-input-number>
+                            </el-form-item>
+                            <span class="range-separator">至</span>
+                            <el-form-item prop="maxFundRate" class="range-item">
+                              <el-input-number 
+                                v-model="formData.mortgage.maxFundRate" 
+                                :min="0" 
+                                :max="20" 
+                                :precision="2" 
+                                :step="0.1" 
+                                placeholder="最大值" 
+                                @focus="handleInputFocus"
+                                class="bold-number"></el-input-number>
+                            </el-form-item>
+                          </div>
+                        </el-form-item>
+                      </div>
+                      <div class="form-row">
+                        <el-form-item label="公积金贷款还款方式" prop="fundRepaymentMethod" class="form-item form-item-full">
+                          <el-radio-group v-model="formData.mortgage.fundRepaymentMethod">
+                            <el-radio label="equal_principal_interest">等额本息</el-radio>
+                            <el-radio label="equal_principal">等额本金</el-radio>
+                          </el-radio-group>
+                        </el-form-item>
+                      </div>
+                    </template>
+
+                    <!-- 商业贷款字段 -->
+                    <template v-if="['commercial', 'mixed'].includes(formData.mortgage.mortgageType)">
+                      <div class="form-row">
+                        <el-form-item label="商业贷款金额(万元)" prop="commercialLoanAmount" class="form-item">
+                          <el-input-number 
+                            v-model="formData.mortgage.commercialLoanAmount" 
+                            :min="0" 
+                            :max="5000" 
+                            :precision="2" 
+                            :step="1" 
+                            style="width: 100%" 
+                            @focus="handleInputFocus"
+                            class="bold-number"></el-input-number>
+                        </el-form-item>
+                        <el-form-item label="商业贷款利率范围(%)" prop="commercialInterestRate" class="form-item">
+                          <div class="range-input">
+                            <el-form-item prop="minCommercialRate" class="range-item">
+                              <el-input-number 
+                                v-model="formData.mortgage.minCommercialRate" 
+                                :min="0" 
+                                :max="20" 
+                                :precision="2" 
+                                :step="0.1" 
+                                placeholder="最小值" 
+                                @focus="handleInputFocus"
+                                class="bold-number"></el-input-number>
+                            </el-form-item>
+                            <span class="range-separator">至</span>
+                            <el-form-item prop="maxCommercialRate" class="range-item">
+                              <el-input-number 
+                                v-model="formData.mortgage.maxCommercialRate" 
+                                :min="0" 
+                                :max="20" 
+                                :precision="2" 
+                                :step="0.1" 
+                                placeholder="最大值" 
+                                @focus="handleInputFocus"
+                                class="bold-number"></el-input-number>
+                            </el-form-item>
+                          </div>
+                        </el-form-item>
+                      </div>
+                      <div class="form-row">
+                        <el-form-item label="商业贷款还款方式" prop="commercialRepaymentMethod" class="form-item form-item-full">
+                          <el-radio-group v-model="formData.mortgage.commercialRepaymentMethod">
+                            <el-radio label="equal_principal_interest">等额本息</el-radio>
+                            <el-radio label="equal_principal">等额本金</el-radio>
+                          </el-radio-group>
+                        </el-form-item>
+                      </div>
+                    </template>
+
+                    <!-- 按揭贷款期限 -->
+                    <div class="form-row">
+                      <el-form-item label="按揭贷款期限范围(月)" prop="mortgageLoanTerm" class="form-item form-item-full">
+                        <div class="range-input">
+                          <el-form-item prop="minMortgageTerm" class="range-item">
+                            <el-input-number 
+                              v-model="formData.mortgage.minMortgageTerm" 
+                              :min="120" 
+                              :max="360" 
+                              :step="12" 
+                              placeholder="最小值" 
+                              @focus="handleInputFocus"
+                              class="bold-number"></el-input-number>
+                          </el-form-item>
+                          <span class="range-separator">至</span>
+                          <el-form-item prop="maxMortgageTerm" class="range-item">
+                            <el-input-number 
+                              v-model="formData.mortgage.maxMortgageTerm" 
+                              :min="120" 
+                              :max="360" 
+                              :step="12" 
+                              placeholder="最大值" 
+                              @focus="handleInputFocus"
+                              class="bold-number"></el-input-number>
+                          </el-form-item>
+                        </div>
+                      </el-form-item>
+                    </div>
+
+                    <!-- 房产信息 -->
+                    <div class="form-row">
+                      <el-form-item label="房产总价(万元)" prop="propertyValue" class="form-item">
+                        <el-input-number 
+                          v-model="formData.mortgage.propertyValue" 
+                          :min="1" 
+                          :max="5000" 
+                          :precision="2" 
+                          :step="1" 
+                          style="width: 100%" 
+                          @focus="handleInputFocus" 
+                          @change="calculateLoanAmount"></el-input-number>
+                      </el-form-item>
+                      <el-form-item label="是否首套房" prop="isFirstProperty" class="form-item">
+                        <el-radio-group v-model="formData.mortgage.isFirstProperty">
+                          <el-radio :value="true">是</el-radio>
+                          <el-radio :value="false">否</el-radio>
+                        </el-radio-group>
+                      </el-form-item>
+                    </div>
+
+                    <div class="form-row">
+                      <el-form-item label="首付比例(%)" prop="downPaymentRatio" class="form-item">
+                        <el-input-number 
+                          v-model="formData.mortgage.downPaymentRatio" 
+                          :min="20" 
+                          :max="90" 
+                          :step="5" 
+                          style="width: 100%" 
+                          @focus="handleInputFocus" 
+                          @change="calculateLoanAmount"></el-input-number>
+                      </el-form-item>
+                      <el-form-item label="房产类型" prop="propertyType" class="form-item">
+                        <el-select v-model="formData.mortgage.propertyType" placeholder="请选择房产类型" style="width: 100%" @focus="handleInputFocus">
+                          <el-option label="普通住宅" value="residential"></el-option>
+                          <el-option label="别墅" value="villa"></el-option>
+                          <el-option label="公寓" value="apartment"></el-option>
+                          <el-option label="商铺" value="commercial"></el-option>
+                          <el-option label="写字楼" value="office"></el-option>
+                        </el-select>
+                      </el-form-item>
+                    </div>
+                  </template>
+                </template>
+                
+                <!-- 抵押贷款特定字段 -->
+                <template v-if="formData.loanType === 'secured'">
+                  <div class="form-row">
+                    <el-form-item label="贷款用途" prop="loanPurpose" class="form-item">
+                      <el-select v-model="formData.secured.loanPurpose" placeholder="请选择贷款用途" style="width: 100%" @change="handleLoanPurposeChange">
+                        <el-option label="个人消费" value="personal"></el-option>
+                        <el-option label="企业经营" value="business"></el-option>
+                        <el-option label="教育支出" value="education"></el-option>
+                        <el-option label="医疗支出" value="medical"></el-option>
+                        <el-option label="装修支出" value="renovation"></el-option>
+                        <el-option label="其他" value="other"></el-option>
+                      </el-select>
+                    </el-form-item>
+                    <el-form-item label="抵押物类型" prop="collateralType" class="form-item">
+                      <el-select v-model="formData.secured.collateralType" placeholder="请选择抵押物类型" style="width: 100%">
+                        <el-option label="房产" value="property"></el-option>
+                        <el-option label="车位" value="parking"></el-option>
+                        <el-option label="厂房" value="factory"></el-option>
+                        <el-option label="土地" value="land"></el-option>
+                        <el-option label="机器设备" value="equipment"></el-option>
+                        <el-option label="车辆" value="vehicle"></el-option>
+                        <el-option label="存款证明" value="deposit"></el-option>
+                        <el-option label="有价证券" value="securities"></el-option>
+                      </el-select>
+                    </el-form-item>
+                  </div>
+                  <div class="form-row">
+                    <el-form-item label="抵押物价值(万元)" prop="collateralValue" class="form-item">
+                      <el-input-number v-model="formData.secured.collateralValue" :min="1" :max="5000" :precision="2" :step="1" style="width: 100%" @focus="handleInputFocus"></el-input-number>
+                    </el-form-item>
+                    <el-form-item label="抵押率(%)" prop="mortgageRatio" class="form-item">
+                      <el-input-number v-model="formData.secured.mortgageRatio" :min="10" :max="90" :step="5" style="width: 100%" @focus="handleInputFocus"></el-input-number>
+                    </el-form-item>
+                  </div>
+                  
+                  <!-- 企业经营相关字段 -->
+                  <template v-if="formData.secured.loanPurpose === 'business'">
+                    <div class="form-row">
+                      <el-form-item label="企业经营年限" prop="businessYears" class="form-item">
+                        <el-input-number v-model="formData.secured.businessYears" :min="0" :max="100" :step="1" style="width: 100%"@focus="handleInputFocus"></el-input-number>
+                      </el-form-item>
+                      <el-form-item label="是否有营业执照" prop="hasBusinessLicense" class="form-item">
+                        <el-radio-group v-model="formData.secured.hasBusinessLicense">
+                          <el-radio :value="true">是</el-radio>
+                          <el-radio :value="false">否</el-radio>
+                        </el-radio-group>
+                      </el-form-item>
+                    </div>
+                    <div class="form-row" v-if="formData.secured.hasBusinessLicense">
+                      <el-form-item label="营业执照时长(月)" prop="businessLicenseMonths" class="form-item">
+                        <el-input-number v-model="formData.secured.businessLicenseMonths" :min="0" :max="1200" :step="1" style="width: 100%" @focus="handleInputFocus"></el-input-number>
+                      </el-form-item>
+                    </div>
+                  </template>
+                </template>
+                
+                <!-- 信用贷款特定字段 -->
+                <template v-if="formData.loanType === 'credit'">
+                  <div class="form-row">
+                    <el-form-item label="贷款用途" prop="loanPurpose" class="form-item">
+                      <el-select v-model="formData.credit.loanPurpose" placeholder="请选择贷款用途" style="width: 100%">
+                        <el-option label="个人消费" value="personal"></el-option>
+                        <el-option label="教育支出" value="education"></el-option>
+                        <el-option label="医疗支出" value="medical"></el-option>
+                        <el-option label="创业" value="startup"></el-option>
+                        <el-option label="旅游" value="travel"></el-option>
+                        <el-option label="其他" value="other"></el-option>
+                      </el-select>
+                    </el-form-item>
+                    <el-form-item label="月收入(元)" prop="monthlyIncome" class="form-item">
+                      <el-input-number v-model="formData.credit.monthlyIncome" :min="1000" :max="1000000" :step="1000" style="width: 100%" @focus="handleInputFocus"></el-input-number>
+                    </el-form-item>
+                  </div>
+                  <div class="form-row">
+                    <el-form-item label="工作单位性质" prop="employerType" class="form-item">
+                      <el-select v-model="formData.credit.employerType" placeholder="请选择工作单位性质" style="width: 100%">
+                        <el-option label="国企" value="state"></el-option>
+                        <el-option label="外企" value="foreign"></el-option>
+                        <el-option label="民企" value="private"></el-option>
+                        <el-option label="事业单位" value="institution"></el-option>
+                        <el-option label="政府机关" value="government"></el-option>
+                        <el-option label="自由职业" value="freelance"></el-option>
+                        <el-option label="其他" value="other"></el-option>
+                      </el-select>
+                    </el-form-item>
+                    <el-form-item label="工作年限" prop="workYears" class="form-item">
+                      <el-input-number v-model="formData.credit.workYears" :min="0" :max="50" :step="1" style="width: 100%" @focus="handleInputFocus"  ></el-input-number>
+                    </el-form-item>
+                  </div>
+                </template>
+              </el-collapse-item>
+            </el-collapse>
+
+            <!-- 提交按钮 -->
+            <div class="form-actions">
+              <el-button type="primary" @click="submitForm" :loading="submitting">获取AI建议报告</el-button>
+              <el-button @click="resetForm">重置</el-button>
+            </div>
           </div>
         </el-form>
       </div>
@@ -825,19 +835,6 @@ export default {
     handleLoanTypeChange(value) {
       // 根据贷款方式更新还款方式选项
       switch(value) {
-        // case 'mortgage':
-        //   this.repaymentOptions = [
-        //     { label: '等额本息', value: 'equal_principal_interest' },
-        //     { label: '等额本金', value: 'equal_principal' }
-        //   ];
-        //   // 设置按揭贷款默认值（根据广州地区最新政策）
-        //   this.formData.loanAmount = 210; // 假设房产总价300万，贷款70%
-        //   this.formData.minInterestRate = 3.0; // 首套房LPR-75BP
-        //   this.formData.maxInterestRate = 3.15; // 二套房LPR-15BP
-        //   this.formData.minLoanTerm = 240; // 20年
-        //   this.formData.maxLoanTerm = 360; // 30年
-        //   this.formData.repaymentMethod = ['equal_principal_interest'];
-        //   break;
         case 'secured':
           this.repaymentOptions = [
             { label: '等额本息', value: 'equal_principal_interest' },
@@ -1284,7 +1281,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .finance-advice-container {
   display: flex;
   height: calc(100vh - 100px);
@@ -1860,5 +1857,63 @@ export default {
 :deep(.bold-number.el-input-number .el-input__inner) {
   font-weight: bold !important;
   color: #000 !important;
+}
+
+/* 折叠面板样式 */
+.collapse-title {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #303133;
+  
+  .collapse-subtitle {
+    margin-left: 8px;
+    font-size: 14px;
+    color: #c2c2c2;
+  }
+}
+
+:deep(.el-collapse) {
+  border: none;
+  
+  .el-collapse-item {
+    margin-top: -15px; /* 减少与需求描述的距离 */
+    margin-bottom: 50px;
+    .el-collapse-item__header {
+      background-color:rgb(255, 255, 255);
+      border: 1px solid #e4e7ed;
+      border-radius: 4px;
+      padding: 12px 20px;
+      font-weight: 400;
+      
+      &:hover {
+        background-color: rgb(250, 250, 250);
+      }
+      
+      &.is-active {
+        border-bottom-right-radius: 0;
+        border-bottom-left-radius: 0;
+      }
+
+      .el-collapse-item__arrow {
+        transform: rotate(90deg);
+        
+        &.is-active {
+          transform: rotate(-90deg);
+        }
+      }
+    }
+    
+    .el-collapse-item__wrap {
+      border: 1px solid #e4e7ed;
+      border-top: none;
+      border-bottom-right-radius: 4px;
+      border-bottom-left-radius: 4px;
+      
+      .el-collapse-item__content {
+        padding: 20px;
+      }
+    }
+  }
 }
 </style> 
