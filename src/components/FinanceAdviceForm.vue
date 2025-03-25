@@ -3,7 +3,7 @@
     <!-- 左侧：客户融资需求 -->
     <div class="left-panel">
       <div class="panel-header">
-        <h2>客户融资需求</h2>
+        <div class="panel-title">客户融资需求</div>
       </div>
       <div class="panel-content">
         <el-form :model="formData" :rules="rules" ref="financeForm" label-position="top">
@@ -81,10 +81,10 @@
                   <el-form-item label="贷款金额(万元)" prop="loanAmount" class="form-item">
                     <el-input-number 
                       v-model="formData.loanAmount" 
-                      :min="1" 
+                      :min="0" 
                       :max="10000" 
                       :precision="0" 
-                      :step="1" 
+                      :step="2" 
                       style="width: 100%" 
                       @focus="handleInputFocus"
                       class="bold-number"></el-input-number>
@@ -113,7 +113,7 @@
                         <el-form-item prop="minInterestRate" class="range-item">
                           <el-input-number 
                             v-model="formData.minInterestRate" 
-                            :min="0" 
+                            :min="1" 
                             :max="20" 
                             :precision="2" 
                             :step="0.1" 
@@ -125,7 +125,7 @@
                         <el-form-item prop="maxInterestRate" class="range-item">
                           <el-input-number 
                             v-model="formData.maxInterestRate" 
-                            :min="0" 
+                            :min="1" 
                             :max="20" 
                             :precision="2" 
                             :step="0.1" 
@@ -188,9 +188,9 @@
                           <el-input-number 
                             v-model="formData.mortgage.fundLoanAmount" 
                             :min="0" 
-                            :max="120" 
+                            :max="224" 
                             :precision="2" 
-                            :step="1" 
+                            :step="10" 
                             style="width: 100%" 
                             @focus="handleInputFocus"
                             class="bold-number"></el-input-number>
@@ -200,9 +200,9 @@
                             <el-form-item prop="minFundRate" class="range-item">
                               <el-input-number 
                                 v-model="formData.mortgage.minFundRate" 
-                                :min="0" 
+                                :min="1" 
                                 :max="20" 
-                                :precision="2" 
+                                :precision="3" 
                                 :step="0.1" 
                                 placeholder="最小值" 
                                 @focus="handleInputFocus"
@@ -212,9 +212,9 @@
                             <el-form-item prop="maxFundRate" class="range-item">
                               <el-input-number 
                                 v-model="formData.mortgage.maxFundRate" 
-                                :min="0" 
+                                :min="1" 
                                 :max="20" 
-                                :precision="2" 
+                                :precision="3" 
                                 :step="0.1" 
                                 placeholder="最大值" 
                                 @focus="handleInputFocus"
@@ -242,7 +242,7 @@
                             :min="0" 
                             :max="5000" 
                             :precision="2" 
-                            :step="1" 
+                            :step="10" 
                             style="width: 100%" 
                             @focus="handleInputFocus"
                             class="bold-number"></el-input-number>
@@ -252,7 +252,7 @@
                             <el-form-item prop="minCommercialRate" class="range-item">
                               <el-input-number 
                                 v-model="formData.mortgage.minCommercialRate" 
-                                :min="0" 
+                                :min="1" 
                                 :max="20" 
                                 :precision="2" 
                                 :step="0.1" 
@@ -264,7 +264,7 @@
                             <el-form-item prop="maxCommercialRate" class="range-item">
                               <el-input-number 
                                 v-model="formData.mortgage.maxCommercialRate" 
-                                :min="0" 
+                                :min="1" 
                                 :max="20" 
                                 :precision="2" 
                                 :step="0.1" 
@@ -292,7 +292,7 @@
                           <el-form-item prop="minMortgageTerm" class="range-item">
                             <el-input-number 
                               v-model="formData.mortgage.minMortgageTerm" 
-                              :min="120" 
+                              :min="60" 
                               :max="360" 
                               :step="12" 
                               placeholder="最小值" 
@@ -303,7 +303,7 @@
                           <el-form-item prop="maxMortgageTerm" class="range-item">
                             <el-input-number 
                               v-model="formData.mortgage.maxMortgageTerm" 
-                              :min="120" 
+                              :min="60" 
                               :max="360" 
                               :step="12" 
                               placeholder="最大值" 
@@ -319,10 +319,10 @@
                       <el-form-item label="房产总价(万元)" prop="propertyValue" class="form-item">
                         <el-input-number 
                           v-model="formData.mortgage.propertyValue" 
-                          :min="1" 
+                          :min="10" 
                           :max="5000" 
                           :precision="2" 
-                          :step="1" 
+                          :step="10" 
                           style="width: 100%" 
                           @focus="handleInputFocus" 
                           @change="calculateLoanAmount"></el-input-number>
@@ -387,7 +387,7 @@
                   </div>
                   <div class="form-row">
                     <el-form-item label="抵押物价值(万元)" prop="collateralValue" class="form-item">
-                      <el-input-number v-model="formData.secured.collateralValue" :min="1" :max="5000" :precision="2" :step="1" style="width: 100%" @focus="handleInputFocus"></el-input-number>
+                      <el-input-number v-model="formData.secured.collateralValue" :min="0" :max="5000" :precision="2" :step="1" style="width: 100%" @focus="handleInputFocus"></el-input-number>
                     </el-form-item>
                     <el-form-item label="抵押率(%)" prop="mortgageRatio" class="form-item">
                       <el-input-number v-model="formData.secured.mortgageRatio" :min="10" :max="90" :step="5" style="width: 100%" @focus="handleInputFocus"></el-input-number>
@@ -467,7 +467,7 @@
       <!-- 右上部分：客户征信报告 -->
       <div class="right-top-panel">
         <div class="panel-header">
-          <h2>客户征信报告</h2>
+          <div class="panel-title">客户征信报告</div>
         </div>
         <div class="panel-content">
           <!-- 征信报告上传区域 -->
@@ -484,7 +484,7 @@
                   <el-upload
                     class="upload-container"
                     drag
-                    action="/api/upload"
+                    action="/api/file/upload"
                     :on-success="handlePersonalCreditSuccess"
                     :on-error="handleUploadError"
                     :before-upload="beforeUpload"
@@ -518,7 +518,7 @@
                   <el-upload
                     class="upload-container"
                     drag
-                    action="/api/upload"
+                    action="/api/file/upload"
                     :on-success="handleBusinessCreditSuccess"
                     :on-error="handleUploadError"
                     :before-upload="beforeUpload"
@@ -548,7 +548,26 @@
       <!-- 右下部分：融资方案分析 -->
       <div class="right-bottom-panel">
         <div class="panel-header">
-          <h2>还款计划试算</h2>
+          <div class="panel-title">还款计划试算</div>
+          <!-- 组合贷款情况下的切换按钮 -->
+          <div v-if="formData.loanType === 'mortgage' && formData.mortgage.mortgageType === 'mixed'" class="loan-type-switch">
+            <div class="custom-radio-group">
+              <div 
+                class="custom-radio-button" 
+                :class="{ 'active': activeLoanType === 'fund' }"
+                @click="activeLoanType = 'fund'"
+              >
+                公积金贷款
+              </div>
+              <div 
+                class="custom-radio-button" 
+                :class="{ 'active': activeLoanType === 'commercial' }"
+                @click="activeLoanType = 'commercial'"
+              >
+                商业贷款
+              </div>
+            </div>
+          </div>
         </div>
         <div class="panel-content">
           <!-- 还款计划表试算区域 -->
@@ -557,7 +576,7 @@
             <div class="calculation-params">
               <div class="param-item">
                 <span class="param-label">贷款金额:</span>
-                <span class="param-value">{{ formData.loanAmount }}万元</span>
+                <span class="param-value">{{ calculationParams.loanAmount }}万元</span>
               </div>
               <div class="param-item">
                 <span class="param-label">贷款利率:</span>
@@ -577,28 +596,42 @@
             <div class="repayment-overview">
               <div class="overview-item">
                 <div class="overview-value">{{ formatCurrency(calculationResult.totalRepayment) }}</div>
-                <div class="overview-label">还款总额</div>
+                <div class="overview-label">总还款额(元)</div>
               </div>
               <div class="overview-item">
                 <div class="overview-value">{{ formatCurrency(calculationResult.totalInterest) }}</div>
-                <div class="overview-label">支付利息</div>
+                <div class="overview-label">总利息(元)</div>
               </div>
               <div class="overview-item" v-if="calculationParams.repaymentMethod === 'equal_principal_interest'">
                 <div class="overview-value">{{ formatCurrency(calculationResult.monthlyPayment) }}</div>
-                <div class="overview-label">月供金额</div>
+                <div class="overview-label">月供(元)</div>
               </div>
             </div>
             
             <!-- 还款计划表 -->
             <div class="repayment-schedule">
-              <el-table :data="calculationResult.schedule" stripe style="width: 100%" height="300" :border="true">
-                <el-table-column prop="period" label="期数" width="60" />
-                <el-table-column prop="paymentDate" label="还款日期" width="100" />
-                <el-table-column prop="monthlyPayment" label="月供金额" :formatter="formatTableCurrency" />
-                <el-table-column prop="principal" label="本金" :formatter="formatTableCurrency" />
-                <el-table-column prop="interest" label="利息" :formatter="formatTableCurrency" />
-                <el-table-column prop="remainingPrincipal" label="剩余本金" :formatter="formatTableCurrency" />
-              </el-table>
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th class="center" style="min-width: 60px;">期数</th>
+                    <th class="center" style="min-width: 120px;">还款日期</th>
+                    <th class="center" style="min-width: 120px;">月供(元)</th>
+                    <th class="center" style="min-width: 120px;">本金(元)</th>
+                    <th class="center" style="min-width: 120px;">利息(元)</th>
+                    <th class="center" style="min-width: 120px;">剩余本金(元)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in calculationResult.schedule" :key="item.period">
+                    <td class="center">{{ item.period }}</td>
+                    <td class="center">{{ item.paymentDate }}</td>
+                    <td class="center">{{ formatCurrency(item.monthlyPayment) }}</td>
+                    <td class="center">{{ formatCurrency(item.principal) }}</td>
+                    <td class="center">{{ formatCurrency(item.interest) }}</td>
+                    <td class="center">{{ formatCurrency(item.remainingPrincipal) }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
           
@@ -606,7 +639,7 @@
           <div v-else class="placeholder-content">
             <div class="calculation-tips">
               <el-icon><InfoFilled /></el-icon>
-              <span>请完善贷款金额、利率、期限和还款方式信息，系统将自动计算还款计划</span>
+              <span>请在"更多选填信息"中完善贷款金额、利率、期限和还款方式信息，系统将实时计算还款计划</span>
             </div>
           </div>
         </div>
@@ -640,6 +673,8 @@ export default {
       },
       // 显示格式化的手机号
       displayPhone: '',
+      // 组合贷款当前显示的贷款类型 (fund: 公积金贷款, commercial: 商业贷款)
+      activeLoanType: 'fund',
       formData: {
         // 基本信息
         name: '',
@@ -649,23 +684,23 @@ export default {
         
         // 融资需求通用字段
         loanType: '',
-        loanAmount: 100,
-        minInterestRate: 3.5,
-        maxInterestRate: 5.5,
-        minLoanTerm: 12,
-        maxLoanTerm: 36,
+        loanAmount: 0, // 修改为0
+        minInterestRate: 0, // 修改为0
+        maxInterestRate: 0, // 修改为0
+        minLoanTerm: 0, // 修改为0
+        maxLoanTerm: 0, // 修改为0
         repaymentMethod: [],
         
         // 按揭贷款特定字段
         mortgage: {
           propertyType: 'residential',
-          propertyValue: 300,
-          downPaymentRatio: 30,
+          propertyValue: null, // 使用null代替空字符串
+          downPaymentRatio: null, // 使用null代替空字符串
           isFirstProperty: true,
           mortgageType: '',
           fundLoanAmount: 0,
           commercialLoanAmount: 0,
-          minMortgageTerm: 120,
+          minMortgageTerm: 240,
           maxMortgageTerm: 360
         },
         
@@ -673,20 +708,20 @@ export default {
         secured: {
           loanPurpose: '',
           collateralType: '',
-          collateralValue: 200,
-          mortgageRatio: 60,
+          collateralValue: null, // 使用null代替空字符串
+          mortgageRatio: null, // 使用null代替空字符串
           // 企业经营相关字段
-          businessYears: 0,
+          businessYears: null, // 使用null代替空字符串
           hasBusinessLicense: false,
-          businessLicenseMonths: 0
+          businessLicenseMonths: null // 使用null代替空字符串
         },
         
         // 信用贷款特定字段
         credit: {
           loanPurpose: '',
-          monthlyIncome: 10000,
+          monthlyIncome: '',
           employerType: '',
-          workYears: 3
+          workYears: ''
         },
         additionalNotes: ''
       },
@@ -748,38 +783,150 @@ export default {
     
     // 判断是否可以计算还款计划
     canCalculateRepayment() {
-      return (
-        this.formData.loanType && // 必须选择贷款方式
-        this.formData.loanAmount > 0 &&
-        this.formData.minInterestRate > 0 &&
-        this.formData.maxInterestRate > 0 &&
-        this.formData.minLoanTerm > 0 &&
-        this.formData.maxLoanTerm > 0 &&
-        this.formData.repaymentMethod.length > 0
-      );
+      if (!this.formData.loanType) {
+        return false;
+      }
+
+      if (this.formData.loanType === 'mortgage') {
+        // 按揭贷款的验证逻辑
+        if (!this.formData.mortgage.mortgageType) {
+          return false;
+        }
+
+        const mortgageType = this.formData.mortgage.mortgageType;
+        
+        if (mortgageType === 'fund') {
+          // 公积金贷款
+          return (
+            this.formData.mortgage.fundLoanAmount > 0 &&
+            this.formData.mortgage.minFundRate > 0 &&
+            this.formData.mortgage.maxFundRate > 0 &&
+            this.formData.mortgage.minMortgageTerm > 0 &&
+            this.formData.mortgage.maxMortgageTerm > 0 &&
+            this.formData.mortgage.fundRepaymentMethod
+          );
+        } else if (mortgageType === 'commercial') {
+          // 商业贷款
+          return (
+            this.formData.mortgage.commercialLoanAmount > 0 &&
+            this.formData.mortgage.minCommercialRate > 0 &&
+            this.formData.mortgage.maxCommercialRate > 0 &&
+            this.formData.mortgage.minMortgageTerm > 0 &&
+            this.formData.mortgage.maxMortgageTerm > 0 &&
+            this.formData.mortgage.commercialRepaymentMethod
+          );
+        } else if (mortgageType === 'mixed') {
+          // 组合贷款 - 判断当前显示的是哪种贷款类型
+          if (this.activeLoanType === 'fund') {
+            return (
+              this.formData.mortgage.fundLoanAmount > 0 &&
+              this.formData.mortgage.minFundRate > 0 &&
+              this.formData.mortgage.maxFundRate > 0 &&
+              this.formData.mortgage.minMortgageTerm > 0 &&
+              this.formData.mortgage.maxMortgageTerm > 0 &&
+              this.formData.mortgage.fundRepaymentMethod
+            );
+          } else {
+            return (
+              this.formData.mortgage.commercialLoanAmount > 0 &&
+              this.formData.mortgage.minCommercialRate > 0 &&
+              this.formData.mortgage.maxCommercialRate > 0 &&
+              this.formData.mortgage.minMortgageTerm > 0 &&
+              this.formData.mortgage.maxMortgageTerm > 0 &&
+              this.formData.mortgage.commercialRepaymentMethod
+            );
+          }
+        }
+        return false;
+      } else {
+        // 原有的抵押贷款和信用贷款的验证逻辑
+        return (
+          this.formData.loanAmount > 0 &&
+          this.formData.minInterestRate > 0 &&
+          this.formData.maxInterestRate > 0 &&
+          this.formData.minLoanTerm > 0 &&
+          this.formData.maxLoanTerm > 0 &&
+          this.formData.repaymentMethod.length > 0
+        );
+      }
     },
     
     // 计算参数
     calculationParams() {
-      // 使用最小值作为计算参数（而非平均值）
-      const interestRate = this.formData.minInterestRate;
-      const loanTerm = this.formData.minLoanTerm;
-      // 使用第一个还款方式进行计算
-      const repaymentMethod = this.formData.repaymentMethod[0] || '';
-      
-      // 获取还款方式的中文名称
-      let repaymentMethodLabel = '';
-      const method = this.repaymentOptions.find(item => item.value === repaymentMethod);
-      if (method) {
-        repaymentMethodLabel = method.label;
+      if (this.formData.loanType === 'mortgage') {
+        // 按揭贷款参数
+        const mortgageType = this.formData.mortgage.mortgageType;
+        
+        if (mortgageType === 'fund') {
+          // 公积金贷款
+          return {
+            loanAmount: this.formData.mortgage.fundLoanAmount,
+            interestRate: this.formData.mortgage.minFundRate,
+            loanTerm: this.formData.mortgage.minMortgageTerm,
+            repaymentMethod: this.formData.mortgage.fundRepaymentMethod,
+            repaymentMethodLabel: this.formData.mortgage.fundRepaymentMethod === 'equal_principal_interest' ? '等额本息' : '等额本金'
+          };
+        } else if (mortgageType === 'commercial') {
+          // 商业贷款
+          return {
+            loanAmount: this.formData.mortgage.commercialLoanAmount,
+            interestRate: this.formData.mortgage.minCommercialRate,
+            loanTerm: this.formData.mortgage.minMortgageTerm,
+            repaymentMethod: this.formData.mortgage.commercialRepaymentMethod,
+            repaymentMethodLabel: this.formData.mortgage.commercialRepaymentMethod === 'equal_principal_interest' ? '等额本息' : '等额本金'
+          };
+        } else if (mortgageType === 'mixed') {
+          // 组合贷款 - 根据当前显示的贷款类型返回不同参数
+          if (this.activeLoanType === 'fund') {
+            return {
+              loanAmount: this.formData.mortgage.fundLoanAmount,
+              interestRate: this.formData.mortgage.minFundRate,
+              loanTerm: this.formData.mortgage.minMortgageTerm,
+              repaymentMethod: this.formData.mortgage.fundRepaymentMethod,
+              repaymentMethodLabel: this.formData.mortgage.fundRepaymentMethod === 'equal_principal_interest' ? '等额本息' : '等额本金'
+            };
+          } else {
+            return {
+              loanAmount: this.formData.mortgage.commercialLoanAmount,
+              interestRate: this.formData.mortgage.minCommercialRate,
+              loanTerm: this.formData.mortgage.minMortgageTerm,
+              repaymentMethod: this.formData.mortgage.commercialRepaymentMethod,
+              repaymentMethodLabel: this.formData.mortgage.commercialRepaymentMethod === 'equal_principal_interest' ? '等额本息' : '等额本金'
+            };
+          }
+        }
+        
+        // 默认返回空对象
+        return {
+          loanAmount: 0,
+          interestRate: 0,
+          loanTerm: 0,
+          repaymentMethod: '',
+          repaymentMethodLabel: ''
+        };
+      } else {
+        // 原有的抵押贷款和信用贷款的计算参数
+        // 使用最小值作为计算参数（而非平均值）
+        const interestRate = this.formData.minInterestRate;
+        const loanTerm = this.formData.minLoanTerm;
+        // 使用第一个还款方式进行计算
+        const repaymentMethod = this.formData.repaymentMethod[0] || '';
+        
+        // 获取还款方式的中文名称
+        let repaymentMethodLabel = '';
+        const method = this.repaymentOptions.find(item => item.value === repaymentMethod);
+        if (method) {
+          repaymentMethodLabel = method.label;
+        }
+        
+        return {
+          loanAmount: this.formData.loanAmount,
+          interestRate,
+          loanTerm,
+          repaymentMethod,
+          repaymentMethodLabel
+        };
       }
-      
-      return {
-        interestRate,
-        loanTerm,
-        repaymentMethod,
-        repaymentMethodLabel
-      };
     },
     
     // 根据贷款方式显示不同的利率标签
@@ -799,18 +946,19 @@ export default {
       let loanType = '';
       switch(this.formData.loanType) {
         case 'mortgage':
-          loanType = '按揭贷款';
+          loanType = '按揭';
           break;
         case 'secured':
-          loanType = '抵押贷款';
+          loanType = '抵押';
           break;
         case 'credit':
-          loanType = '信用贷款';
+          loanType = '信用';
           break;
         default:
           loanType = '';
       }
-      return `你可以在这里直接用文字完整描述客户${loanType}的融资需求。`;
+      return `你可以在这里直接用文字完整描述客户的${loanType}贷款融资需求。
+若描述内容与选填信息有不一致的，系统将以描述内容为准。`;
     }
   },
   watch: {
@@ -821,6 +969,16 @@ export default {
     'formData.minLoanTerm': 'calculateRepaymentSchedule',
     'formData.maxLoanTerm': 'calculateRepaymentSchedule',
     'formData.repaymentMethod': 'calculateRepaymentSchedule',
+    // 监听按揭贷款相关参数
+    'formData.mortgage.fundLoanAmount': 'calculateRepaymentSchedule',
+    'formData.mortgage.commercialLoanAmount': 'calculateRepaymentSchedule',
+    'formData.mortgage.minFundRate': 'calculateRepaymentSchedule',
+    'formData.mortgage.minCommercialRate': 'calculateRepaymentSchedule',
+    'formData.mortgage.minMortgageTerm': 'calculateRepaymentSchedule',
+    'formData.mortgage.fundRepaymentMethod': 'calculateRepaymentSchedule',
+    'formData.mortgage.commercialRepaymentMethod': 'calculateRepaymentSchedule',
+    // 监听组合贷款类型切换
+    'activeLoanType': 'calculateRepaymentSchedule',
     'formData.phone': {
       immediate: true,
       handler(newValue) {
@@ -833,35 +991,85 @@ export default {
   methods: {
     // 贷款方式变更处理
     handleLoanTypeChange(value) {
-      // 根据贷款方式更新还款方式选项
+      // 重置表单
+      this.resetRepaymentFields();
+      
+      // 根据贷款方式设置默认值
       switch(value) {
+        case 'mortgage':
+          // 按揭贷款初始化
+          this.formData.mortgage = {
+            mortgageType: '',
+            propertyValue: null, // 使用null代替空字符串
+            downPaymentRatio: null, // 使用null代替空字符串
+            isFirstProperty: true,
+            propertyType: 'residential',
+            // 公积金贷款字段
+            fundLoanAmount: 0,
+            minFundRate: 2.85,
+            maxFundRate: 3.325,
+            fundRepaymentMethod: 'equal_principal_interest',
+            // 商业贷款字段
+            commercialLoanAmount: 0,
+            minCommercialRate: 3.0,
+            maxCommercialRate: 3.6,
+            commercialRepaymentMethod: 'equal_principal_interest',
+            // 贷款期限
+            minMortgageTerm: 240,
+            maxMortgageTerm: 360
+          };
+          break;
         case 'secured':
+          // 抵押贷款初始化
+          this.formData.secured = {
+            loanPurpose: '',
+            collateralType: '',
+            collateralValue: null, // 使用null代替空字符串
+            mortgageRatio: null, // 使用null代替空字符串
+            businessYears: null, // 使用null代替空字符串
+            hasBusinessLicense: false,
+            businessLicenseMonths: null // 使用null代替空字符串
+          };
+          
+          // 设置抵押贷款默认值
+          this.formData.loanAmount = 0;
+          this.formData.minInterestRate = 3.1;
+          this.formData.maxInterestRate = 10.0;
+          this.formData.minLoanTerm = 12;
+          this.formData.maxLoanTerm = 120;
+          this.formData.repaymentMethod = ['equal_principal_interest'];
+          
+          // 设置还款方式选项
           this.repaymentOptions = [
             { label: '等额本息', value: 'equal_principal_interest' },
             { label: '等额本金', value: 'equal_principal' },
             { label: '先息后本', value: 'interest_first' }
           ];
-          // 设置抵押贷款默认值（根据广州地区最新政策）
-          this.formData.loanAmount = 140; // 假设抵押物价值200万，贷款70%
-          this.formData.minInterestRate = 3.1; // 最低可至3.1%
-          this.formData.maxInterestRate = 4.5; // 上限约4.5%
-          this.formData.minLoanTerm = 12; // 1年
-          this.formData.maxLoanTerm = 120; // 10年
-          this.formData.repaymentMethod = ['equal_principal_interest'];
           break;
         case 'credit':
+          // 信用贷款初始化
+          this.formData.credit = {
+            loanPurpose: '',
+            monthlyIncome: '',
+            employerType: '',
+            workYears: ''
+          };
+          
+          // 设置信用贷款默认值
+          this.formData.loanAmount = 0;
+          this.formData.minInterestRate = 2.5;
+          this.formData.maxInterestRate = 10.0;
+          this.formData.minLoanTerm = 3;
+          this.formData.maxLoanTerm = 60;
+          this.formData.repaymentMethod = ['equal_principal_interest'];
+          
+          // 设置还款方式选项
           this.repaymentOptions = [
             { label: '等额本息', value: 'equal_principal_interest' },
-            { label: '先息后本', value: 'interest_first' },            
-            { label: '一次性还本付息', value: 'lump_sum' }
+            { label: '先息后本', value: 'interest_first' },
+            { label: '一次性还本付息', value: 'lump_sum' },
+            { label: '按月付息到期还本', value: 'monthly_interest' }
           ];
-          // 设置信用贷款默认值（根据广州地区最新政策）
-          this.formData.loanAmount = 50; // 50万元
-          this.formData.minInterestRate = 4.0; // 最低可至4.0%
-          this.formData.maxInterestRate = 8.0; // 上限约8.0%
-          this.formData.minLoanTerm = 12; // 1年
-          this.formData.maxLoanTerm = 36; // 3年
-          this.formData.repaymentMethod = ['equal_principal_interest'];
           break;
       }
     },
@@ -903,8 +1111,25 @@ export default {
     },
     
     // 上传错误处理
-    handleUploadError() {
-      this.$message.error('文件上传失败，请重试');
+    handleUploadError(error) {
+      console.error('文件上传错误:', error);
+      let errorMessage = '文件上传失败，请重试';
+      
+      if (error && error.message) {
+        try {
+          const errorData = JSON.parse(error.message);
+          if (errorData.error) {
+            errorMessage = `上传失败: ${errorData.error}`;
+            if (errorData.details) {
+              errorMessage += ` - ${errorData.details}`;
+            }
+          }
+        } catch (e) {
+          errorMessage = `上传失败: ${error.message}`;
+        }
+      }
+      
+      this.$message.error(errorMessage);
     },
     
     // 文件数量超出限制处理
@@ -928,8 +1153,8 @@ export default {
         return;
       }
       
-      const { interestRate, loanTerm, repaymentMethod } = this.calculationParams;
-      const loanAmount = this.formData.loanAmount * 10000; // 转换为元
+      const { loanAmount, interestRate, loanTerm, repaymentMethod } = this.calculationParams;
+      const loanAmountValue = loanAmount * 10000; // 转换为元
       const monthlyInterestRate = interestRate / 100 / 12; // 月利率
       
       let totalRepayment = 0;
@@ -945,12 +1170,12 @@ export default {
       switch (repaymentMethod) {
         case 'equal_principal_interest': // 等额本息
           // 月供 = 本金 × 月利率 × (1+月利率)^还款月数 / [(1+月利率)^还款月数 - 1]
-          monthlyPayment = loanAmount * monthlyInterestRate * Math.pow(1 + monthlyInterestRate, loanTerm) / (Math.pow(1 + monthlyInterestRate, loanTerm) - 1);
+          monthlyPayment = loanAmountValue * monthlyInterestRate * Math.pow(1 + monthlyInterestRate, loanTerm) / (Math.pow(1 + monthlyInterestRate, loanTerm) - 1);
           totalRepayment = monthlyPayment * loanTerm;
-          totalInterest = totalRepayment - loanAmount;
+          totalInterest = totalRepayment - loanAmountValue;
           
           // 生成还款计划表
-          let remainingPrincipal1 = loanAmount;
+          let remainingPrincipal1 = loanAmountValue;
           for (let i = 1; i <= loanTerm; i++) {
             const paymentDate = new Date(firstPaymentDate);
             paymentDate.setMonth(firstPaymentDate.getMonth() + i - 1);
@@ -971,11 +1196,11 @@ export default {
           break;
           
         case 'equal_principal': // 等额本金
-          const monthlyPrincipal = loanAmount / loanTerm;
+          const monthlyPrincipal = loanAmountValue / loanTerm;
           totalRepayment = 0;
           
           // 生成还款计划表
-          let remainingPrincipal2 = loanAmount;
+          let remainingPrincipal2 = loanAmountValue;
           for (let i = 1; i <= loanTerm; i++) {
             const paymentDate = new Date(firstPaymentDate);
             paymentDate.setMonth(firstPaymentDate.getMonth() + i - 1);
@@ -999,17 +1224,17 @@ export default {
           break;
           
         case 'interest_first': // 先息后本
-          const monthlyInterest = loanAmount * monthlyInterestRate;
+          const monthlyInterest = loanAmountValue * monthlyInterestRate;
           totalInterest = monthlyInterest * loanTerm;
-          totalRepayment = loanAmount + totalInterest;
+          totalRepayment = loanAmountValue + totalInterest;
           
           // 生成还款计划表
           for (let i = 1; i <= loanTerm; i++) {
             const paymentDate = new Date(firstPaymentDate);
             paymentDate.setMonth(firstPaymentDate.getMonth() + i - 1);
             
-            const principal = i === loanTerm ? loanAmount : 0;
-            const payment = i === loanTerm ? (loanAmount + monthlyInterest) : monthlyInterest;
+            const principal = i === loanTerm ? loanAmountValue : 0;
+            const payment = i === loanTerm ? (loanAmountValue + monthlyInterest) : monthlyInterest;
             
             schedule.push({
               period: i,
@@ -1017,15 +1242,15 @@ export default {
               monthlyPayment: payment.toFixed(2),
               principal: principal.toFixed(2),
               interest: monthlyInterest.toFixed(2),
-              remainingPrincipal: i === loanTerm ? '0.00' : loanAmount.toFixed(2)
+              remainingPrincipal: i === loanTerm ? '0.00' : loanAmountValue.toFixed(2)
             });
           }
           break;
           
         case 'lump_sum': // 一次性还本付息
-          const totalInterestAmount = loanAmount * monthlyInterestRate * loanTerm;
+          const totalInterestAmount = loanAmountValue * monthlyInterestRate * loanTerm;
           totalInterest = totalInterestAmount;
-          totalRepayment = loanAmount + totalInterest;
+          totalRepayment = loanAmountValue + totalInterest;
           
           // 生成还款计划表
           const paymentDate = new Date(firstPaymentDate);
@@ -1035,24 +1260,24 @@ export default {
             period: 1,
             paymentDate: paymentDate.toISOString().split('T')[0],
             monthlyPayment: totalRepayment.toFixed(2),
-            principal: loanAmount.toFixed(2),
+            principal: loanAmountValue.toFixed(2),
             interest: totalInterest.toFixed(2),
             remainingPrincipal: '0.00'
           });
           break;
           
         case 'monthly_interest': // 按月付息到期还本
-          const monthlyInterestPayment = loanAmount * monthlyInterestRate;
+          const monthlyInterestPayment = loanAmountValue * monthlyInterestRate;
           totalInterest = monthlyInterestPayment * loanTerm;
-          totalRepayment = loanAmount + totalInterest;
+          totalRepayment = loanAmountValue + totalInterest;
           
           // 生成还款计划表
           for (let i = 1; i <= loanTerm; i++) {
             const paymentDate = new Date(firstPaymentDate);
             paymentDate.setMonth(firstPaymentDate.getMonth() + i - 1);
             
-            const principal = i === loanTerm ? loanAmount : 0;
-            const payment = i === loanTerm ? (loanAmount + monthlyInterestPayment) : monthlyInterestPayment;
+            const principal = i === loanTerm ? loanAmountValue : 0;
+            const payment = i === loanTerm ? (loanAmountValue + monthlyInterestPayment) : monthlyInterestPayment;
             
             schedule.push({
               period: i,
@@ -1060,7 +1285,7 @@ export default {
               monthlyPayment: payment.toFixed(2),
               principal: principal.toFixed(2),
               interest: monthlyInterestPayment.toFixed(2),
-              remainingPrincipal: i === loanTerm ? '0.00' : loanAmount.toFixed(2)
+              remainingPrincipal: i === loanTerm ? '0.00' : loanAmountValue.toFixed(2)
             });
           }
           break;
@@ -1080,11 +1305,6 @@ export default {
       const num = parseFloat(value);
       if (isNaN(num)) return '0.00';
       return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '元';
-    },
-    
-    // 表格中格式化货币
-    formatTableCurrency(row, column, cellValue) {
-      return this.formatCurrency(cellValue);
     },
     
     // 提交表单
@@ -1119,6 +1339,20 @@ export default {
       this.$refs.financeForm.resetFields();
       this.personalCreditFiles = [];
       this.businessCreditFiles = [];
+      
+      // 手动将数字型字段设为null以显示为空
+      if (this.formData.mortgage) {
+        this.formData.mortgage.propertyValue = null;
+        this.formData.mortgage.downPaymentRatio = null;
+      }
+      
+      if (this.formData.secured) {
+        this.formData.secured.collateralValue = null;
+        this.formData.secured.mortgageRatio = null;
+        this.formData.secured.businessYears = null;
+        this.formData.secured.businessLicenseMonths = null;
+      }
+      
       // 重置计算结果
       this.calculationResult = {
         totalRepayment: 0,
@@ -1160,28 +1394,51 @@ export default {
 
     // 处理按揭贷款方式变更
     handleMortgageTypeChange(value) {
-      // 重置相关字段
-      this.formData.minInterestRate = null;
-      this.formData.maxInterestRate = null;
-      this.formData.minLoanTerm = 120;
-      this.formData.maxLoanTerm = 360;
-      this.formData.repaymentMethod = [];
-
+      // 确保房产总价显示为空
+      this.formData.mortgage.propertyValue = null;
+      this.formData.mortgage.downPaymentRatio = null;
+      
       // 根据贷款方式设置默认值
       switch(value) {
         case 'fund':
-          this.formData.minInterestRate = 3.1;
-          this.formData.maxInterestRate = 3.1;
+          // 设置公积金贷款的默认值
+          this.formData.mortgage.fundLoanAmount = 0;
+          this.formData.mortgage.minFundRate = 2.85;
+          this.formData.mortgage.maxFundRate = 3.325;
+          this.formData.mortgage.fundRepaymentMethod = 'equal_principal_interest';
+          this.formData.mortgage.minMortgageTerm = 240; // 20年
+          this.formData.mortgage.maxMortgageTerm = 360; // 30年
           break;
         case 'commercial':
-          this.formData.minInterestRate = 4.2;
-          this.formData.maxInterestRate = 4.85;
+          // 设置商业贷款的默认值
+          this.formData.mortgage.commercialLoanAmount = 0;
+          this.formData.mortgage.minCommercialRate = 3.0;
+          this.formData.mortgage.maxCommercialRate = 3.6;
+          this.formData.mortgage.commercialRepaymentMethod = 'equal_principal_interest';
+          this.formData.mortgage.minMortgageTerm = 240; // 20年
+          this.formData.mortgage.maxMortgageTerm = 360; // 30年
           break;
         case 'mixed':
+          // 混合贷款默认值
           this.formData.mortgage.fundLoanAmount = 0;
           this.formData.mortgage.commercialLoanAmount = 0;
+          this.formData.mortgage.minFundRate = 2.85;
+          this.formData.mortgage.maxFundRate = 3.325;
+          this.formData.mortgage.minCommercialRate = 3.0;
+          this.formData.mortgage.maxCommercialRate = 3.6;
+          this.formData.mortgage.fundRepaymentMethod = 'equal_principal_interest';
+          this.formData.mortgage.commercialRepaymentMethod = 'equal_principal_interest';
+          this.formData.mortgage.minMortgageTerm = 240; // 20年
+          this.formData.mortgage.maxMortgageTerm = 360; // 30年
+          // 默认显示公积金贷款
+          this.activeLoanType = 'fund';
           break;
       }
+      
+      // 触发还款计划计算
+      this.$nextTick(() => {
+        this.calculateRepaymentSchedule();
+      });
     },
 
     // 格式化手机号码
@@ -1205,6 +1462,25 @@ export default {
                            truncated.substring(3, 7) + ' ' + 
                            truncated.substring(7);
       }
+    },
+
+    // 重置还款相关字段
+    resetRepaymentFields() {
+      // 重置通用字段
+      this.formData.loanAmount = 0;
+      this.formData.minInterestRate = 0;
+      this.formData.maxInterestRate = 0;
+      this.formData.minLoanTerm = 0;
+      this.formData.maxLoanTerm = 0;
+      this.formData.repaymentMethod = [];
+      
+      // 重置计算结果
+      this.calculationResult = {
+        totalRepayment: 0,
+        totalInterest: 0,
+        monthlyPayment: 0,
+        schedule: []
+      };
     },
   },
   mounted() {
@@ -1282,6 +1558,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+
 .finance-advice-container {
   display: flex;
   height: calc(100vh - 100px);
@@ -1307,7 +1584,7 @@ export default {
 }
 
 .right-top-panel {
-  flex: 0.42; /* 减少顶部面板的高度占比 */
+  flex: 0.43; /* 减少顶部面板的高度占比 */
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.05);
@@ -1327,22 +1604,35 @@ export default {
 }
 
 .panel-header {
-  padding: 16px 20px;
+  padding: 0;
   border-bottom: 1px solid #eee;
   background-color: #f8f9fa;
+  height: 60px; /* 固定标题栏高度 */
+  box-sizing: border-box;
+  position: relative; /* 为loan-type-switch提供相对定位参考 */
+  display: flex;
+  align-items: center;
 }
 
-.panel-header h2 {
-  margin: 0;
+.panel-title {
+  padding: 0;
+  padding-left: 20px;
   color: #1b68de;
   font-size: 18px;
   font-weight: 500;
+  line-height: 60px; /* 确保垂直居中 */
+}
+
+.header-content {
+  height: 100%;
 }
 
 .panel-content {
   flex: 1;
   padding: 20px;
   overflow: auto;
+  height: calc(100% - 60px); /* 确保内容区域正确计算高度 */
+  box-sizing: border-box;
 }
 
 .form-section {
@@ -1522,9 +1812,9 @@ export default {
 .repayment-overview {
   display: flex;
   justify-content: space-around;
-  padding: 20px 0;
-  border-bottom: 1px solid #ebeef5;
-  margin-bottom: 20px;
+  // padding: 20px 0;
+  // border-bottom: 1px solid #ebeef5;
+  // margin-bottom: 20px;
 }
 
 .overview-item {
@@ -1541,10 +1831,6 @@ export default {
 .overview-label {
   font-size: 14px;
   color: #606266;
-}
-
-.repayment-schedule {
-  margin-top: 20px;
 }
 
 .calculation-tips {
@@ -1600,206 +1886,217 @@ export default {
   }
 }
 
-/* 全局样式覆盖 */
-:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
-  background-color: #1b68de;
-  border-color: #1b68de;
-}
+// /* 全局样式覆盖 */
+// /* 全局覆盖Element Plus主题色 */
+// :deep(:root) {
+//   --el-color-primary: #1b68de !important;
+//   --el-color-primary-light-3: #4785e5 !important;
+//   --el-color-primary-light-5: #7da8eb !important;
+//   --el-color-primary-light-7: #b3cbf2 !important;
+//   --el-color-primary-light-8: #cbdbf6 !important;
+//   --el-color-primary-light-9: #e5edfa !important;
+//   --el-color-primary-dark-2: #1857be !important;
+// }
 
-:deep(.el-checkbox__input.is-focus .el-checkbox__inner) {
-  border-color: #1b68de;
-}
+// :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+//   background-color: #1b68de;
+//   border-color: #1b68de;
+// }
 
-:deep(.el-radio__input.is-checked .el-radio__inner) {
-  background-color: #1b68de;
-  border-color: #1b68de;
-}
+// :deep(.el-checkbox__input.is-focus .el-checkbox__inner) {
+//   border-color: #1b68de;
+// }
 
-:deep(.el-radio__input.is-focus .el-radio__inner) {
-  border-color: #1b68de;
-}
+// :deep(.el-radio__input.is-checked .el-radio__inner) {
+//   background-color: #1b68de;
+//   border-color: #1b68de;
+// }
 
-:deep(.el-checkbox__input.is-indeterminate .el-checkbox__inner) {
-  background-color: #1b68de;
-  border-color: #1b68de;
-}
+// :deep(.el-radio__input.is-focus .el-radio__inner) {
+//   border-color: #1b68de;
+// }
 
-:deep(.el-radio.is-bordered.is-checked) {
-  border-color: #1b68de;
-}
+// :deep(.el-checkbox__input.is-indeterminate .el-checkbox__inner) {
+//   background-color: #1b68de;
+//   border-color: #1b68de;
+// }
 
-:deep(.el-checkbox.is-bordered.is-checked) {
-  border-color: #1b68de;
-}
+// :deep(.el-radio.is-bordered.is-checked) {
+//   border-color: #1b68de;
+// }
 
-:deep(.el-radio__label),
-:deep(.el-checkbox__label) {
-  color: #606266;
-}
+// :deep(.el-checkbox.is-bordered.is-checked) {
+//   border-color: #1b68de;
+// }
 
-:deep(.el-radio__input.is-checked + .el-radio__label),
-:deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
-  color: #1b68de;
-}
+// :deep(.el-radio__label),
+// :deep(.el-checkbox__label) {
+//   color: #606266;
+// }
 
-/* 扩展更多Element Plus组件的颜色覆盖 */
-:deep(.el-button--primary) {
-  background-color: #1b68de;
-  border-color: #1b68de;
-}
+// :deep(.el-radio__input.is-checked + .el-radio__label),
+// :deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
+//   color: #1b68de;
+// }
 
-:deep(.el-button--primary:hover),
-:deep(.el-button--primary:focus) {
-  background-color: #4785e5;
-  border-color: #4785e5;
-}
+// /* 扩展更多Element Plus组件的颜色覆盖 */
+// :deep(.el-button--primary) {
+//   background-color: #1b68de;
+//   border-color: #1b68de;
+// }
 
-:deep(.el-button--primary:active) {
-  background-color: #1857be;
-  border-color: #1857be;
-}
+// :deep(.el-button--primary:hover),
+// :deep(.el-button--primary:focus) {
+//   background-color: #4785e5;
+//   border-color: #4785e5;
+// }
 
-:deep(.el-button--text) {
-  color: #1b68de;
-}
+// :deep(.el-button--primary:active) {
+//   background-color: #1857be;
+//   border-color: #1857be;
+// }
 
-:deep(.el-button--text:hover),
-:deep(.el-button--text:focus) {
-  color: #4785e5;
-}
+// :deep(.el-button--text) {
+//   color: #1b68de;
+// }
 
-:deep(.el-select:hover .el-input__inner) {
-  border-color: #1b68de;
-}
+// :deep(.el-button--text:hover),
+// :deep(.el-button--text:focus) {
+//   color: #4785e5;
+// }
 
-:deep(.el-select .el-input.is-focus .el-input__inner) {
-  border-color: #1b68de;
-}
+// :deep(.el-select:hover .el-input__inner) {
+//   border-color: #1b68de;
+// }
 
-:deep(.el-select-dropdown__item.selected) {
-  color: #1b68de;
-}
+// :deep(.el-select .el-input.is-focus .el-input__inner) {
+//   border-color: #1b68de;
+// }
 
-:deep(.el-input__inner:focus) {
-  border-color: #1b68de;
-}
+// :deep(.el-select-dropdown__item.selected) {
+//   color: #1b68de;
+// }
 
-:deep(.el-input.is-active .el-input__inner) {
-  border-color: #1b68de;
-}
+// :deep(.el-input__inner:focus) {
+//   border-color: #1b68de;
+// }
 
-:deep(.el-input-number__increase:hover),
-:deep(.el-input-number__decrease:hover) {
-  color: #1b68de;
-}
+// :deep(.el-input.is-active .el-input__inner) {
+//   border-color: #1b68de;
+// }
 
-:deep(.el-pagination.is-background .el-pager li:not(.disabled).active) {
-  background-color: #1b68de;
-}
+// :deep(.el-input-number__increase:hover),
+// :deep(.el-input-number__decrease:hover) {
+//   color: #1b68de;
+// }
 
-:deep(.el-pagination.is-background .el-pager li:not(.disabled):hover) {
-  color: #1b68de;
-}
+// :deep(.el-pagination.is-background .el-pager li:not(.disabled).active) {
+//   background-color: #1b68de;
+// }
 
-:deep(.el-tabs__active-bar) {
-  background-color: #1b68de;
-}
+// :deep(.el-pagination.is-background .el-pager li:not(.disabled):hover) {
+//   color: #1b68de;
+// }
 
-:deep(.el-tabs__item.is-active) {
-  color: #1b68de;
-}
+// :deep(.el-tabs__active-bar) {
+//   background-color: #1b68de;
+// }
 
-:deep(.el-tabs__item:hover) {
-  color: #1b68de;
-}
+// :deep(.el-tabs__item.is-active) {
+//   color: #1b68de;
+// }
 
-:deep(.el-tag--primary) {
-  background-color: rgba(27, 104, 222, 0.1);
-  border-color: rgba(27, 104, 222, 0.2);
-  color: #1b68de;
-}
+// :deep(.el-tabs__item:hover) {
+//   color: #1b68de;
+// }
 
-:deep(.el-switch.is-checked .el-switch__core) {
-  border-color: #1b68de;
-  background-color: #1b68de;
-}
+// :deep(.el-tag--primary) {
+//   background-color: rgba(27, 104, 222, 0.1);
+//   border-color: rgba(27, 104, 222, 0.2);
+//   color: #1b68de;
+// }
 
-:deep(.el-slider__bar) {
-  background-color: #1b68de;
-}
+// :deep(.el-switch.is-checked .el-switch__core) {
+//   border-color: #1b68de;
+//   background-color: #1b68de;
+// }
 
-:deep(.el-slider__button) {
-  border-color: #1b68de;
-}
+// :deep(.el-slider__bar) {
+//   background-color: #1b68de;
+// }
 
-:deep(.el-table th.el-table__cell > .cell.highlight) {
-  color: #1b68de;
-}
+// :deep(.el-slider__button) {
+//   border-color: #1b68de;
+// }
 
-:deep(.el-table__fixed-right::before),
-:deep(.el-table__fixed::before) {
-  background-color: #1b68de;
-}
+// :deep(.el-table th.el-table__cell > .cell.highlight) {
+//   color: #1b68de;
+// }
 
-:deep(.el-loading-spinner .path) {
-  stroke: #1b68de;
-}
+// :deep(.el-table__fixed-right::before),
+// :deep(.el-table__fixed::before) {
+//   background-color: #1b68de;
+// }
 
-:deep(.el-message-box__headerbtn:focus .el-message-box__close),
-:deep(.el-message-box__headerbtn:hover .el-message-box__close) {
-  color: #1b68de;
-}
+// :deep(.el-loading-spinner .path) {
+//   stroke: #1b68de;
+// }
 
-:deep(.el-message--success .el-message__icon),
-:deep(.el-message--success) {
-  color: #1b68de;
-}
+// :deep(.el-message-box__headerbtn:focus .el-message-box__close),
+// :deep(.el-message-box__headerbtn:hover .el-message-box__close) {
+//   color: #1b68de;
+// }
 
-/* 上传进度条和下拉框颜色 */
-:deep(.el-progress-bar__inner) {
-  background-color: #1b68de !important;
-}
+// :deep(.el-message--success .el-message__icon),
+// :deep(.el-message--success) {
+//   color: #1b68de;
+// }
 
-:deep(.el-select .el-input.is-focus .el-input__wrapper) {
-  box-shadow: 0 0 0 1px #1b68de inset !important;
-}
+// /* 上传进度条和下拉框颜色 */
+// :deep(.el-progress-bar__inner) {
+//   background-color: #1b68de !important;
+// }
 
-:deep(.el-select-dropdown__item.selected) {
-  color: #1b68de !important;
-  font-weight: bold;
-}
+// :deep(.el-select .el-input.is-focus .el-input__wrapper) {
+//   box-shadow: 0 0 0 1px #1b68de inset !important;
+// }
 
-:deep(.el-select .el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px #1b68de inset !important;
-}
+// :deep(.el-select-dropdown__item.selected) {
+//   color: #1b68de !important;
+//   font-weight: bold;
+// }
 
-:deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px #1b68de inset !important;
-}
+// :deep(.el-select .el-input__wrapper.is-focus) {
+//   box-shadow: 0 0 0 1px #1b68de inset !important;
+// }
 
-:deep(.el-input-number.is-controls-right .el-input__wrapper) {
-  box-shadow: 0 0 0 1px #dcdfe6 inset;
-}
+// :deep(.el-input__wrapper.is-focus) {
+//   box-shadow: 0 0 0 1px #1b68de inset !important;
+// }
 
-:deep(.el-input-number.is-controls-right .el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px #1b68de inset !important;
-}
+// :deep(.el-input-number.is-controls-right .el-input__wrapper) {
+//   box-shadow: 0 0 0 1px #dcdfe6 inset;
+// }
 
-:deep(.el-upload-list__item.is-success .el-upload-list__item-name) {
-  color: #1b68de;
-}
+// :deep(.el-input-number.is-controls-right .el-input__wrapper.is-focus) {
+//   box-shadow: 0 0 0 1px #1b68de inset !important;
+// }
 
-:deep(.el-upload-list__item .el-icon--close) {
-  color: #606266;
-}
+// :deep(.el-upload-list__item.is-success .el-upload-list__item-name) {
+//   color: #1b68de;
+// }
 
-:deep(.el-upload-list__item .el-icon--close:hover) {
-  color: #1b68de;
-}
+// :deep(.el-upload-list__item .el-icon--close) {
+//   color: #606266;
+// }
 
-:deep(.el-upload-list__item-delete:hover) {
-  color: #1b68de;
-}
+// :deep(.el-upload-list__item .el-icon--close:hover) {
+//   color: #1b68de;
+// }
+
+// :deep(.el-upload-list__item-delete:hover) {
+//   color: #1b68de;
+// }
 
 /* 表单布局 */
 .form-row {
@@ -1916,4 +2213,151 @@ export default {
     }
   }
 }
-</style> 
+
+/* 组合贷款情况下的切换按钮 */
+.loan-type-switch {
+  position: absolute;
+  left: 180px; /* 定位在标题右侧 */
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.custom-radio-group {
+  display: flex;
+  gap: 0;
+}
+
+.custom-radio-button {
+  padding: 5px 10px;
+  font-size: 12px;
+  border: 1px solid #dcdfe6;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+  color: #606266;
+  height: 28px;  /* 限制高度 */
+  line-height: 18px;  /* 垂直居中 */
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:first-child {
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+  }
+
+  &:last-child {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    border-left: none;
+  }
+
+  &.active {
+    background-color: #1b68de;
+    border-color: #1b68de;
+    color: white;
+  }
+}
+
+.repayment-schedule {
+  width: 100%;
+  position: relative;
+}
+
+/* 固定表头样式 */
+:deep(.sticky-table-header) {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 999 !important;
+  background-color: #f5f7fa !important;
+}
+
+:deep(.el-table--border) {
+  width: 100% !important;
+}
+
+:deep(.el-table__header-wrapper) {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 999 !important;
+}
+
+:deep(.el-table__header) {
+  border-collapse: separate !important;
+}
+
+/* 恢复Radio Button样式 */
+.loan-type-switch .el-radio-group {
+  display: inline-block;
+}
+
+:deep(.el-radio-button__inner) {
+  color: #606266;
+  border-color: #dcdfe6;
+}
+
+:deep(.el-radio-button__orig-radio:checked + .el-radio-button__inner) {
+  background-color: #1b68de !important;
+  border-color: #1b68de !important;
+  box-shadow: -1px 0 0 0 #1b68de !important;
+  color: #ffffff !important;
+}
+
+/* 强化表头吸顶效果 */
+:deep(.sticky-table-header) {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 999 !important;
+  background-color: #f5f7fa !important;
+}
+
+/* 自定义表格样式 - 增强 */
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #EBEEF5;
+  table-layout: fixed; /* 固定表格布局 */
+  margin-top: -1px; /* 关键修复：抵消边框重叠产生的间隙 */
+}
+
+.custom-table th,
+.custom-table td {
+  padding: 12px;
+  border: 1px solid #EBEEF5;
+  text-align: left;
+  white-space: nowrap; /* 防止内容换行 */
+  overflow: hidden;
+  text-overflow: ellipsis; /* 超出部分显示省略号 */
+}
+
+.custom-table th {
+  background-color: #f5f7fa;
+  font-weight: 500;
+  color: #606266;
+  position: sticky;
+  top: -1px; /* 关键修复：确保与panel-header完全贴合 */
+  z-index: 10;
+  border-top: 1px solid #EBEEF5; /* 关键修复：添加顶部边框 */
+}
+
+.custom-table tbody tr:nth-child(even) {
+  background-color: #FAFAFA;
+}
+
+.custom-table .center {
+  text-align: center;
+}
+
+/* 调整表格在panel-content中的吸顶位置，修复间距问题 */
+.right-bottom-panel .panel-content {
+  padding-top: 0;
+  background-color: #fff; /* 关键修复：确保背景色一致 */
+}
+
+.repayment-calculator {
+  padding-top: 20px;
+  background-color: #fff; /* 关键修复：确保背景色一致 */
+}
+
+</style>
