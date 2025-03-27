@@ -53,50 +53,60 @@
               </el-form-item>
             </div>
 
-            <!-- 需求描述文本框 -->
-            <div class="form-row">
-              <el-form-item label="需求描述" prop="additionalNotes" class="form-item form-item-full" :rules="[{ required: true, message: '请输入需求描述', trigger: 'blur' }]">
-                <el-input
-                  v-model="formData.additionalNotes"
-                  type="textarea"
-                  :rows="6"
-                  :placeholder="getMoreDescriptionPlaceholder"
-                  @focus="handleInputFocus"
-                  @input="handleDescriptionInput"
-                ></el-input>
-              </el-form-item>
-            </div>
-            
-            <!-- AI关键词提取区域 -->
-            <div class="keywords-section" v-if="formData.additionalNotes">
-              <div class="keywords-header">
-                <span class="keywords-title">
-                  <el-icon><Aim /></el-icon>
-                  AI提取的关键信息
-                </span>
-                <el-button 
-                  type="primary" 
-                  link 
-                  :icon="Refresh"
-                  :loading="isExtractingKeywords"
-                  @click="extractKeywords"
-                >
-                  重新提取
-                </el-button>
+            <!-- 需求描述区域容器 -->
+            <div class="description-container">
+              <div class="description-input">
+                <el-form-item label="需求描述" prop="additionalNotes" class="form-item form-item-full" :rules="[{ required: true, message: '请输入需求描述', trigger: 'blur' }]">
+                  <el-input
+                    v-model="formData.additionalNotes"
+                    type="textarea"
+                    :rows="6"
+                    :placeholder="getMoreDescriptionPlaceholder"
+                    @focus="handleInputFocus"
+                    @input="handleDescriptionInput"
+                    ref="descriptionTextarea"
+                  ></el-input>
+                </el-form-item>
               </div>
-              <div class="keywords-content" v-if="aiKeywords.length > 0">
-                <el-tag
-                  v-for="keyword in aiKeywords"
-                  :key="keyword.key"
-                  class="keyword-tag"
-                  :type="keyword.type"
-                >
-                  {{ keyword.label }}: {{ keyword.value }}
-                </el-tag>
-              </div>
-              <div class="keywords-placeholder" v-else>
-                <el-icon><Loading /></el-icon>
-                正在分析需求描述...
+              
+              <!-- AI关键词提取区域 -->
+              <div class="keywords-section" :style="keywordsSectionStyle">
+                <div class="keywords-header">
+                  <span class="keywords-title">
+                    <el-icon><Aim /></el-icon>
+                    AI提取的关键信息
+                  </span>
+                  <el-button 
+                    type="primary" 
+                    link 
+                    :icon="Refresh"
+                    :loading="isExtractingKeywords"
+                    @click="extractKeywords"
+                    v-if="formData.additionalNotes"
+                  >
+                    重新提取
+                  </el-button>
+                </div>
+                <div class="keywords-content" v-if="aiKeywords.length > 0">
+                  <el-tag
+                    v-for="keyword in aiKeywords"
+                    :key="keyword.key"
+                    class="keyword-tag"
+                    :type="keyword.type"
+                  >
+                    {{ keyword.label }}: {{ keyword.value }}
+                  </el-tag>
+                </div>
+                <div class="keywords-placeholder" v-else>
+                  <template v-if="formData.additionalNotes">
+                    <el-icon><Loading /></el-icon>
+                    正在分析需求描述...
+                  </template>
+                  <template v-else>
+                    <el-icon><InfoFilled /></el-icon>
+                    请在左侧输入需求描述，AI将自动提取关键信息
+                  </template>
+                </div>
               </div>
             </div>
             
@@ -979,7 +989,10 @@ export default {
         { label: '先息后本', value: 'interest_first' },
         { label: '一次性还本付息', value: 'lump_sum' },
       ],
-      aiKeywords: []
+      aiKeywords: [],
+      keywordsSectionStyle: {
+        height: 'auto'
+      }
     }
   },
   computed: {
@@ -1049,13 +1062,13 @@ export default {
         // 抵押贷款和信用贷款的验证逻辑
         return (
           this.formData.loanAmount !== null && 
-          this.formData.loanAmount > 0 &&
-          this.formData.minInterestRate > 0 &&
-          this.formData.maxInterestRate > 0 &&
-          this.formData.minLoanTerm > 0 &&
-          this.formData.maxLoanTerm > 0 &&
-          this.formData.repaymentMethod.length > 0
-        );
+        this.formData.loanAmount > 0 &&
+        this.formData.minInterestRate > 0 &&
+        this.formData.maxInterestRate > 0 &&
+        this.formData.minLoanTerm > 0 &&
+        this.formData.maxLoanTerm > 0 &&
+        this.formData.repaymentMethod.length > 0
+      );
       }
     },
     
@@ -1793,6 +1806,7 @@ export default {
       } else {
         this.aiKeywords = [];
       }
+      this.updateKeywordsSectionHeight();
     }, 1000), // 1秒后才触发，避免频繁调用
 
     // 提取关键词
@@ -1873,6 +1887,37 @@ export default {
         console.error('验证字段时出错:', error);
       }
     },
+
+    updateKeywordsSectionHeight() {
+      this.$nextTick(() => {
+        const textareaWrapper = this.$refs.descriptionTextarea?.$el;
+        if (textareaWrapper) {
+          // 使用整个textarea包装器的高度，这样包含了边框
+          this.keywordsSectionStyle.height = `${textareaWrapper.offsetHeight}px`;
+        }
+      });
+    },
+    setupTextareaObserver() {
+      this.resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+          const textareaWrapper = this.$refs.descriptionTextarea?.$el;
+          if (textareaWrapper) {
+            // 使用整个textarea包装器的高度
+            this.keywordsSectionStyle.height = `${textareaWrapper.offsetHeight}px`;
+          }
+        }
+      });
+
+      this.$nextTick(() => {
+        const textareaWrapper = this.$refs.descriptionTextarea?.$el;
+        if (textareaWrapper) {
+          // 观察整个textarea包装器
+          this.resizeObserver.observe(textareaWrapper);
+          // 初始化时也调用一次
+          this.updateKeywordsSectionHeight();
+        }
+      });
+    }
   },
   mounted() {
     // 初始化时尝试计算还款计划
@@ -1943,7 +1988,9 @@ export default {
     };
     
     window.addEventListener('unhandledrejection', rejectionHandler, true);
-    this._rejectionHandler = rejectionHandler;
+    this.setupTextareaObserver();
+    // 监听窗口大小变化
+    window.addEventListener('resize', this.setupTextareaObserver);
   },
   beforeUnmount() {
     // 恢复原始的ResizeObserver
@@ -1958,6 +2005,11 @@ export default {
     
     if (this._rejectionHandler) {
       window.removeEventListener('unhandledrejection', this._rejectionHandler, true);
+    }
+    // 移除事件监听
+    window.removeEventListener('resize', this.setupTextareaObserver);
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
     }
   }
 }
@@ -2252,8 +2304,8 @@ export default {
 }
 
 .calculation-tips .el-icon {
-  font-size: 20px;
-  color: #1b68de;
+  font-size: 18px;
+  color: #909399;
 }
 
 /* 响应式调整 */
@@ -2784,7 +2836,6 @@ export default {
 /* AI关键词提取区域样式 */
 .keywords-section {
   margin-top: -10px;
-  margin-bottom: 20px;
   padding: 15px;
   background-color: #f8f9fa;
   border-radius: 4px;
@@ -2875,6 +2926,76 @@ export default {
   justify-content: center;
   gap: 20px;
   margin-top: 30px;
+}
+
+.description-container {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+
+  .description-input {
+    flex: 2;
+    
+    :deep(.el-form-item) {
+      margin-bottom: 0;
+    }
+    
+    :deep(.el-textarea) {
+      display: block; // 确保textarea容器是块级元素
+    }
+  }
+
+  .keywords-section {
+    flex: 1;
+    border: 1px solid var(--el-border-color);
+    border-radius: 4px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--el-fill-color-light);
+    transition: height 0.2s ease;
+    overflow-y: auto;
+    margin-top: 32px; // 与textarea顶部对齐
+    box-sizing: border-box; // 改回border-box
+
+    .keywords-header {
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+
+      .keywords-title {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+      }
+    }
+
+    .keywords-content {
+      flex: 1;
+      overflow-y: auto;
+
+      .keyword-tag {
+        margin: 0 8px 8px 0;
+      }
+    }
+
+    .keywords-placeholder {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--el-text-color-secondary);
+      gap: 8px;
+      
+      .el-icon {
+        font-size: 16px;
+      }
+    }
+  }
 }
 
 </style> 
