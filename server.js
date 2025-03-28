@@ -1,4 +1,4 @@
-// 最后修改记录时间 -> 2024-06-12 11:30
+// 最后修改记录时间 -> 2024-07-26 14:53:30
 
 require('dotenv').config();
 const express = require('express');
@@ -290,6 +290,10 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
       
       console.log('成功获取AI分析结果');
       console.log('AI回复长度:', aiResponse.length);
+      console.log('AI回复内容:');
+      console.log('======== AI回复开始 ========');
+      console.log(aiResponse);
+      console.log('======== AI回复结束 ========');
       
       // 返回文件信息和分析结果
       res.json({
@@ -361,12 +365,13 @@ function getPromptConfigForType(chatType) {
       throw new Error(`未找到类型 ${chatType} 的提示词配置`);
     }
     
-    console.log(`已加载${chatType}提示词配置，基础提示词长度: ${config.basePrompt.length}`);
+    const basePromptLength = config.basePrompt ? config.basePrompt.length : 0;
+    console.log(`已加载${chatType}提示词配置，基础提示词长度: ${basePromptLength}`);
     console.log(`基础提示词版本号: ${config.version || '未设置'}`);
     
     return {
       systemPrompt: config.role,
-      basePrompt: config.basePrompt
+      basePrompt: config.basePrompt || ''
     };
   } catch (error) {
     console.error('加载提示词配置失败:', error);
@@ -394,7 +399,20 @@ app.post('/api/chat', async (req, res) => {
     const lastUserMessage = messages.filter(msg => msg.role === 'user').pop();
     
     if (!lastUserMessage) {
-      return res.status(400).json({ error: '没有找到用户消息' });
+      return res.status(400).json({ 
+        error: 'Invalid request', 
+        message: '没有找到用户消息',
+        details: '请确保请求中包含至少一条用户消息'
+      });
+    }
+    
+    // 检查消息内容是否为空
+    if (!lastUserMessage.content || lastUserMessage.content.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Invalid request', 
+        message: 'Please provide a valid input for keyword extraction.',
+        details: '消息内容不能为空'
+      });
     }
     
     // 获取提示词配置
@@ -405,9 +423,19 @@ app.post('/api/chat', async (req, res) => {
       {
         role: 'system',
         content: promptConfig.systemPrompt
-      },
-      ...messages
+      }
     ];
+    
+    // 如果是关键词提取，只发送用户的最后一条消息加上基础提示词
+    if (chatType === 'loan-keywords') {
+      deepseekMessages.push({
+        role: 'user',
+        content: promptConfig.basePrompt + lastUserMessage.content.trim()
+      });
+    } else {
+      // 其他类型的对话，保留完整的对话历史
+      deepseekMessages.push(...messages);
+    }
     
     try {
       console.log('开始调用DeepSeek API进行聊天...');
@@ -431,6 +459,10 @@ app.post('/api/chat', async (req, res) => {
       
       console.log('成功获取AI回复');
       console.log(`AI回复长度: ${aiResponse.length}`);
+      console.log('AI回复内容:');
+      console.log('======== AI回复开始 ========');
+      console.log(aiResponse);
+      console.log('======== AI回复结束 ========');
       
       // 返回AI回复
       res.json({

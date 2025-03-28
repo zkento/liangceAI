@@ -4,13 +4,15 @@ const businessCredit = require('./business-credit');
 const propertyAdvice = require('./property-advice');
 const financingAdvice = require('./financing-advice');
 const followupChat = require('./followup-chat');
+const loanKeywordExtractor = require('./loanKeywordExtractor');
 
 const promptsConfig = {
   'personal-credit': personalCredit,
   'business-credit': businessCredit,
   'property-advice': propertyAdvice,
   'financing-advice': financingAdvice,
-  'followup-chat': followupChat
+  'followup-chat': followupChat,
+  'loan-keywords': loanKeywordExtractor
 };
 
 function getPromptConfig(chatType) {
