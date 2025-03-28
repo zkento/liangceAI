@@ -65,6 +65,7 @@
                     :placeholder="getMoreDescriptionPlaceholder"
                     @focus="handleInputFocus"
                     @input="handleDescriptionInput"
+                    @blur="handleDescriptionBlur"
                     ref="descriptionTextarea"
                   ></el-input>
                 </el-form-item>
@@ -1677,6 +1678,10 @@ export default {
         this.formData.secured.businessLicenseMonths = null;
       }
       
+      // 清空需求描述和AI关键词
+      this.formData.additionalNotes = '';
+      this.aiKeywords = [];
+      
       // 重置计算结果
       this.calculationResult = {
         totalRepayment: 0,
@@ -1813,15 +1818,22 @@ export default {
       };
     },
 
-    // 处理需求描述输入
-    handleDescriptionInput: debounce(function(value) {
-      if (value && value.length >= 10) { // 当输入超过10个字符时才触发
+    // 处理需求描述输入失焦
+    handleDescriptionBlur() {
+      if (this.formData.additionalNotes && this.formData.additionalNotes.length >= 10) {
         this.extractKeywords();
-      } else {
+      } else if (this.formData.additionalNotes.length === 0) {
+        // 当输入内容为空时，清除关键词
         this.aiKeywords = [];
       }
       this.updateKeywordsSectionHeight();
-    }, 1000), // 1秒后才触发，避免频繁调用
+    },
+    
+    // 不再需要实时处理输入，改为在失焦时处理
+    handleDescriptionInput() {
+      // 仅更新高度，不提取关键词
+      this.updateKeywordsSectionHeight();
+    },
 
     // 提取关键词
     async extractKeywords() {
