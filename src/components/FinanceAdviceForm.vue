@@ -56,11 +56,12 @@
             <!-- 需求描述区域容器 -->
             <div class="description-container">
               <div class="description-input">
-                <el-form-item label="需求描述" prop="additionalNotes" class="form-item form-item-full" :rules="[{ required: true, message: '请输入需求描述', trigger: 'blur' }]">
+                <el-form-item label="需求描述（AI将从你的描述结果中提取关键词用于产品推荐）" prop="additionalNotes" class="form-item form-item-full" :rules="[{ required: true, message: '请输入需求描述', trigger: 'blur' }]">
                   <el-input
                     v-model="formData.additionalNotes"
                     type="textarea"
                     :rows="6"
+                    :autosize="{ minRows: 6, maxRows: 10 }"
                     :placeholder="getMoreDescriptionPlaceholder"
                     @focus="handleInputFocus"
                     @input="handleDescriptionInput"
@@ -74,7 +75,7 @@
                 <div class="keywords-header">
                   <span class="keywords-title">
                     <el-icon><Aim /></el-icon>
-                    AI提取的关键信息
+                    AI提取的关键词
                   </span>
                   <el-button 
                     type="primary" 
@@ -103,8 +104,8 @@
                     正在分析需求描述...
                   </template>
                   <template v-else>
-                    <el-icon><InfoFilled /></el-icon>
-                    请在左侧输入需求描述，AI将自动提取关键信息
+                    <!-- <el-icon><InfoFilled /></el-icon> -->
+                    请输入需求描述，AI将自动提取关键词
                   </template>
                 </div>
               </div>
@@ -540,18 +541,25 @@
                   <span class="upload-optional">(可选)</span>
                 </div>
                 <div class="upload-area">
+                  <div class="upload-disabled-mask">
+                    <div class="upload-disabled-content">
+                      <el-icon><InfoFilled /></el-icon>
+                      <span>上传征信报告功能正在努力开发中...</span>
+                    </div>
+                  </div>
                   <el-upload
                     class="upload-container"
                     drag
                     action="/api/file/upload"
                     :on-success="handlePersonalCreditSuccess"
                     :on-error="handleUploadError"
-                    :before-upload="beforeUpload"
+                    :before-upload="beforeUploadDisabled"
                     :file-list="personalCreditFiles"
                     :limit="1"
                     :on-exceed="handleExceed"
                     :on-remove="handlePersonalCreditRemove"
                     accept=".pdf"
+                    disabled
                   >
                     <el-icon class="el-icon--upload"><upload-filled /></el-icon>
                     <div class="el-upload__text">
@@ -574,18 +582,25 @@
                   <span class="upload-optional">(可选)</span>
                 </div>
                 <div class="upload-area">
+                  <div class="upload-disabled-mask">
+                    <div class="upload-disabled-content">
+                      <el-icon><InfoFilled /></el-icon>
+                      <span>上传征信报告功能正在努力开发中...</span>
+                    </div>
+                  </div>
                   <el-upload
                     class="upload-container"
                     drag
                     action="/api/file/upload"
                     :on-success="handleBusinessCreditSuccess"
                     :on-error="handleUploadError"
-                    :before-upload="beforeUpload"
+                    :before-upload="beforeUploadDisabled"
                     :file-list="businessCreditFiles"
                     :limit="1"
                     :on-exceed="handleExceed"
                     :on-remove="handleBusinessCreditRemove"
                     accept=".pdf"
+                    disabled
                   >
                     <el-icon class="el-icon--upload"><upload-filled /></el-icon>
                     <div class="el-upload__text">
@@ -604,7 +619,7 @@
         </div>
       </div>
       
-      <!-- 右下部分：融资方案分析 -->
+      <!-- 右下部分：还款计划试算 -->
       <div class="right-bottom-panel">
         <div class="panel-header">
           <div class="panel-title">还款计划试算</div>
@@ -1178,8 +1193,7 @@ export default {
         default:
           loanType = '';
       }
-      return `你可以在这里直接用文字完整描述客户的${loanType}贷款融资需求。
-若描述内容与选填信息有不一致的，系统将以描述内容为准。`;
+      return `你可以在这里直接用文字完整描述客户的${loanType}贷款融资需求，若描述内容与选填信息有不一致的，系统将以描述内容为准。`;
     },
     // 通用贷款范围值错误检测
     rangeErrors() {
@@ -1917,7 +1931,11 @@ export default {
           this.updateKeywordsSectionHeight();
         }
       });
-    }
+    },
+    beforeUploadDisabled() {
+      ElMessage.warning('该功能暂未支持，正在努力开发中...');
+      return false;
+    },
   },
   mounted() {
     // 初始化时尝试计算还款计划
@@ -2186,6 +2204,60 @@ export default {
 
 .upload-area {
   padding: 10px 0;
+  position: relative;
+}
+
+.upload-disabled-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 6px;
+}
+
+.upload-disabled-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #00000000;
+  padding: 10px 20px;
+  border-radius: 4px;
+  // box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.upload-disabled-content .el-icon {
+  font-size: 18px;
+  color: #e6a23c;
+}
+
+.upload-disabled-content span {
+  color: #606266;
+  font-size: 14px;
+}
+
+:deep(.el-upload-dragger.is-disabled) {
+  cursor: not-allowed;
+  background-color: #f5f7fa;
+  border-color: #e4e7ed;
+}
+
+:deep(.el-upload-dragger.is-disabled .el-icon) {
+  color: #c0c4cc;
+}
+
+:deep(.el-upload-dragger.is-disabled .el-upload__text) {
+  color: #c0c4cc;
+}
+
+:deep(.el-upload-dragger.is-disabled .el-upload__text em) {
+  color: #c0c4cc;
 }
 
 .upload-container {
@@ -2647,7 +2719,7 @@ export default {
   border: none;
   
   .el-collapse-item {
-    margin-top: -15px; /* 减少与需求描述的距离 */
+    margin-top: 20px;
     margin-bottom: 50px;
     .el-collapse-item__header {
       background-color:rgb(255, 255, 255);
@@ -2864,17 +2936,15 @@ export default {
 }
 
 .keywords-content {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+  flex: 1;
+  overflow-y: auto;
 
-.keyword-tag {
-  margin-right: 8px;
-  margin-bottom: 8px;
-  
-  &:last-child {
-  margin-right: 0;
+  .keyword-tag {
+    margin: 0 3px 3px 0;
+    padding: 0 6px;
+    height: 22px;
+    line-height: 20px;
+    font-size: 12px;
   }
 }
 
@@ -2943,10 +3013,16 @@ export default {
     :deep(.el-textarea) {
       display: block; // 确保textarea容器是块级元素
     }
+    
+    :deep(.el-textarea__inner) {
+      resize: none; // 禁止用户手动调整大小
+      min-height: 132px; // 6行文字的高度约为132px（每行22px）
+      max-height: 220px; // 10行文字的高度约为220px
+    }
   }
 
   .keywords-section {
-    flex: 1;
+    flex: 1.2;
     border: 1px solid var(--el-border-color);
     border-radius: 4px;
     padding: 12px;
@@ -2979,7 +3055,7 @@ export default {
       overflow-y: auto;
 
       .keyword-tag {
-        margin: 0 8px 8px 0;
+        margin: 0 4px 4px 0;
       }
     }
 
