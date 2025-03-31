@@ -4,8 +4,9 @@
       <el-header>
         <div class="header-content">
           <router-link to="/" class="logo">
+            <img src="@/assets/logo.png" alt="良策AI Logo" class="logo-image" />
             良策AI
-            <span class="subtitle">智能分析平台Demo</span>
+            <span class="subtitle">智能分析平台<span class="beta-tag"> Beta</span></span>
           </router-link>
         </div>
       </el-header>
@@ -50,11 +51,20 @@ export default {
   height: 64px;
 }
 
+.logo-image {
+  height: 36px;
+  margin-right: 40px;
+}
+
 .subtitle {
   font-size: 16px;
   font-weight: normal;
   margin-left: 8px;
   opacity: 0.9;
+}
+
+.beta-tag {
+  color: #cacaca;
 }
 
 .el-main {

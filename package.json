@@ -44,6 +44,7 @@
   "devDependencies": {
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.1",
+    "file-loader": "^6.2.0",
     "find-up": "^5.0.0",
     "os-browserify": "^0.3.0",
     "path-browserify": "^1.0.1",
@@ -52,6 +53,7 @@
     "sass": "^1.86.0",
     "sass-loader": "^16.0.5",
     "stream-browserify": "^3.0.0",
+    "url-loader": "^4.1.1",
     "util": "^0.12.5"
   }
 }

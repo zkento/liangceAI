@@ -55,63 +55,74 @@
 
             <!-- 需求描述区域容器 -->
             <div class="description-container">
-              <div class="description-input">
-                <el-form-item label="需求描述（AI将从你的描述结果中提取关键词用于产品推荐）" prop="additionalNotes" class="form-item form-item-full" :rules="[{ required: true, message: '请输入需求描述', trigger: 'blur' }]">
-                  <el-input
-                    v-model="formData.additionalNotes"
-                    type="textarea"
-                    :rows="7"
-                    :autosize="{ minRows: 7, maxRows: 10 }"
-                    :placeholder="getMoreDescriptionPlaceholder"
-                    @focus="handleInputFocus"
-                    @input="handleDescriptionInput"
-                    @blur="handleDescriptionBlur"
-                    ref="descriptionTextarea"
-                    maxlength="500"
-                    show-word-limit
-                  ></el-input>
-                </el-form-item>
+              <div class="container-title">
+                <span class="required-mark">*</span>
+                <span>需求描述</span>
+                <span class="subtitle"> AI将从你的描述结果中提取关键词用于产品推荐，若对关键词不满意可修改描述后重新提取。</span>
               </div>
               
-              <!-- AI关键词提取区域 -->
-              <div class="keywords-section" :style="keywordsSectionStyle">
-                <div class="keywords-header">
-                  <span class="keywords-title">
-                    <el-icon><Aim /></el-icon>
-                    AI提取的关键词
-                  </span>
-                  <el-button 
-                    type="primary" 
-                    link 
-                    :icon="Refresh"
-                    :loading="isExtractingKeywords"
-                    @click="extractKeywords"
-                    :disabled="!formData.additionalNotes || isExtractingKeywords"
-                  >
-                    {{ aiKeywords.length > 0 ? '重新提取' : '开始提取' }}
-                  </el-button>
+              <div class="description-content">
+                <!-- 需求描述输入区域 -->   
+                <div class="description-input">
+                  <el-form-item prop="additionalNotes" class="form-item form-item-full" :rules="[{ required: true, message: '请输入需求描述', trigger: 'blur' }]">
+                    <el-input
+                      v-model="formData.additionalNotes"
+                      type="textarea"
+                      :rows="7"
+                      :autosize="{ minRows: 7, maxRows: 10 }"
+                      :placeholder="getMoreDescriptionPlaceholder"
+                      @focus="handleInputFocus"
+                      @input="handleDescriptionInput"
+                      @blur="handleDescriptionBlur"
+                      ref="descriptionTextarea"
+                      maxlength="500"
+                      show-word-limit
+                      v-scrollbar-aware
+                    ></el-input>
+                  </el-form-item>
                 </div>
-                <div class="keywords-content" v-if="aiKeywords.length > 0">
-                  <el-tag
-                    v-for="keyword in aiKeywords"
-                    :key="keyword.key"
-                    class="keyword-tag"
-                    :type="keyword.type"
-                  >
-                    {{ keyword.value }}
-                  </el-tag>
-                </div>
-                <div class="keywords-placeholder" v-else>
-                  <template v-if="extractError">
-                    {{ extractError }}
-                  </template>
-                  <template v-else-if="isExtractingKeywords">
-                    <el-icon class="is-loading"><Loading /></el-icon>
-                    AI正在努力提取关键词中...
-                  </template>
-                  <template v-else>
-                    请输入需求描述，然后"开始提取"
-                  </template>
+                
+                <!-- AI关键词提取区域 -->
+                <div class="keywords-section" :style="keywordsSectionStyle">
+                  <div class="keywords-header">
+                    <span class="keywords-title">
+                      <el-icon><Aim /></el-icon>
+                      {{ baseKeywordsTitle }}
+                      <span v-if="showExtractionDuration" class="extraction-duration"> 用时{{ extractionDuration }}秒</span>
+                    </span>
+                    <el-button 
+                      :type="hasAttemptedExtraction ? 'default' : 'primary'"
+                      class="extract-button"
+                      :loading="isExtractingKeywords"
+                      @click="extractKeywords"
+                      :disabled="!formData.additionalNotes || isExtractingKeywords || (formData.additionalNotes && formData.additionalNotes.trim().length < 10)"
+                    >
+                      {{ hasAttemptedExtraction ? '重新提取' : '开始提取' }}
+                      <span class="shortcut-hint">Shift+Enter</span>
+                    </el-button>
+                  </div>
+                  <div class="keywords-content" v-if="aiKeywords.length > 0">
+                    <el-tag
+                      v-for="keyword in aiKeywords"
+                      :key="keyword.key"
+                      class="keyword-tag"
+                      :type="keyword.type"
+                    >
+                      {{ keyword.value }}
+                    </el-tag>
+                  </div>
+                  <div class="keywords-placeholder" v-else>
+                    <template v-if="extractError">
+                      {{ extractError }}
+                    </template>
+                    <template v-else-if="isExtractingKeywords">
+                      <el-icon class="is-loading"><Loading /></el-icon>
+                      AI正在提取关键词中...
+                    </template>
+                    <template v-else>
+                      请输入需求描述，然后"开始提取"
+                    </template>
+                  </div>
                 </div>
               </div>
             </div>
@@ -717,8 +728,8 @@
           <!-- 提示信息 -->
           <div v-else class="placeholder-content">
             <div class="calculation-tips">
-              <el-icon><InfoFilled /></el-icon>
-              <span>请在"更多选填信息"中完善贷款金额、利率、期限和还款方式信息，系统将实时计算还款计划</span>
+              <!-- <el-icon><InfoFilled /></el-icon> -->
+              <span>请选择"贷款方式"后在"更多选填信息"中，<br>完善贷款金额、利率、期限和还款方式，系统将实时试算还款计划</span>
             </div>
           </div>
         </div>
@@ -728,11 +739,85 @@
 </template>
 
 <script>
-import { Document, UploadFilled, InfoFilled, Key, Refresh, Loading, Aim, Warning } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { Document, UploadFilled, InfoFilled, Aim, Refresh, Loading, Warning } from '@element-plus/icons-vue'
+import { ElNotification } from 'element-plus'
 import debounce from 'lodash/debounce'
 // 导入sendMessage API
 import { sendMessage } from '../api/chat'
+
+// 添加自定义指令
+const vScrollbarAware = {
+  mounted(el) {
+    updateWordCountPosition(el);
+    // 创建一个MutationObserver来监听DOM变化
+    const observer = new MutationObserver(() => updateWordCountPosition(el));
+    observer.observe(el, { attributes: true, childList: true, subtree: true });
+    
+    // 创建一个ResizeObserver来监听尺寸变化
+    const resizeObserver = new ResizeObserver(() => updateWordCountPosition(el));
+    resizeObserver.observe(el);
+    
+    // 监听滚动事件
+    el.addEventListener('scroll', () => updateWordCountPosition(el));
+    
+    // 存储observers以便后续清理
+    el._scrollbarObservers = { observer, resizeObserver };
+  },
+  updated(el) {
+    updateWordCountPosition(el);
+  },
+  unmounted(el) {
+    // 清理observers
+    if (el._scrollbarObservers) {
+      el._scrollbarObservers.observer.disconnect();
+      el._scrollbarObservers.resizeObserver.disconnect();
+    }
+    el.removeEventListener('scroll', () => updateWordCountPosition(el));
+  }
+};
+
+// 计算并更新字数统计位置的函数
+function updateWordCountPosition(el) {
+  // 找到textarea元素和字数统计元素
+  const textarea = el.querySelector('.el-textarea__inner');
+  const wordCount = el.querySelector('.el-input__count');
+  
+  if (!textarea || !wordCount) return;
+  
+  // 检测滚动条是否显示
+  const hasVerticalScrollbar = textarea.scrollHeight > textarea.clientHeight;
+  
+  // 动态计算滚动条宽度
+  const scrollbarWidth = getScrollbarWidth();
+  
+  // 设置字数统计的位置
+  if (hasVerticalScrollbar) {
+    wordCount.style.right = `${scrollbarWidth + 5}px`; // 5px作为额外间距
+  } else {
+    wordCount.style.right = '5px'; // 无滚动条时的默认位置
+  }
+}
+
+// 获取滚动条宽度的函数（兼容不同浏览器）
+function getScrollbarWidth() {
+  // 创建一个带滚动条的div
+  const outer = document.createElement('div');
+  outer.style.visibility = 'hidden';
+  outer.style.overflow = 'scroll';
+  document.body.appendChild(outer);
+  
+  // 创建一个内部div
+  const inner = document.createElement('div');
+  outer.appendChild(inner);
+  
+  // 计算滚动条宽度
+  const scrollbarWidth = outer.offsetWidth - inner.offsetWidth;
+  
+  // 清理DOM
+  outer.parentNode.removeChild(outer);
+  
+  return scrollbarWidth;
+}
 
 export default {
   name: 'FinanceAdviceForm',
@@ -740,15 +825,20 @@ export default {
     Document,
     UploadFilled,
     InfoFilled,
-    Key,
+    Aim,
     Refresh,
     Loading,
-    Aim,
     Warning
+  },
+  directives: {
+    scrollbarAware: vScrollbarAware
   },
   data() {
     return {
       submitting: false,
+      hasAttemptedExtraction: false,
+      // 新增：记录上次提取时的文本内容
+      lastExtractedText: '',
       // 征信报告文件列表
       personalCreditFiles: [],
       businessCreditFiles: [],
@@ -766,7 +856,7 @@ export default {
       formData: {
         // 基本信息
         name: '',
-        age: 30,
+        age: null,
         maritalStatus: '',
         phone: '',
         
@@ -1019,7 +1109,13 @@ export default {
         height: 'auto',
         minHeight: '164px' // 设置最小高度匹配文本区域初始高度
       },
-      extractError: '' // 添加提取错误信息字段
+      extractError: '', // 添加提取错误信息字段
+      extractionStartTime: 0,
+      extractionDuration: 0,
+      extractionTimerInterval: null,
+      
+      // 提取任务控制
+      extractionTaskId: 0,
     }
   },
   computed: {
@@ -1205,7 +1301,7 @@ export default {
         default:
           loanType = '';
       }
-      return `你可以在这里直接用文字完整描述客户的${loanType}贷款融资需求，若描述内容与选填信息有不一致的，系统将以描述内容为准。`;
+      return `请用文字完整描述客户的${loanType}贷款融资需求，若描述内容与选填信息有不一致的，系统将以描述内容为准。`;
     },
     // 通用贷款范围值错误检测
     rangeErrors() {
@@ -1270,6 +1366,16 @@ export default {
         console.error('计算按揭范围错误时发生异常:', error);
         return { fundRate: false, commercialRate: false, mortgageTerm: false };
       }
+    },
+    
+    // 计算标题显示
+    baseKeywordsTitle() {
+      return 'AI提取的关键词';
+    },
+    
+    // 是否显示耗时
+    showExtractionDuration() {
+      return this.extractionDuration > 0 && (this.isExtractingKeywords || this.hasAttemptedExtraction);
     }
   },
   watch: {
@@ -1381,7 +1487,7 @@ export default {
           
           // 设置信用贷款默认值
           this.formData.loanAmount = null;
-          this.formData.minInterestRate = 2.5;
+          this.formData.minInterestRate = 3;
           this.formData.maxInterestRate = 10.0;
           this.formData.minLoanTerm = 3;
           this.formData.maxLoanTerm = 60;
@@ -1411,11 +1517,11 @@ export default {
       const isLt10M = file.size / 1024 / 1024 < 10;
 
       if (!isPDF) {
-        ElMessage.error('只能上传PDF格式的文件!');
+        ElNotification.error('只能上传PDF格式的文件!');
         return false;
       }
       if (!isLt10M) {
-        ElMessage.error('文件大小不能超过10MB!');
+        ElNotification.error('文件大小不能超过10MB!');
         return false;
       }
       return true;
@@ -1423,13 +1529,13 @@ export default {
     
     // 个人征信报告上传成功处理
     handlePersonalCreditSuccess(response, file, fileList) {
-      ElMessage.success('个人征信报告上传成功');
+      ElNotification.success('个人征信报告上传成功');
       this.personalCreditFiles = fileList;
     },
     
     // 企业征信报告上传成功处理
     handleBusinessCreditSuccess(response, file, fileList) {
-      ElMessage.success('企业征信报告上传成功');
+      ElNotification.success('企业征信报告上传成功');
       this.businessCreditFiles = fileList;
     },
     
@@ -1452,12 +1558,12 @@ export default {
         }
       }
       
-      ElMessage.error(errorMessage);
+      ElNotification.error(errorMessage);
     },
     
     // 文件数量超出限制处理
     handleExceed() {
-      ElMessage.warning('只能上传一个文件，请先删除已上传文件');
+      ElNotification.warning('只能上传一个文件，请先删除已上传文件');
     },
     
     // 移除个人征信报告
@@ -1612,36 +1718,56 @@ export default {
       return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '元';
     },
     
-    // 提交表单
-    submitForm() {
+    // 新增：获取AI建议报告前的校验
+    async validateBeforeGetReport() {
+      // 如果有内容但从未提交过提取
+      if (!this.hasAttemptedExtraction) {
+        // 自动触发提取
+        await this.extractKeywords();
+      }
+
+      // 统一处理：无论是自动提取失败还是之前提取失败，都显示相同的提示
+      if (this.aiKeywords.length === 0) {
+        ElNotification({
+          title: '无法获取报告',
+          message: '需求描述不是有效的融资需求，请调整后重新提取。',
+          type: 'error',
+          duration: 5000,
+          position: 'top-right',
+          showClose: true
+        });
+        return false;
+      }
+
+      return true;
+    },
+
+    // 修改：提交表单方法
+    async submitForm() {
       try {
-      this.$refs.financeForm.validate((valid) => {
-          try {
-        if (valid) {
-              // 检查范围值错误
-              const { interestRate, loanTerm } = this.rangeErrors;
-              const { fundRate, commercialRate, mortgageTerm } = this.mortgageRangeErrors;
-              
-              // 根据当前贷款方式检查相应范围
-              let hasRangeError = false;
-              
-              if (this.formData.loanType === 'mortgage') {
-                hasRangeError = fundRate || commercialRate || mortgageTerm;
-              } else {
-                hasRangeError = interestRate || loanTerm;
-              }
-              
-              if (hasRangeError) {
-                ElMessage.error('请修正表单中的范围值错误');
-                return;
-              }
-              
-              // 表单验证通过，提交数据
+        // 首先进行表单验证
+        const valid = await this.$refs.financeForm.validate();
+        if (!valid) {
+          ElNotification({
+            title: '提示',
+            message: '请完善表单信息',
+            type: 'warning',
+            duration: 3000
+          });
+          return;
+        }
+
+        // 然后进行关键词提取校验
+        const keywordsValid = await this.validateBeforeGetReport();
+        if (!keywordsValid) {
+          return;
+        }
+
           this.submitting = true;
-              
           // 准备提交数据
           const submitData = {
             ...this.formData,
+          keywords: this.aiKeywords.map(k => k.value),
             personalCreditFile: this.personalCreditFiles.length > 0 ? this.personalCreditFiles[0].response : null,
             businessCreditFile: this.businessCreditFiles.length > 0 ? this.businessCreditFiles[0].response : null,
             repaymentSchedule: this.calculationResult
@@ -1650,23 +1776,23 @@ export default {
           // 模拟提交
           setTimeout(() => {
             this.submitting = false;
-            ElMessage.success('提交成功，正在分析中...');
+          ElNotification({
+            title: '成功',
+            message: '提交成功，正在分析中...',
+            type: 'success',
+            duration: 3000
+          });
             console.log('提交的数据:', submitData);
             // TODO: 调用后端API进行分析
           }, 1500);
-        } else {
-          ElMessage.error('请完善表单信息');
-              return false;
-            }
-          } catch (error) {
-            console.error('表单验证过程中出现错误:', error);
-            ElMessage.error('表单验证出错，请稍后再试');
-          return false;
-        }
-      });
       } catch (error) {
-        console.error('表单验证调用出错:', error);
-        ElMessage.error('系统错误，请稍后再试');
+        console.error('表单提交错误:', error);
+        ElNotification({
+          title: '错误',
+          message: '无法获取AI建议报告，请检查所有必填项是否已填写。',
+          type: 'error',
+          duration: 3000
+        });
       }
     },
     
@@ -1675,36 +1801,8 @@ export default {
       this.$refs.financeForm.resetFields();
       this.personalCreditFiles = [];
       this.businessCreditFiles = [];
-      
-      // 手动将数字型字段设为null以显示为空
-      if (this.formData.mortgage) {
-        this.formData.mortgage.propertyValue = null;
-        this.formData.mortgage.downPaymentRatio = null;
-      }
-      
-      if (this.formData.secured) {
-        this.formData.secured.collateralValue = null;
-        this.formData.secured.mortgageRatio = null;
-        this.formData.secured.businessYears = null;
-        this.formData.secured.businessLicenseMonths = null;
-      }
-      
-      // 清空需求描述和AI关键词
-      this.formData.additionalNotes = '';
-      this.aiKeywords = [];
-      // 重置错误状态
-      this.extractError = '';
-      this.isExtractingKeywords = false;
-      
-      // 重置计算结果
-      this.calculationResult = {
-        totalRepayment: 0,
-        totalInterest: 0,
-        monthlyPayment: 0,
-        schedule: []
-      };
-      // 重置贷款类型，这样会清空所有相关字段
-      this.formData.loanType = '';
+      this.resetRepaymentFields();
+      this.resetKeywordsState(); // 确保重置关键词提取状态
     },
     
     handleInputFocus(event) {
@@ -1841,26 +1939,127 @@ export default {
       if (!this.formData.additionalNotes || this.formData.additionalNotes.trim() === '') {
         this.extractError = '';
         this.aiKeywords = [];
+        return;
+      }
+      
+      // 检查文字长度是否少于10个字
+      const trimmedText = this.formData.additionalNotes.trim();
+      if (trimmedText.length < 10 && !this.aiKeywords.length) {
+        this.extractError = '需求描述的文字不应该少于10个字';
       }
     },
     
-    // 不再需要实时处理输入，改为在失焦时处理
+    // 处理需求描述输入
     handleDescriptionInput() {
-      // 仅更新高度，不提取关键词
+      // 限制不更新关键词，只处理输入框高度
       this.updateKeywordsSectionHeight();
       
-      // 当输入内容为空时，重置状态
+      // 当输入内容为空时，重置所有状态
       if (!this.formData.additionalNotes || this.formData.additionalNotes.trim() === '') {
+        this.resetKeywordsState();
+        return;
+      }
+      
+      // 检查文字长度是否少于10个字，并更新提示
+      const trimmedText = this.formData.additionalNotes.trim();
+      if (trimmedText.length < 10) {
+        if (!this.aiKeywords.length) {
+          this.extractError = '需求描述的文字不应该少于10个字';
+        }
+      } else if (this.extractError === '需求描述的文字不应该少于10个字') {
+        // 如果已经有10个字以上，且之前显示的是字数不足的错误，则清除错误
         this.extractError = '';
-        this.aiKeywords = [];
+      }
+      
+      // 如果之前尝试过提取，且当前内容与上次提取的内容不同，重置提取状态
+      if (this.hasAttemptedExtraction && trimmedText !== this.lastExtractedText) {
+        this.resetKeywordsState();
+      }
+      
+      // 更新字数统计位置
+      this.$nextTick(() => {
+        if (this.$refs.descriptionTextarea && this.$refs.descriptionTextarea.$el) {
+          updateWordCountPosition(this.$refs.descriptionTextarea.$el);
+        }
+      });
+    },
+
+    // 新增：重置关键词提取的所有状态
+    resetKeywordsState() {
+      this.aiKeywords = [];
+      
+      // 检查文字长度，如果少于10个字则显示提示
+      if (this.formData.additionalNotes && this.formData.additionalNotes.trim()) {
+        const trimmedText = this.formData.additionalNotes.trim();
+        if (trimmedText.length < 10) {
+          this.extractError = '需求描述的文字不应该少于10个字';
+        } else {
+          this.extractError = '';
+        }
+      } else {
+        this.extractError = '';
+      }
+      
+      this.hasAttemptedExtraction = false;
+      this.isExtractingKeywords = false;
+      this.lastExtractedText = '';
+      this.resetExtractionTimer(); // 重置计时器
+      
+      // 递增任务ID使得之前的任务结果被忽略
+      this.extractionTaskId++;
+    },
+
+    // 开始计时
+    startExtractionTimer() {
+      // 重置计时器状态
+      this.resetExtractionTimer();
+      
+      // 设置开始时间和初始化持续时间
+      this.extractionStartTime = Date.now();
+      this.extractionDuration = 0;
+      
+      // 创建新的计时器
+      this.extractionTimerInterval = setInterval(() => {
+        if (this.extractionStartTime > 0) {
+          this.extractionDuration = Math.round((Date.now() - this.extractionStartTime) / 1000);
+        }
+      }, 1000);
+    },
+
+    // 停止计时
+    stopExtractionTimer() {
+      if (this.extractionTimerInterval) {
+        clearInterval(this.extractionTimerInterval);
+        this.extractionTimerInterval = null;
+      }
+      
+      // 确保最后更新一次持续时间
+      if (this.extractionStartTime > 0) {
+        this.extractionDuration = Math.round((Date.now() - this.extractionStartTime) / 1000);
       }
     },
 
-    // 提取关键词
+    // 重置计时器
+    resetExtractionTimer() {
+      if (this.extractionTimerInterval) {
+        clearInterval(this.extractionTimerInterval);
+        this.extractionTimerInterval = null;
+      }
+      this.extractionDuration = 0;
+      this.extractionStartTime = 0;
+    },
+
+    // 修改：提取关键词方法
     async extractKeywords() {
-      // 检查输入是否为空
       if (!this.formData.additionalNotes || this.formData.additionalNotes.trim() === '') {
         this.extractError = '请输入贷款需求描述再提取关键词';
+        return;
+      }
+
+      // 检查文字长度是否少于10个字
+      const trimmedText = this.formData.additionalNotes.trim();
+      if (trimmedText.length < 10) {
+        this.extractError = '需求描述的文字不应该少于10个字';
         return;
       }
 
@@ -1868,14 +2067,21 @@ export default {
         return;
       }
 
-      // 清空之前的结果和错误信息
+      // 重置状态
       this.aiKeywords = [];
       this.extractError = '';
       this.isExtractingKeywords = true;
       
+      // 生成本次任务ID
+      const currentTaskId = ++this.extractionTaskId;
+      
+      // 确保在开始提取前启动计时器
+      this.startExtractionTimer();
+
       try {
-        // 构建消息对象
-        const userDescription = this.formData.additionalNotes.trim();
+        const userDescription = trimmedText;
+        this.lastExtractedText = userDescription;
+        
         const messages = [
           {
             role: 'user',
@@ -1883,28 +2089,30 @@ export default {
           }
         ];
         
-        // 调用API，使用loan-keywords作为chatType
         const response = await sendMessage(messages, 'loan-keywords');
         
-        // 检查响应是否包含错误
+        // 检查任务是否已被新任务取代
+        if (currentTaskId !== this.extractionTaskId) {
+          console.log('任务已过期，丢弃结果');
+          return;
+        }
+        
+        this.hasAttemptedExtraction = true;
+        
         if (response.error) {
           console.error('API返回错误:', response.error);
           this.extractError = response.message || '关键词提取失败';
           return;
         }
-        
-        // 解析AI返回的JSON响应
+
         try {
-          // 假设响应中包含JSON字符串
           const responseText = response.content;
           
-          // 防止空响应
           if (!responseText || responseText.trim() === '') {
             this.extractError = 'AI返回了空响应，请重试';
             return;
           }
           
-          // 尝试从返回的文本中提取JSON
           const jsonMatch = responseText.match(/\{[\s\S]*\}/);
           
           if (!jsonMatch) {
@@ -1913,61 +2121,52 @@ export default {
             return;
           }
 
-          let jsonData;
-          try {
-            jsonData = JSON.parse(jsonMatch[0]);
-          } catch (parseError) {
-            console.error('JSON解析失败:', parseError);
-            this.extractError = '解析AI返回的关键词失败，请重试';
-            return;
-          }
+          let jsonData = JSON.parse(jsonMatch[0]);
           
           if (jsonData.keywords === undefined) {
             console.warn('AI返回的JSON中没有keywords字段:', jsonData);
-            this.extractError = '需求描述的内容不是有效的贷款需求，请调整';
+            this.extractError = '需求描述不是有效的融资需求，请调整后重新提取。';
             return;
           }
 
-          // 将关键词解析为标签
-          let keywords;
-          // 处理keywords可能是数组或字符串的情况
-          if (Array.isArray(jsonData.keywords)) {
-            keywords = jsonData.keywords;
-          } else if (typeof jsonData.keywords === 'string') {
-            keywords = jsonData.keywords.split(/\s+/).filter(k => k);
-          } else {
-            this.extractError = '返回的关键词格式不正确';
-            return;
-          }
+          let keywords = Array.isArray(jsonData.keywords) 
+            ? jsonData.keywords 
+            : jsonData.keywords.split(/\s+/).filter(k => k);
           
-          // 如果没有提取到关键词或关键词为空字符串
           if (keywords.length === 0 || (keywords.length === 1 && keywords[0] === '')) {
-            this.extractError = '需求描述的内容不是有效的贷款需求，请调整。';
+            this.extractError = '需求描述不是有效的融资需求，请调整后重新提取。';
             return;
           }
           
-          // 颜色列表，用于循环分配给关键词
-          const colors = ['black', ];
+          const colors = ['black'];
           
-          // 转换为前端显示格式，不再分类，只用不同颜色区分
-          this.aiKeywords = keywords.map((keyword, index) => {
-            // 循环使用颜色
-            const colorIndex = index % colors.length;
-            return {
-              key: `keyword_${index}`,
-              value: keyword,
-              type: colors[colorIndex]
-            };
-          });
+          this.aiKeywords = keywords.map((keyword, index) => ({
+            key: `keyword_${index}`,
+            value: keyword,
+            type: colors[index % colors.length]
+          }));
+          
         } catch (error) {
           console.error('处理AI响应时出错:', error);
           this.extractError = '处理AI响应时出错，请重试';
         }
       } catch (error) {
+        // 检查任务是否已被新任务取代
+        if (currentTaskId !== this.extractionTaskId) {
+          return;
+        }
+        
         console.error('提取关键词失败:', error);
         this.extractError = '提取关键词失败: ' + (error.message || '未知错误');
       } finally {
+        // 检查任务是否已被新任务取代
+        if (currentTaskId !== this.extractionTaskId) {
+          return;
+        }
+        
+        // 确保在所有处理完成后停止计时器
         this.isExtractingKeywords = false;
+        this.stopExtractionTimer();
       }
     },
 
@@ -2024,9 +2223,9 @@ export default {
 
     updateKeywordsSectionHeight() {
       this.$nextTick(() => {
-        const keywordsSection = document.querySelector('.keywords-section');
-        const textarea = document.querySelector('.description-input .el-textarea__inner');
-        const textareaWrapper = document.querySelector('.description-input .el-textarea__wrapper');
+        const keywordsSection = document.querySelector('.description-content .keywords-section');
+        const textarea = document.querySelector('.description-content .description-input .el-textarea__inner');
+        const textareaWrapper = document.querySelector('.description-content .description-input .el-textarea__wrapper');
         
         if (!keywordsSection || !textarea || !textareaWrapper) return;
 
@@ -2053,7 +2252,7 @@ export default {
       
       this.$nextTick(() => {
         // 监视关键词区域的内容变化
-        const keywordsContent = document.querySelector('.keywords-content');
+        const keywordsContent = document.querySelector('.description-content .keywords-section .keywords-content');
         if (keywordsContent) {
           this.keywordsObserver.observe(keywordsContent, {
             childList: true,  // 监听子节点的添加或移除
@@ -2079,8 +2278,33 @@ export default {
       });
     },
     beforeUploadDisabled() {
-      ElMessage.warning('该功能暂未支持，正在努力开发中...');
+      ElNotification.warning('该功能暂未支持，正在努力开发中...');
       return false;
+    },
+    
+    // 注册快捷键
+    registerKeyboardShortcuts() {
+      window.addEventListener('keydown', this.handleKeydown);
+    },
+    
+    // 处理键盘事件
+    handleKeydown(event) {
+      // Shift+Enter 触发提取关键词
+      if (event.key === 'Enter' && event.shiftKey && !event.ctrlKey && !event.altKey) {
+        // 检查是否可以提取：有内容、字数足够且未在提取中
+        const additionalNotes = this.formData.additionalNotes;
+        const hasEnoughChars = additionalNotes && additionalNotes.trim().length >= 10;
+        const canExtract = additionalNotes && hasEnoughChars && !this.isExtractingKeywords;
+        
+        if (canExtract) {
+          event.preventDefault();
+          this.extractKeywords();
+        } else if (additionalNotes && !hasEnoughChars) {
+          // 如果内容不足10个字，显示错误提示
+          event.preventDefault();
+          this.extractError = '需求描述的文字不应该少于10个字';
+        }
+      }
     },
   },
   mounted() {
@@ -2155,14 +2379,22 @@ export default {
     this.setupTextareaObserver();
     // 监听窗口大小变化
     window.addEventListener('resize', this.setupTextareaObserver);
+    
+    // 注册快捷键
+    this.registerKeyboardShortcuts();
+    
+    // 初始化时手动触发一次字数统计位置更新
+    this.$nextTick(() => {
+      if (this.$refs.descriptionTextarea && this.$refs.descriptionTextarea.$el) {
+        updateWordCountPosition(this.$refs.descriptionTextarea.$el);
+      }
+    });
   },
   beforeUnmount() {
-    // 恢复原始的ResizeObserver
-    if (window._originalResizeObserver) {
-      window.ResizeObserver = window._originalResizeObserver;
-    }
+    // 确保清理所有计时器
+    this.resetExtractionTimer();
     
-    // 移除事件监听器
+    // 清理其他资源
     if (this._errorHandler) {
       window.removeEventListener('error', this._errorHandler, true);
     }
@@ -2170,6 +2402,7 @@ export default {
     if (this._rejectionHandler) {
       window.removeEventListener('unhandledrejection', this._rejectionHandler, true);
     }
+    
     // 移除事件监听
     window.removeEventListener('resize', this.setupTextareaObserver);
     
@@ -2182,6 +2415,9 @@ export default {
     if (this.keywordsObserver) {
       this.keywordsObserver.disconnect();
     }
+    
+    // 移除快捷键监听
+    window.removeEventListener('keydown', this.handleKeydown);
   }
 }
 </script>
@@ -2213,7 +2449,7 @@ export default {
 }
 
 .right-top-panel {
-  flex: 0.43; /* 减少顶部面板的高度占比 */
+  flex: 0.42; /* 减少顶部面板的高度占比 */
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.05);
@@ -2524,6 +2760,7 @@ export default {
 .calculation-tips {
   display: flex;
   align-items: center;
+  text-align: center;
   gap: 10px;
   color: #909399;
 }
@@ -2953,7 +3190,7 @@ export default {
 
   &.active {
   background-color: #1b68de;
-    border-color: #1b68de;
+  border-color: #1b68de;
     color: white;
   }
 }
@@ -3060,7 +3297,7 @@ export default {
 
 /* AI关键词提取区域样式 */
 .keywords-section {
-  margin-top: -10px;
+  // margin-top: -10px;
   padding: 15px;
   background-color: #f8f9fa;
   border-radius: 4px;
@@ -3069,9 +3306,15 @@ export default {
 
 .keywords-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* 关键属性：使用space-between让两端对齐 */
   align-items: center;
   margin-bottom: 12px;
+}
+
+.keywords-left {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* 标题和按钮之间的间距 */
 }
 
 .keywords-title {
@@ -3081,11 +3324,69 @@ export default {
   color: #606266;
   font-size: 14px;
   font-weight: 400;
+  white-space: nowrap; /* 防止标题换行 */
 
   .el-icon {
   color: #1b68de;
     font-size: 16px;
+  }
+  
+  .extraction-duration {
+    color: var(--el-color-info);
+    font-weight: normal;
+  }
 }
+
+/* 提取按钮样式 */
+.extract-button {
+  height: 25px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  
+  &.el-button--primary {
+    --el-button-bg-color: var(--primary-color);
+    --el-button-border-color: var(--primary-color);
+    --el-button-hover-bg-color: #4285f4;
+    --el-button-hover-border-color: #4285f4;
+    color: white;
+  }
+  
+  &.el-button--default {
+    --el-button-bg-color: white;
+    --el-button-text-color: var(--primary-color);
+    --el-button-border-color: var(--primary-color);
+    --el-button-hover-text-color: #4285f4;
+    --el-button-hover-border-color: #4285f4;
+    --el-button-hover-bg-color: #f5f7fa;
+    background-color: white;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+
+    &:hover {
+      color: #4285f4;
+      border-color: #4285f4;
+      background-color: #f5f7fa;
+    }
+  }
+  
+  .el-icon {
+    margin-right: 4px;
+    font-size: 14px;
+  }
+
+  &:focus {
+    outline: none;
+  }
+  
+  .shortcut-hint {
+    margin-left: 4px;
+    font-size: 12px;
+    opacity: 0.7;
+  }
 }
 
 .keywords-content {
@@ -3157,102 +3458,164 @@ export default {
 
 .description-container {
   display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
-  align-items: stretch; /* 确保子元素在交叉轴上拉伸到相同高度 */
+  flex-direction: column;
+  margin: -5px 0 20px 0;
 
-  .description-input {
-    flex: 1.7;
-    display: flex; /* 使用flex布局 */
-    flex-direction: column; /* 垂直方向排列 */
+  .container-title {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--el-text-color-regular);
+    margin-bottom: 2px;
+    position: relative;
+    line-height: 32px;
+    text-align: left;
+    box-sizing: border-box;
+    display: block;
     
-    :deep(.el-form-item) {
-      margin-bottom: 0;
-      flex: 1; /* 表单项占满空间 */
-      display: flex;
-      flex-direction: column;
+    .required-mark {
+      color: var(--el-color-danger);
+      margin-right: 4px;
+      font-size: 14px;
+      vertical-align: middle;
     }
     
-    :deep(.el-form-item__content) {
-      flex: 1; /* 表单内容占满空间 */
-      display: flex;
-      flex-direction: column;
-    }
-    
-    :deep(.el-textarea) {
-      display: flex; /* 使用flex布局 */
-      flex-direction: column; /* 垂直方向排列 */
-      flex: 1; /* 占满剩余空间 */
-    }
-    
-    :deep(.el-textarea__wrapper) {
-      flex: 1; /* 占满剩余空间 */
-      display: flex;
-    flex-direction: column;
-    }
-    
-    :deep(.el-textarea__inner) {
-      resize: none; /* 禁止用户手动调整大小 */
-      min-height: 164px; /* 最小高度 */
-      flex: 1; /* 占满剩余空间 */
-      height: auto !important; /* 自动调整高度 */
+    .subtitle {
+      font-weight: normal;
+      color: var(--el-text-color-secondary);
+      margin-left: 4px;
+      font-size: 14px;
     }
   }
 
-  .keywords-section {
-    flex: 1.3;
-    border: 1px solid var(--el-border-color);
-    border-radius: 4px;
-    padding: 12px;
+  .description-content {
     display: flex;
-    flex-direction: column;
-    background-color: var(--el-fill-color-light);
-    transition: all 0.3s ease;
-    overflow: visible; /* 允许内容溢出，不显示滚动条 */
-    margin-top: 32px; /* 与textarea顶部对齐 */
-    box-sizing: border-box;
-    min-height: 164px; /* 最小高度匹配初始textarea高度 */
+    gap: 20px;
+    align-items: stretch; /* 确保子元素在交叉轴上拉伸到相同高度 */
 
-    .keywords-header {
-      flex-shrink: 0;
+    .description-input {
+      flex: 1.7;
+      display: flex; /* 使用flex布局 */
+      flex-direction: column; /* 垂直方向排列 */
+      
+      :deep(.el-form-item) {
+        margin-bottom: 0;
+        flex: 1; /* 表单项占满空间 */
+        display: flex;
+        flex-direction: column;
+      }
+      
+      :deep(.el-form-item__content) {
+        flex: 1; /* 表单内容占满空间 */
+        display: flex;
+        flex-direction: column;
+      }
+      
+      :deep(.el-textarea) {
+        display: flex; /* 使用flex布局 */
+        flex-direction: column; /* 垂直方向排列 */
+        flex: 1; /* 占满剩余空间 */
+      }
+      
+      :deep(.el-textarea__wrapper) {
+        flex: 1; /* 占满剩余空间 */
+        display: flex;
+        flex-direction: column;
+      }
+      
+      :deep(.el-textarea__inner) {
+        resize: none; /* 禁止用户手动调整大小 */
+        min-height: 164px; /* 最小高度 */
+        flex: 1; /* 占满剩余空间 */
+        height: auto !important; /* 自动调整高度 */
+      }
+    }
+
+    .keywords-section {
+      flex: 1.3;
+      border: 1px solid var(--el-border-color);
+      border-radius: 4px;
+      padding: 12px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
+      flex-direction: column;
+      background-color: var(--el-fill-color-light);
+      transition: all 0.3s ease;
+      overflow: visible; /* 允许内容溢出，不显示滚动条 */
+      box-sizing: border-box;
+      min-height: 164px; /* 最小高度匹配初始textarea高度 */
 
-      .keywords-title {
+      .keywords-header {
+        flex-shrink: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+
+        .keywords-title {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-weight: 400;
+          color: var(--el-text-color-primary);
+        }
+      }
+
+      .keywords-content {
+        flex: 1;
+        overflow: visible; /* 允许内容自然流动，不限制高度 */
+        height: auto; /* 自动高度 */
+        min-height: 50px; /* 最小内容区高度 */
+
+        .keyword-tag {
+          margin: 4px 6px 6px 0;
+          display: inline-block;
+        }
+      }
+
+      .keywords-placeholder {
+        flex: 1;
         display: flex;
         align-items: center;
-        gap: 4px;
-        font-weight: 400;
-        color: var(--el-text-color-primary);
+        justify-content: center;
+        color: var(--el-text-color-secondary);
+        gap: 8px;
+        min-height: 50px; /* 最小占位区高度 */
+        
+        .el-icon {
+          font-size: 16px;
+        }
       }
     }
+  }
+}
 
-    .keywords-content {
-      flex: 1;
-      overflow: visible; /* 允许内容自然流动，不限制高度 */
-      height: auto; /* 自动高度 */
-      min-height: 50px; /* 最小内容区高度 */
+/* 字数统计的样式优化 */
+:deep(.el-textarea .el-input__count) {
+  transition: right 0.3s ease;
+  position: absolute;
+  background: transparent;
+  z-index: 10;
+  padding: 0 5px;
+}
 
-      .keyword-tag {
-        margin: 4px 6px 6px 0;
-        display: inline-block;
-      }
-    }
-
-    .keywords-placeholder {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--el-text-color-secondary);
-      gap: 8px;
-      min-height: 50px; /* 最小占位区高度 */
-      
-      .el-icon {
-        font-size: 16px;
-      }
+/* 优化滚动条样式 */
+:deep(.el-textarea__inner) {
+  scrollbar-width: thin; /* Firefox */
+  
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    
+    &:hover {
+      background: rgba(0, 0, 0, 0.3);
     }
   }
 }
