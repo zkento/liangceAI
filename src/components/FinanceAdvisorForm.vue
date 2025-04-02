@@ -14,7 +14,7 @@
               <el-form-item label="姓名" prop="name" class="form-item">
                 <el-input v-model="formData.name" placeholder="请输入客户姓名" @focus="handleInputFocus"></el-input>
               </el-form-item>
-              <el-form-item label="年龄" prop="age" class="form-item">
+              <el-form-item label="年龄" class="form-item">
                 <el-input-number v-model="formData.age" :min="18" :max="100" :precision="0" :step="1" placeholder="请输入年龄"  @focus="handleInputFocus"></el-input-number>
               </el-form-item>
             </div>
@@ -466,7 +466,7 @@
                       <el-input-number v-model="formData.secured.collateralValue" :min="0" :max="5000" :precision="2" :step="1" style="width: 100%" @focus="handleInputFocus"></el-input-number>
                 </el-form-item>
                 <el-form-item label="抵押率(%)" prop="mortgageRatio" class="form-item">
-                  <el-input-number v-model="formData.secured.mortgageRatio" :min="10" :max="90" :step="5" style="width: 100%" @focus="handleInputFocus"></el-input-number>
+                  <el-input-number v-model="formData.secured.mortgageRatio" :min="0" :max="90" :step="5" style="width: 100%" @focus="handleInputFocus"></el-input-number>
                 </el-form-item>
               </div>
               
@@ -530,7 +530,12 @@
 
           <!-- 提交按钮 -->
           <div class="form-actions">
-            <el-button type="primary" @click="submitForm" :loading="submitting">获取AI建议报告</el-button>
+            <el-button 
+              type="primary" 
+              @click="submitFinanceForm" 
+              :loading="submitting"
+              :disabled="isExtractingKeywords"
+            >{{ isExtractingKeywords ? 'AI正在提取关键词' : '获取AI建议报告' }}</el-button>
             <el-button @click="resetForm">重置</el-button>
             </div>
           </div>
@@ -740,7 +745,7 @@
 
 <script>
 import { Document, UploadFilled, InfoFilled, Aim, Refresh, Loading, Warning } from '@element-plus/icons-vue'
-import { ElNotification } from 'element-plus'
+import { ElNotification, ElMessage } from 'element-plus'
 import debounce from 'lodash/debounce'
 // 导入sendMessage API
 import { sendMessage } from '../api/chat'
@@ -820,7 +825,7 @@ function getScrollbarWidth() {
 }
 
 export default {
-  name: 'FinanceAdviceForm',
+  name: 'FinanceAdvisorForm',
   components: {
     Document,
     UploadFilled,
@@ -833,6 +838,7 @@ export default {
   directives: {
     scrollbarAware: vScrollbarAware
   },
+  emits: ['submit'],  // 添加提交事件
   data() {
     return {
       submitting: false,
@@ -909,7 +915,7 @@ export default {
           { required: true, message: '请输入客户姓名', trigger: 'blur' }
         ],
         age: [
-          { required: true, message: '请输入年龄', trigger: 'blur' }
+          { required: false }
         ],
         maritalStatus: [
           { required: true, message: '请选择婚姻状况', trigger: 'change' }
@@ -1720,10 +1726,21 @@ export default {
     
     // 新增：获取AI建议报告前的校验
     async validateBeforeGetReport() {
+      // 如果正在提取关键词，直接返回false以阻止表单提交
+      if (this.isExtractingKeywords) {
+        return false;
+      }
+      
       // 如果有内容但从未提交过提取
-      if (!this.hasAttemptedExtraction) {
+      if (!this.hasAttemptedExtraction && this.formData.additionalNotes && this.formData.additionalNotes.trim().length >= 10) {
         // 自动触发提取
-        await this.extractKeywords();
+        try {
+          // 设置按钮状态为正在提交
+          this.submitting = true;
+          await this.extractKeywords();
+        } catch (error) {
+          console.error('提取关键词时出错:', error);
+        }
       }
 
       // 统一处理：无论是自动提取失败还是之前提取失败，都显示相同的提示
@@ -1743,57 +1760,48 @@ export default {
     },
 
     // 修改：提交表单方法
-    async submitForm() {
-      try {
-        // 首先进行表单验证
-        const valid = await this.$refs.financeForm.validate();
-        if (!valid) {
-          ElNotification({
-            title: '提示',
-            message: '请完善表单信息',
-            type: 'warning',
-            duration: 3000
-          });
-          return;
-        }
-
-        // 然后进行关键词提取校验
-        const keywordsValid = await this.validateBeforeGetReport();
-        if (!keywordsValid) {
-          return;
-        }
-
-          this.submitting = true;
-          // 准备提交数据
-          const submitData = {
-            ...this.formData,
-          keywords: this.aiKeywords.map(k => k.value),
-            personalCreditFile: this.personalCreditFiles.length > 0 ? this.personalCreditFiles[0].response : null,
-            businessCreditFile: this.businessCreditFiles.length > 0 ? this.businessCreditFiles[0].response : null,
-            repaymentSchedule: this.calculationResult
-          };
-          
-          // 模拟提交
-          setTimeout(() => {
-            this.submitting = false;
-          ElNotification({
-            title: '成功',
-            message: '提交成功，正在分析中...',
-            type: 'success',
-            duration: 3000
-          });
-            console.log('提交的数据:', submitData);
-            // TODO: 调用后端API进行分析
-          }, 1500);
-      } catch (error) {
-        console.error('表单提交错误:', error);
-        ElNotification({
-          title: '错误',
-          message: '无法获取AI建议报告，请检查所有必填项是否已填写。',
-          type: 'error',
-          duration: 3000
-        });
+    async submitFinanceForm() {
+      // 避免重复提交
+      if (this.submitting || this.isExtractingKeywords) {
+        return;
       }
+      
+      this.submitting = true;
+      
+      this.$refs.financeForm.validate(async (valid) => {
+        if (valid) {
+          try {
+            // 先验证是否可以获取AI建议报告
+            const canGetReport = await this.validateBeforeGetReport();
+            if (!canGetReport) {
+              this.submitting = false;
+              return false;
+            }
+            
+            // 构建提交的数据
+            const submitData = {
+              ...this.formData,
+              aiKeywords: this.aiKeywords,
+              // 征信报告信息
+              hasCreditReport: this.personalCreditFiles?.length > 0 || this.businessCreditFiles?.length > 0,
+              creditReport: this.personalCreditFiles?.length > 0 ? this.personalCreditFiles[0] : 
+                           (this.businessCreditFiles?.length > 0 ? this.businessCreditFiles[0] : null)
+            };
+            
+            // 触发提交事件
+            this.$emit('submit', submitData);
+          } catch (error) {
+            console.error('提交表单时出错:', error);
+            ElMessage.error('提交失败，请重试');
+          } finally {
+            this.submitting = false;
+          }
+        } else {
+          ElMessage.error('请完善表单信息');
+          this.submitting = false;
+          return false;
+        }
+      });
     },
     
     // 重置表单
@@ -2167,6 +2175,9 @@ export default {
         // 确保在所有处理完成后停止计时器
         this.isExtractingKeywords = false;
         this.stopExtractionTimer();
+        
+        // 重置提交按钮状态
+        this.submitting = false;
       }
     },
 
@@ -2426,9 +2437,11 @@ export default {
 
 .finance-advice-container {
   display: flex;
-  height: calc(100vh - 100px);
+  height: 100%; /* 使用百分比高度填充父容器 */
   padding: 20px;
   gap: 20px;
+  overflow: hidden; /* 确保不会有外层滚动条 */
+  box-sizing: border-box; /* 确保padding和border包含在高度内 */
 }
 
 .left-panel {
@@ -2439,6 +2452,8 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .right-panel {
@@ -2446,26 +2461,37 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow: hidden;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .right-top-panel {
-  flex: 0.42; /* 减少顶部面板的高度占比 */
+  flex: 0 0 auto; /* 不伸缩，保持固定高度 */
+  display: flex;
+  flex-direction: column;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
 }
 
 .right-bottom-panel {
-  flex: 0.58; /* 增加底部面板的高度占比 */
+  flex: 1; /* 占用剩余所有空间 */
+  display: flex;
+  flex-direction: column;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.right-bottom-panel .panel-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto; /* 使整个内容区可滚动 */
+  padding: 0; /* 移除内边距，让表格与顶部无间距 */
 }
 
 .panel-header {
@@ -2495,9 +2521,16 @@ export default {
 .panel-content {
   flex: 1;
   padding: 20px;
-  overflow: auto;
+  overflow-y: auto; /* 确保只在y轴方向滚动 */
   height: calc(100% - 60px); /* 确保内容区域正确计算高度 */
   box-sizing: border-box;
+}
+
+/* 征信报告区域的内容样式特殊处理 */
+.right-top-panel .panel-content {
+  padding: 15px 15px 5px 15px; /* 减小底部内边距 */
+  overflow: hidden; /* 防止滚动 */
+  height: auto;
 }
 
 .form-section {
@@ -2514,12 +2547,15 @@ export default {
 }
 
 .placeholder-content {
-  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
   color: #909399;
   font-size: 14px;
+  padding: 20px;
+  line-height: 1.5;
+  height: 100%;
 }
 
 .range-input {
@@ -2553,7 +2589,8 @@ export default {
 .upload-section {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
+  padding-bottom: 20px; /* 移除底部间距 */
 }
 
 .upload-row {
@@ -2565,14 +2602,14 @@ export default {
   flex: 1;
   border-radius: 8px;
   background-color: #f8f9fa;
-  padding: 20px;
+  padding: 15px; /* 减小内边距 */
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
 
 .upload-title {
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 10px; /* 减小标题和内容的间距 */
   font-size: 16px;
   font-weight: 500;
   color: #1b68de;
@@ -2592,7 +2629,7 @@ export default {
 }
 
 .upload-area {
-  padding: 10px 0;
+  padding: 5px 0; /* 减小上下内边距 */
   position: relative;
 }
 
@@ -2656,7 +2693,7 @@ export default {
 :deep(.el-upload-dragger) {
   width: 100%;
   height: auto;
-  padding: 20px;
+  padding: 15px; /* 减小内边距 */
   border: 1px dashed #d9d9d9;
   border-radius: 6px;
   background-color: #fff;
@@ -2672,9 +2709,9 @@ export default {
 }
 
 :deep(.el-upload-dragger .el-icon) {
-  font-size: 40px;
+  font-size: 30px; /* 减小图标大小 */
   color: #1b68de;
-  margin-bottom: 10px;
+  margin-bottom: 8px; /* 减小下边距 */
 }
 
 :deep(.el-upload__text) {
@@ -2700,7 +2737,10 @@ export default {
 .repayment-calculator {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px; /* 减小空间间距 */
+  min-width: 620px; /* 确保表格有足够宽度不换行 */
+  padding: 20px; /* 将padding从panel-content移到calculator上 */
+  padding-top: 15px; /* 减少顶部间距 */
 }
 
 .calculation-params {
@@ -2708,7 +2748,7 @@ export default {
   flex-wrap: wrap;
   justify-content: center;
   gap: 15px;
-  padding: 15px;
+  padding: 12px;
   background-color: #f8f9fa;
   border-radius: 4px;
   border: 1px solid #ebeef5;
@@ -2736,9 +2776,9 @@ export default {
 .repayment-overview {
   display: flex;
   justify-content: space-around;
-  // padding: 20px 0;
-  // border-bottom: 1px solid #ebeef5;
-  // margin-bottom: 20px;
+  background-color: #f0f7ff;
+  border-radius: 4px;
+  padding: 15px 10px;
 }
 
 .overview-item {
@@ -2758,11 +2798,14 @@ export default {
 }
 
 .calculation-tips {
-  display: flex;
-  align-items: center;
   text-align: center;
-  gap: 10px;
+  line-height: 1.8;
   color: #909399;
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 450px;
+  margin: 0 auto;
 }
 
 .calculation-tips .el-icon {
@@ -3198,6 +3241,8 @@ export default {
 .repayment-schedule {
   width: 100%;
   position: relative;
+  overflow: visible; /* 移除滚动效果 */
+  margin-top: -1px; /* 添加-1px的负外边距，消除表头与功能区顶部的边框缝隙 */
 }
 
 /* 固定表头样式 */
@@ -3251,15 +3296,14 @@ export default {
 .custom-table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid #EBEEF5;
   table-layout: fixed; /* 固定表格布局 */
-  margin-top: -1px; /* 关键修复：抵消边框重叠产生的间隙 */
+  margin-top: 0; /* 确保表格没有顶部边距 */
 }
 
 .custom-table th,
 .custom-table td {
-  padding: 12px;
-  border: 1px solid #EBEEF5;
+  padding: 12px 10px;
+  border: 1px solid #ebeef5;
   text-align: left;
   white-space: nowrap; /* 防止内容换行 */
   overflow: hidden;
@@ -3286,8 +3330,10 @@ export default {
 
 /* 调整表格在panel-content中的吸顶位置，修复间距问题 */
 .right-bottom-panel .panel-content {
-  padding-top: 0;
-  background-color: #fff; /* 关键修复：确保背景色一致 */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* 使整个内容区可滚动 */
+  max-height: none; /* 移除最大高度限制 */
 }
 
 .repayment-calculator {
@@ -3618,6 +3664,54 @@ export default {
       background: rgba(0, 0, 0, 0.3);
     }
   }
+}
+
+/* 自定义表格样式，确保在repayment-schedule内能够正常显示 */
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: 1px solid #ebeef5;
+  margin-bottom: 0px;
+  margin-top: 0; /* 确保表格没有顶部边距 */
+}
+
+.custom-table th,
+.custom-table td {
+  padding: 12px 10px;
+  border: 1px solid #ebeef5;
+  text-align: left;
+}
+
+.custom-table th {
+  background-color: #f5f7fa;
+  font-weight: 500;
+  color: #606266;
+  font-size: 14px;
+}
+
+.custom-table td {
+  color: #606266;
+  font-size: 14px;
+}
+
+.custom-table .center {
+  text-align: center;
+}
+
+.right-bottom-panel .panel-content {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 当没有内容时的占位符样式 */
+.panel-content .placeholder-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* 确保没有滚动条 */
+  padding: 30px 0;
 }
 
 </style> 

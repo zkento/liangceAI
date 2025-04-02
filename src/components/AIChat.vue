@@ -1085,16 +1085,29 @@ export default {
 </script>
 
 <style scoped>
-:root {
-  --horizontal-split: 50%;
-  --vertical-split: 50%;
+/* 步骤条自定义样式 */
+:deep(.el-steps--simple) {
+  background-color: #ffffff !important;
 }
 
+:deep(.el-step__head.is-success) {
+  color: #1b68de !important;
+  border-color: #1b68de !important;
+}
+
+:deep(.el-step__title.is-success) {
+  color: #1b68de !important;
+  border-color: #1b68de !important;
+}
+
+
 .ai-chat {
+  width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: white;
+  background-color: #f5f7fa;
+  position: relative;
 }
 
 .chat-container {
@@ -1336,7 +1349,7 @@ export default {
 }
 
 .steps-header {
-  padding: 16px 20px;
+  /* padding: 16px 20px; */
   border-bottom: 1px solid #ebeef5;
   background-color: white;
 }
