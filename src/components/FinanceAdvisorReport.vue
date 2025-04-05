@@ -83,7 +83,7 @@
               </div>
               
               <div class="thinking-display" :class="{ 'dimmed': matchingStatus === 'generating' }">
-                <span>{{ displayedThinkingProcess }}</span>
+                <span v-html="displayedThinkingProcess"></span>
               </div>
             </div>
           </div>
@@ -143,7 +143,17 @@
                   </h3>
                 </div>
                 <div class="panel-content">
-                  <div class="thinking-content" v-text="aiThinkingProcess"></div>
+                  <div class="thinking-content">
+                    <div v-if="aiThinkingProcess" class="match-thinking" v-html="matchThinkingContent"></div>
+                    <template v-for="(thinking, index) in consultationThinkingProcesses" :key="index">
+                      <div class="thinking-separator" v-if="index > 0 || aiThinkingProcess">
+                        <span class="separator-line"></span>
+                        <span class="separator-text">新的咨询AI思考过程</span>
+                        <span class="separator-line"></span>
+                      </div>
+                      <div class="consultation-thinking" v-html="thinking"></div>
+                    </template>
+                  </div>
                 </div>
               </div>
               
@@ -299,6 +309,9 @@ export default {
     
     // 计算实际的步骤数量
     const totalSteps = computed(() => hasCreditReport.value ? 4 : 3);
+    
+    // 初始匹配产品的思考内容
+    const matchThinkingContent = ref('');
     
     // 渲染Markdown内容
     const renderMarkdown = (text) => {
@@ -710,6 +723,8 @@ export default {
       
       // 显示完整思考内容
       displayedThinkingProcess.value = aiThinkingProcess.value;
+      // 保存初始匹配产品的思考内容
+      matchThinkingContent.value = aiThinkingProcess.value;
       isThinking.value = false;
       
       // 延迟一会，让用户看到完整的思考过程
@@ -917,15 +932,13 @@ export default {
       startConsultationThinking();
       
       try {
-        // 模拟AI思考过程展示
-        setTimeout(() => {
-          // 修改为显示思考过程
-          matchingStatus.value = 'thinking';
-          isThinking.value = true;
-          
-          // 创建一个模拟的AI思考过程内容
-          const question = userMessage.content;
-          const thinkingProcessContent = `正在分析用户问题："${question}"
+        // 修改为显示思考过程
+        matchingStatus.value = 'thinking';
+        isThinking.value = true;
+        
+        // 创建一个模拟的AI思考过程内容
+        const question = userMessage.content;
+        const thinkingProcessContent = `正在分析用户问题："${question}"
 
 思考过程：
 1. 提取用户问题的关键信息
@@ -965,75 +978,154 @@ export default {
    - 根据客户信息: ${formData.value.name || '未知客户'}, ${formData.value.loanAmount ? formData.value.loanAmount + '万元贷款需求' : '未指定贷款金额'}
    - 优化回复语气: 专业、清晰、友好`;
 
-      // 将思考过程添加到数组中
-      consultationThinkingProcesses.value.push(thinkingProcessContent);
-      
-      // 更新总的思考过程，添加分隔符
-      if (aiThinkingProcess.value && aiThinkingProcess.value.trim() !== '') {
-        // 使用HTML格式的分隔符
-        const separator = '<div class="thinking-separator">----- 新的AI思考过程 -----</div>';
-        aiThinkingProcess.value = aiThinkingProcess.value + separator + thinkingProcessContent;
-        displayedThinkingProcess.value = aiThinkingProcess.value;
-      } else {
-        aiThinkingProcess.value = thinkingProcessContent;
-        displayedThinkingProcess.value = thinkingProcessContent;
-      }
-      
-      // 滚动思考过程内容到底部
-      setTimeout(() => {
-        const thinkingContent = document.querySelector('.thinking-display');
-        if (thinkingContent) {
-          thinkingContent.scrollTop = thinkingContent.scrollHeight;
-        }
-      }, 100);
-      
-      // 生成回复内容
-      const responses = {
-        '利率': '我们的产品利率根据市场情况和个人资质有所不同。目前优质客户信用贷的年化利率为3.8%，小微企业经营贷为4.5%，房产抵押贷款为3.0%。实际利率会根据您的具体情况可能有所调整。',
-        '贷款': '您可以根据自己的需求选择适合的贷款产品。我们提供的贷款产品包括信用贷款、抵押贷款和按揭贷款。每种产品有不同的额度、期限和利率，可以根据您的具体情况为您推荐合适的方案。',
-        '申请': '申请贷款需要准备的材料通常包括：个人身份证明、收入证明、银行流水、征信报告等。具体材料清单会根据您选择的贷款产品有所不同，您可以参考融资报告中的"融资方案审批材料清单"部分。',
-        '流程': '贷款申请流程一般包括：提交申请材料、银行审核、审批通过、签订合同、放款。整个流程通常需要1-2周时间，但根据不同产品和银行政策可能有所不同。',
-        '还款': '我们提供多种还款方式，包括等额本息、等额本金、先息后本等。您可以根据自己的资金规划选择合适的还款方式。建议选择最适合您现金流情况的方案，避免产生还款压力。'
-      };
-      
-      // 检查问题是否包含特定关键词
-      let responseText = '';
-      for (const [keyword, response] of Object.entries(responses)) {
-        if (question.includes(keyword)) {
-          responseText = response;
-          break;
-        }
-      }
-      
-      // 如果没有匹配到关键词，使用默认回复
-      if (!responseText) {
-        responseText = '感谢您的咨询。针对您的问题，建议您参考融资顾问报告中的相关内容，或者联系我们的客服人员获取更详细的解答。如果您有具体的贷款需求，也可以提供更多信息，我们可以为您提供更精准的建议。';
-      }
-      
-      // 模拟AI回复
-      setTimeout(() => {
-        const responseMessage = {
-          role: 'assistant',
-          content: responseText
+        // 将思考过程添加到数组中，但此时只是存储完整内容
+        const fullThinkingContent = thinkingProcessContent;
+        
+        // 创建一个空的思考过程，用于逐字显示
+        const emptyThinkingContent = '';
+        consultationThinkingProcesses.value.push(emptyThinkingContent);
+        
+        // 获取当前思考过程的索引
+        const currentThinkingIndex = consultationThinkingProcesses.value.length - 1;
+        
+        // 准备逐字显示
+        let typingIndex = 0;
+        const startTime = Date.now();
+        const totalLength = fullThinkingContent.length;
+        
+        // 计算每秒应该显示的字符数，控制在10秒左右完成
+        const charsPerSecond = totalLength / 10;
+        
+        // 完成咨询思考过程的显示函数
+        const completeConsultationThinking = () => {
+          // 确保显示完整内容
+          consultationThinkingProcesses.value[currentThinkingIndex] = fullThinkingContent;
+          
+          // 生成回复内容
+          const responses = {
+            '利率': '我们的产品利率根据市场情况和个人资质有所不同。目前优质客户信用贷的年化利率为3.8%，小微企业经营贷为4.5%，房产抵押贷款为3.0%。实际利率会根据您的具体情况可能有所调整。',
+            '贷款': '您可以根据自己的需求选择适合的贷款产品。我们提供的贷款产品包括信用贷款、抵押贷款和按揭贷款。每种产品有不同的额度、期限和利率，可以根据您的具体情况为您推荐合适的方案。',
+            '申请': '申请贷款需要准备的材料通常包括：个人身份证明、收入证明、银行流水、征信报告等。具体材料清单会根据您选择的贷款产品有所不同，您可以参考融资报告中的"融资方案审批材料清单"部分。',
+            '流程': '贷款申请流程一般包括：提交申请材料、银行审核、审批通过、签订合同、放款。整个流程通常需要1-2周时间，但根据不同产品和银行政策可能有所不同。',
+            '还款': '我们提供多种还款方式，包括等额本息、等额本金、先息后本等。您可以根据自己的资金规划选择合适的还款方式。建议选择最适合您现金流情况的方案，避免产生还款压力。'
+          };
+          
+          // 检查问题是否包含特定关键词
+          let responseText = '';
+          for (const [keyword, response] of Object.entries(responses)) {
+            if (question.includes(keyword)) {
+              responseText = response;
+              break;
+            }
+          }
+          
+          // 如果没有匹配到关键词，使用默认回复
+          if (!responseText) {
+            responseText = '感谢您的咨询。针对您的问题，建议您参考融资顾问报告中的相关内容，或者联系我们的客服人员获取更详细的解答。如果您有具体的贷款需求，也可以提供更多信息，我们可以为您提供更精准的建议。';
+          }
+          
+          // 模拟AI回复
+          setTimeout(() => {
+            const responseMessage = {
+              role: 'assistant',
+              content: responseText
+            };
+            
+            consultationMessages.value.push(responseMessage);
+            consultationLoading.value = false;
+            stopConsultationThinking('success');
+            isThinking.value = false;
+            
+            // 滚动到底部
+            scrollToBottom();
+          }, 1000);
         };
         
-        consultationMessages.value.push(responseMessage);
-        consultationLoading.value = false;
-        stopConsultationThinking('success');
-        isThinking.value = false;
+        // 创建逐字显示的计时器
+        const typingInterval = setInterval(() => {
+          if (typingIndex < fullThinkingContent.length) {
+            // 计算当前已经过的时间(秒)
+            const elapsedTime = (Date.now() - startTime) / 1000;
+            
+            // 计算按当前速度应该显示到的索引位置
+            const targetIndex = Math.floor(elapsedTime * charsPerSecond);
+            
+            // 计算本次应该显示多少字符
+            let chunkSize = 1;
+            
+            // 如果落后于目标进度，则加速
+            if (typingIndex < targetIndex - 10) {
+              chunkSize = 3; // 严重落后，快速追赶
+            } else if (typingIndex < targetIndex - 5) {
+              chunkSize = 2; // 略有落后，稍微加速
+            }
+            
+            // 保证不会越界
+            const remainingChars = fullThinkingContent.length - typingIndex;
+            const actualChunkSize = Math.min(chunkSize, remainingChars);
+            
+            // 添加字符块到显示内容
+            const nextChunk = fullThinkingContent.substring(typingIndex, typingIndex + actualChunkSize);
+            
+            // 更新数组中对应索引的内容
+            consultationThinkingProcesses.value[currentThinkingIndex] += nextChunk;
+            typingIndex += actualChunkSize;
+            
+            // 检查是否遇到特殊字符需要停顿
+            const lastChar = nextChunk[nextChunk.length - 1];
+            if (lastChar === '。' || lastChar === '\n' || lastChar === '：') {
+              // 句子结束后稍微暂停
+              clearInterval(typingInterval);
+              setTimeout(() => {
+                // 自动滚动到底部
+                const thinkingContent = document.querySelector('.thinking-content');
+                if (thinkingContent) {
+                  thinkingContent.scrollTop = thinkingContent.scrollHeight;
+                }
+                
+                // 继续逐字显示
+                const continuedInterval = setInterval(() => {
+                  if (typingIndex < fullThinkingContent.length) {
+                    // 添加下一个字符
+                    const nextChar = fullThinkingContent[typingIndex];
+                    consultationThinkingProcesses.value[currentThinkingIndex] += nextChar;
+                    typingIndex++;
+                    
+                    // 自动滚动到底部
+                    const thinkingContent = document.querySelector('.thinking-content');
+                    if (thinkingContent) {
+                      thinkingContent.scrollTop = thinkingContent.scrollHeight;
+                    }
+                  } else {
+                    // 所有内容显示完毕
+                    clearInterval(continuedInterval);
+                    completeConsultationThinking();
+                  }
+                }, 40); // 较慢速度继续显示
+              }, 200); // 短暂停顿
+              return;
+            }
+            
+            // 自动滚动到底部
+            const thinkingContent = document.querySelector('.thinking-content');
+            if (thinkingContent) {
+              thinkingContent.scrollTop = thinkingContent.scrollHeight;
+            }
+          } else {
+            // 所有内容显示完毕
+            clearInterval(typingInterval);
+            completeConsultationThinking();
+          }
+        }, 30); // 基础显示间隔
         
-        // 滚动到底部
-        scrollToBottom();
-      }, 3000);
-    }, 1000);
-  } catch (error) {
-    console.error('发送咨询消息失败:', error);
-    stopConsultationThinking('error', '发送消息失败，请重试');
-    ElMessage.error('发送消息失败，请重试');
-    consultationLoading.value = false;
-    isThinking.value = false;
-  }
-};
+      } catch (error) {
+        console.error('发送咨询消息失败:', error);
+        stopConsultationThinking('error', '发送消息失败，请重试');
+        ElMessage.error('发送消息失败，请重试');
+        consultationLoading.value = false;
+        isThinking.value = false;
+      }
+    };
     
     // 滚动聊天消息到底部
     const scrollToBottom = () => {
@@ -1291,7 +1383,7 @@ export default {
     
     // 重置顾问流程
     const restartAdvisor = () => {
-      ElMessageBox.confirm('确定要重新开始融资顾问流程吗？当前的报告和咨询内容将被清空。', '提示', {
+      ElMessageBox.confirm('确定要重新开始新的融资顾问流程吗？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
@@ -1341,6 +1433,8 @@ export default {
       startResizeHorizontal,
       aiThinkingProcess,
       displayedThinkingProcess,
+      matchThinkingContent,
+      consultationThinkingProcesses,
       isThinking,
       verticalSplit,
       isResizingVertical,
@@ -1360,6 +1454,11 @@ export default {
 }
 
 :deep(.el-step__title.is-success) {
+  color: #1b68de !important;
+  border-color: #1b68de !important;
+}
+
+:deep(.el-step__head.is-success) {
   color: #1b68de !important;
   border-color: #1b68de !important;
 }
@@ -2326,5 +2425,35 @@ export default {
     overflow-wrap: break-word;
     box-sizing: border-box;
   }
+}
+
+.match-thinking,
+.consultation-thinking {
+  margin-bottom: 20px;
+}
+
+.thinking-separator {
+  margin: 30px 0 20px 0;
+  display: flex;
+  align-items: center;
+  // background-color: #f0f6ff;
+  // border-left: 4px solid #1b5dd3;
+  // border-radius: 4px;
+}
+
+.separator-line {
+  flex: 1;
+  height: 3px;
+  background: radial-gradient(circle at 0 1px, #6595dd 30%, transparent 30%);
+  background-size: 5px 2px; /* 控制圆点间距 */
+  background-repeat: repeat-x;
+  opacity: 0.6;
+}
+
+.separator-text {
+  padding: 0 16px;
+  font-size: 14px;
+  color: #1b68de;
+  font-weight: 400;
 }
 </style> 
