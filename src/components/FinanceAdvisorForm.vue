@@ -19,7 +19,7 @@
               </el-form-item>
             </div>
             <div class="form-row">
-              <el-form-item label="婚姻状况" prop="maritalStatus" class="form-item">
+              <el-form-item label="婚姻状况" prop="maritalStatus" class="form-item" :required="false">
                 <el-select v-model="formData.maritalStatus" placeholder="请选择婚姻状况">
                   <el-option label="未婚" value="single"></el-option>
                   <el-option label="已婚" value="married"></el-option>
@@ -918,7 +918,7 @@ export default {
           { required: false }
         ],
         maritalStatus: [
-          { required: true, message: '请选择婚姻状况', trigger: 'change' }
+          { required: false }
         ],
         phone: [
           { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
@@ -2329,18 +2329,35 @@ export default {
     class SafeResizeObserver extends window._originalResizeObserver {
       constructor(callback) {
         const safeCallback = (entries, observer) => {
-          // 使用requestAnimationFrame来避免循环通知问题
-          window.requestAnimationFrame(() => {
-            if (document.contains(entries[0].target)) {
+          // 防止在不可见或未连接的元素上执行回调
+          if (!entries || !entries.length) return;
+          
+          // 使用debounce技术减少回调频率
+          cancelAnimationFrame(this._rafId);
+          
+          this._rafId = requestAnimationFrame(() => {
+            // 检查目标元素是否仍在文档中
+            if (entries.some(entry => document.contains(entry.target))) {
               try {
                 callback(entries, observer);
               } catch (e) {
-                console.warn('ResizeObserver error caught:', e);
+                console.warn('ResizeObserver callback错误:', e);
               }
             }
           });
         };
+        
         super(safeCallback);
+        this._rafId = 0;
+      }
+      
+      // 确保在disconnect时清理RAF
+      disconnect() {
+        if (this._rafId) {
+          cancelAnimationFrame(this._rafId);
+          this._rafId = 0;
+        }
+        super.disconnect();
       }
     }
     
@@ -2387,6 +2404,7 @@ export default {
     };
     
     window.addEventListener('unhandledrejection', rejectionHandler, true);
+    this._rejectionHandler = rejectionHandler; // 保存引用以便清理
     this.setupTextareaObserver();
     // 监听窗口大小变化
     window.addEventListener('resize', this.setupTextareaObserver);

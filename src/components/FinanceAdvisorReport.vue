@@ -381,49 +381,50 @@ export default {
     
     // 调整输入框高度
     const adjustInputHeight = () => {
-      // 使用requestAnimationFrame确保在浏览器下一次重绘之前调用函数，提高实时性
-      requestAnimationFrame(() => {
-        const inputArea = document.querySelector('.chat-input');
-        const textarea = document.querySelector('.chat-input .el-textarea__inner');
-        const sendButton = document.querySelector('.chat-input .el-button');
-        
-        if (inputArea && textarea) {
-          // 计算输入区域应有的高度 = 文本区高度 + padding + border
-          const textareaHeight = textarea.scrollHeight;
-          // 文本区高度 + 上下padding(12px*2) + 区域内间距
-          let inputHeight = textareaHeight + 24 + 8; 
-          
-          // 限制最小和最大高度（对应2-3行文本）
-          inputHeight = Math.max(60, Math.min(90, inputHeight));
-          
-          // 设置输入区域高度
-          inputArea.style.height = `${inputHeight}px`;
-          
-          // 调整发送按钮高度，直接跟随文本区高度变化
-          if (sendButton) {
-            // 按钮高度与文本区保持一致，稍微减小一点以保持美观
-            // 同时限制最大高度，不超过输入框的最大高度
-            const maxButtonHeight = 64; // 输入框最大高度(90px) - 上下padding(12px*2) ≈ 66px
-            const buttonHeight = Math.min(maxButtonHeight, textareaHeight - 2);
-            sendButton.style.height = `${buttonHeight}px`;
-          }
-          
-          // 确保样式变化已被应用后再次检查高度匹配
-          setTimeout(() => {
-            // 再次获取实际高度，确保按钮与文本区完全同步
-            const actualTextareaHeight = textarea.scrollHeight;
-            if (sendButton && actualTextareaHeight !== textareaHeight) {
-              // 限制最大高度
-              const maxButtonHeight = 64; // 对应输入框最大高度减去padding
-              const buttonHeight = Math.min(maxButtonHeight, actualTextareaHeight - 2);
-              sendButton.style.height = `${buttonHeight}px`;
-            }
-          }, 0);
+      try {
+        // 如果已经有等待执行的调整，不再重复安排
+        if (adjustHeightTimer) {
+          clearTimeout(adjustHeightTimer);
         }
-      });
-      
-      // 双重保险：在下一个事件循环中再次检查，确保完全同步
-      setTimeout(adjustInputHeightImmediate, 16); // 约1帧的时间
+        
+        // 使用requestAnimationFrame确保在浏览器下一次重绘之前调用函数，提高实时性
+        requestAnimationFrame(() => {
+          try {
+            const inputArea = document.querySelector('.chat-input');
+            const textarea = document.querySelector('.chat-input .el-textarea__inner');
+            const sendButton = document.querySelector('.chat-input .el-button');
+            
+            if (inputArea && textarea) {
+              // 计算输入区域应有的高度 = 文本区高度 + padding + border
+              const textareaHeight = textarea.scrollHeight;
+              // 文本区高度 + 上下padding(12px*2) + 区域内间距
+              let inputHeight = textareaHeight + 24 + 8; 
+              
+              // 限制最小和最大高度（对应2-3行文本）
+              inputHeight = Math.max(60, Math.min(90, inputHeight));
+              
+              // 设置输入区域高度
+              inputArea.style.height = `${inputHeight}px`;
+              
+              // 调整发送按钮高度，直接跟随文本区高度变化
+              if (sendButton) {
+                // 按钮高度与文本区保持一致，稍微减小一点以保持美观
+                // 同时限制最大高度，不超过输入框的最大高度
+                const maxButtonHeight = 64; // 输入框最大高度(90px) - 上下padding(12px*2) ≈ 66px
+                const buttonHeight = Math.min(maxButtonHeight, textareaHeight - 2);
+                sendButton.style.height = `${buttonHeight}px`;
+              }
+            }
+          } catch (e) {
+            console.warn('调整输入框高度渲染错误:', e);
+          }
+        });
+        
+        // 使用setTimeout提供一个小延迟，让连续的多次调用合并为一次
+        adjustHeightTimer = setTimeout(adjustInputHeightImmediate, 16); // 约1帧的时间
+      } catch (e) {
+        console.warn('调整输入框高度出错:', e);
+      }
     };
     
     // 立即调整高度的辅助方法，不使用requestAnimationFrame以避免冲突
@@ -757,40 +758,40 @@ export default {
 
 ## 一、客户需求与征信概况
 
-客户姓名：${formData.value.name || '未提供'}
-联系电话：${formData.value.phone || '未提供'}
-融资需求：${formData.value.loanAmount ? formData.value.loanAmount + '万元' : '未提供'}
-融资类型：${formData.value.loanType === 'mortgage' ? '按揭贷款' : 
+**客户姓名**：${formData.value.name || '未提供'}
+**联系电话**：${formData.value.phone || '未提供'}
+**融资金额**：${formData.value.loanAmount ? formData.value.loanAmount + '万元' : '未提供'}
+**融资方式**：${formData.value.loanType === 'mortgage' ? '按揭贷款' : 
            formData.value.loanType === 'secured' ? '抵押贷款' : 
            formData.value.loanType === 'credit' ? '信用贷款' : '未指定'}
-详细需求描述：${formData.value.additionalNotes || '用户未提供详细描述'}
-核心需求关键词：${getKeywordsText(formData.value.aiKeywords)}
-征信情况：${hasCreditReport.value ? '已提供征信报告，总体良好' : '未提供征信报告'}
+**详细需求描述**：${formData.value.additionalNotes || '用户未提供详细描述'}
+**需求关键词**：${getKeywordsText(formData.value.aiKeywords)}
+**征信情况**：${hasCreditReport.value ? '已提供征信报告，总体良好' : '未提供征信报告'}
 
 
 
 ## 二、推荐的产品方案
 
 ### 方案1：优质客户信用贷
-- 贷款额度：最高50万元
-- 贷款期限：1-3年
-- 贷款利率：3.8%
-- 产品特点：免抵押、利率低、放款快
-- 申请条件：征信良好、稳定工作、年收入10万以上
+- **贷款额度**：最高50万元
+- **贷款期限**：1-3年
+- **贷款利率**：3.8%
+- **产品特点**：免抵押、利率低、放款快
+- **申请条件**：征信良好、稳定工作、年收入10万以上
 
 ### 方案2：小微企业经营贷
-- 贷款额度：最高200万元
-- 贷款期限：1-5年
-- 贷款利率：4.5%
-- 产品特点：支持企业经营、手续简便、额度高
-- 申请条件：营业执照满1年、月均流水5万以上
+- **贷款额度**：最高200万元
+- **贷款期限**：1-5年
+- **贷款利率**：4.5%
+- **产品特点**：支持企业经营、手续简便、额度高
+- **申请条件**：营业执照满1年、月均流水5万以上
 
 ### 方案3：房产抵押贷款
-- 贷款额度：最高500万元
-- 贷款期限：1-10年
-- 贷款利率：3.0%
-- 产品特点：利率超低、额度高、还款方式灵活
-- 申请条件：有房产、征信良好
+- **贷款额度**：最高500万元
+- **贷款期限**：1-10年
+- **贷款利率**：3.0%
+- **产品特点**：利率超低、额度高、还款方式灵活
+- **申请条件**：有房产、征信良好
 
 ## 三、还款计划对比
 
@@ -819,14 +820,14 @@ export default {
 ## 六、融资方案审批材料清单
 
 1. 基础材料
-   - 身份证原件及复印件
-   - 近6个月银行流水
-   - 收入证明或纳税证明
+   - **身份证**原件及复印件
+   - **近6个月银行流水**
+   - **收入证明**或纳税证明
 
 2. 根据贷款方案需额外提供
-   - 优质客户信用贷：工作证明、劳动合同
-   - 小微企业经营贷：营业执照、经营场所证明
-   - 房产抵押贷款：房产证明、房屋估值报告
+   - 优质客户信用贷：**工作证明**、**劳动合同**
+   - 小微企业经营贷：**营业执照**、**经营场所证明**
+   - 房产抵押贷款：**房产证明**、**房屋估值报告**
 
 如需了解更多详情或有任何疑问，请随时咨询我们的客服人员。`;
       
@@ -1303,6 +1304,16 @@ export default {
       document.removeEventListener('mouseup', stopResizeVertical);
     };
     
+    // 窗口大小变化处理函数，移到钩子外部使其在组件范围内可访问
+    const resizeHandler = () => {
+      try {
+        cancelAnimationFrame(window._resizeRAF);
+        window._resizeRAF = requestAnimationFrame(adjustInputHeight);
+      } catch (e) {
+        console.warn('窗口resize处理错误:', e);
+      }
+    };
+    
     // 初始化CSS变量
     onMounted(() => {
       // 设置初始的水平分隔比例
@@ -1313,7 +1324,7 @@ export default {
       document.documentElement.style.setProperty('--vertical-split', '50%');
       
       // 监听窗口大小变化，重新调整输入框高度
-      window.addEventListener('resize', adjustInputHeight);
+      window.addEventListener('resize', resizeHandler);
       
       // 确保输入框和按钮在初始状态下高度同步
       // 使用多重保障机制确保初始同步
@@ -1323,33 +1334,58 @@ export default {
       setTimeout(adjustInputHeight, 300);
       
       // 设置MutationObserver监听输入区域高度变化
-      setTimeout(() => {
-        const textarea = document.querySelector('.chat-input .el-textarea__inner');
-        const textareaContainer = document.querySelector('.chat-input .el-textarea');
+      // 监听DOM变化的观察者
+      const setupObservers = () => {
+        // 确保先断开之前的连接
+        if (mutationObserver) {
+          mutationObserver.disconnect();
+          mutationObserver = null;
+        }
         
-        if (textarea) {
-          // 监听文本区域高度变化
+        try {
+          const textarea = document.querySelector('.chat-input textarea');
+          const textareaContainer = document.querySelector('.chat-input');
+          
+          if (!textarea || !textareaContainer) return;
+          
           const observer = new MutationObserver((mutations) => {
-            adjustInputHeight();
+            try {
+              // 使用RAF防止过于频繁的调用
+              cancelAnimationFrame(window._adjustInputRAF);
+              window._adjustInputRAF = requestAnimationFrame(() => {
+                adjustInputHeight();
+              });
+            } catch (e) {
+              console.warn('MutationObserver回调错误:', e);
+            }
           });
           
-          // 监听textarea和其容器的属性变化
-          observer.observe(textarea, { 
-            attributes: true,
-            attributeFilter: ['style', 'height']
-          });
-          
-          if (textareaContainer) {
+          // 使用try-catch包裹observe调用
+          try {
+            observer.observe(textarea, {
+              attributes: true,
+              attributeFilter: ['style', 'class']
+            });
+            
             observer.observe(textareaContainer, {
               attributes: true,
-              attributeFilter: ['style', 'height']
+              attributeFilter: ['style', 'class']
             });
+            
+            // 保存observer引用以便在组件卸载时清理
+            mutationObserver = observer;
+          } catch (e) {
+            console.warn('设置MutationObserver失败:', e);
           }
-          
-          // 保存observer引用以便在组件卸载时清理
-          mutationObserver = observer;
+        } catch (e) {
+          console.warn('创建MutationObserver失败:', e);
         }
-      }, 100);
+      };
+      
+      // 初始调用设置
+      setupObservers();
+      // 调整输入框高度
+      adjustInputHeightImmediate();
       
       // 定期检查并调整按钮高度，确保与输入框同步
       autoHeightCheckInterval = setInterval(() => {
@@ -1366,7 +1402,7 @@ export default {
       }
       
       // 移除窗口大小变化监听
-      window.removeEventListener('resize', adjustInputHeight);
+      window.removeEventListener('resize', resizeHandler);
       
       // 清理MutationObserver
       if (mutationObserver) {
@@ -1818,7 +1854,7 @@ export default {
   word-wrap: break-word; /* 确保长单词可以断行 */
   word-break: break-all; /* 在任何字符间断行 */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  padding: 20px;
+  padding: 16px;
   text-align: left;
   box-sizing: border-box; /* 确保padding不会导致溢出 */
 }
@@ -2427,10 +2463,6 @@ export default {
   }
 }
 
-.match-thinking,
-.consultation-thinking {
-  margin-bottom: 20px;
-}
 
 .thinking-separator {
   margin: 30px 0 20px 0;
