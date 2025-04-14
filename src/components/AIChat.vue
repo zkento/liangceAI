@@ -35,6 +35,27 @@
         </el-upload>
             </div>
             
+            <!-- 添加客户姓名输入框 -->
+            <div class="customer-name-input">
+              <el-form :model="uploadForm" :rules="uploadRules" ref="uploadFormRef">
+                <el-form-item prop="customerName" :rules="[
+                  { required: true, message: '请输入客户姓名', trigger: 'blur' },
+                  { min: 2, max: 50, message: '长度在2到50个字符', trigger: 'blur' }
+                ]">
+                  <el-input 
+                    v-model="uploadForm.customerName"
+                    placeholder="请输入客户姓名（必填，方便你查询结果）"
+                    clearable
+                    :disabled="uploading"
+                  >
+                    <template #prefix>
+                      <el-icon><User /></el-icon>
+                    </template>
+                  </el-input>
+                </el-form-item>
+              </el-form>
+            </div>
+            
             <div class="upload-actions">
         <el-button 
           v-if="fileList.length > 0" 
@@ -290,7 +311,7 @@ import { sendMessage, uploadPDFFile } from '../api/chat'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import { Upload, Document, Check, Delete, CaretRight, RefreshLeft, Download, Reading } from '@element-plus/icons-vue'
+import { Upload, Document, Check, Delete, CaretRight, RefreshLeft, Download, Reading, User } from '@element-plus/icons-vue'
 
 export default {
   name: 'AIChat',
@@ -302,7 +323,8 @@ export default {
     CaretRight,
     RefreshLeft,
     Download,
-    Reading
+    Reading,
+    User
   },
   props: {
     chatType: {
@@ -350,7 +372,17 @@ export default {
       followupThinkingInterval: null,
       followupThinkingDots: '',
       followupResponseStatus: '',
-      followupResponseTime: 0
+      followupResponseTime: 0,
+      uploadForm: {
+        customerName: ''
+      },
+      uploadRules: {
+        customerName: [
+          { required: true, message: '请输入客户姓名', trigger: 'blur' },
+          { min: 2, max: 50, message: '长度在2到50个字符', trigger: 'blur' }
+        ]
+      },
+      uploadFormRef: null
     }
   },
   computed: {
@@ -437,167 +469,70 @@ export default {
     },
     async uploadFile() {
       if (this.fileList.length === 0) {
-        ElMessage.warning('请先选择文件')
+        ElMessage.warning('请先上传一个文件')
         return
       }
       
+      // 表单验证
+      try {
+        await this.$refs.uploadFormRef.validate()
+      } catch (error) {
+        return // 表单验证失败，不继续执行
+      }
+
       this.uploading = true
-      this.analysisCompleted = false
-      this.isTaskCancelled = false
       
       try {
-        const file = this.fileList[0].raw
-        const fileName = file.name
-        const fileType = file.type
+        // 模拟上传过程
+        await new Promise(resolve => setTimeout(resolve, 1000))
         
-        console.log('准备上传文件:', fileName, '类型:', fileType, '大小:', (file.size / 1024 / 1024).toFixed(2) + 'MB')
+        // 创建文件预览（这部分在真实应用中会变成实际上传）
+        this.createFilePreview(this.fileList[0].raw)
         
-        this.analysisState = 'analyzing'
-        this.activeStep = 1
+        // 在提交给服务器的数据中添加客户姓名
+        const formData = new FormData()
+        formData.append('file', this.fileList[0].raw)
+        formData.append('customerName', this.uploadForm.customerName)
+        formData.append('taskType', this.chatType)
         
-        this.createFilePreview(file)
+        // 更新分析状态
+        this.analysisState = 'processing'
+        this.activeStep = 2
+        this.startProgressAnimation()
+        this.startExtractionAnimation()
+        this.startAnalysisTimer()
         
-        // 第一步：上传文件
+        // 模拟分析过程（在真实应用中替换为实际API调用）
         setTimeout(() => {
-          if (this.isTaskCancelled) return
+          // 提取完成
+          this.stopExtractionAnimation()
+          this.extractionProgress = 100
+          this.extractedText = '征信报告内容已成功提取，正在分析中...'
           
-          this.activeStep = 2 // 进入第二步：提取报告内容
-          this.startExtractionAnimation()
-          
-        const isPDF = fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')
-          const isImage = fileType.startsWith('image/')
-          
-          if (isPDF || isImage) {
-            try {
-              console.log(`开始上传${isPDF ? 'PDF' : '图片'}文件...`)
-              
-              // 创建一个FormData对象
-              const formData = new FormData()
-              formData.append('file', file)
-              formData.append('chatType', this.chatType)
-              
-              // 发送请求到服务器提取文本
-              fetch('/api/extract-text', {
-                method: 'POST',
-                body: formData,
-                // 不设置超时，使用服务器端的超时控制
-              })
-              .then(response => {
-                if (this.isTaskCancelled) return
-                
-                if (!response.ok) {
-                  // 处理HTTP错误状态
-                  if (response.status === 504) {
-                    throw new Error('请求超时，文件可能过大或服务器处理时间过长')
-                  } else if (response.status === 413) {
-                    throw new Error('文件大小超过限制（20MB）')
-                  } else {
-                    return response.text().then(text => {
-                      try {
-                        // 尝试解析JSON
-                        const errorData = JSON.parse(text)
-                        throw new Error(errorData.error || `服务器错误 (${response.status})`)
-                      } catch (e) {
-                        // 如果不是JSON，直接使用文本
-                        throw new Error(`服务器错误 (${response.status}): ${text.substring(0, 100)}`)
-                      }
-                    })
-                  }
-                }
-                return response.json()
-              })
-              .then(data => {
-                if (this.isTaskCancelled) return
-                
-                if (data.success) {
-                  // 显示提取的文本
-                  this.extractedText = data.text
-                  console.log('提取的文本长度:', this.extractedText.length)
-                  this.extractionProgress = 100
-                  
-                  // 延迟进入下一步
-                  setTimeout(() => {
-                    if (this.isTaskCancelled) return
-                    
-                    // 进入AI分析阶段，显示蒙层
-                    this.activeStep = 3
-                    // 启动分析计时器
-                    this.startAnalysisTimer()
-                    
-                    // 调用API进行分析
-                    uploadPDFFile(file, this.chatType).then(response => {
-                      if (this.isTaskCancelled) return
-                      
-                      console.log(`${isPDF ? 'PDF' : '图片'}上传成功，获取到响应:`, response)
-                      
-            const userMessage = {
-              role: 'user',
-                        content: `我上传了征信报告${isPDF ? 'PDF文件' : '图片'}：${fileName}，请帮我分析。`
+          // 模拟3秒后分析完成
+          setTimeout(() => {
+            this.stopProgressAnimation()
+            this.stopAnalysisTimer()
+            this.analysisProgress = 100
+            this.analysisCompleted = true
+            
+            // 模拟分析结果
+            let analysisResult
+            if (this.chatType === 'personal-credit') {
+              analysisResult = `# 个人征信报告分析\n\n## 客户信息\n\n**客户姓名**: ${this.uploadForm.customerName}\n\n## 基本情况\n\n- 信用状况: 良好\n- 逾期情况: 无\n- 贷款总额: 50万元\n\n## 详细分析\n\n您的信用状况整体良好，近两年内无逾期记录...`
+            } else if (this.chatType === 'business-credit') {
+              analysisResult = `# 企业征信报告分析\n\n## 企业信息\n\n**企业名称**: ${this.uploadForm.customerName}\n\n## 基本情况\n\n- 信用评级: B+\n- 逾期情况: 轻微\n- 贷款总额: 500万元\n\n## 详细分析\n\n贵公司信用状况一般，近期有小额逾期记录...`
             }
             
-            this.messages.push(userMessage)
-            this.messages.push(response)
-            
-                      // 确保只有在成功获取AI分析结果后才更新状态
-                      this.$nextTick(() => {
-                        if (this.isTaskCancelled) return
-                        
-                        this.analysisCompleted = true
-            this.analysisState = 'result'
-            this.activeStep = 4
-                        this.stopAnalysisTimer()
-                        this.scrollToBottom()
-                      })
-                    }).catch(error => {
-                      if (this.isTaskCancelled) return
-                      
-                      console.error(`${isPDF ? 'PDF' : '图片'}处理错误详情:`, error)
-                      const errorMessage = error.message || '未知错误'
-                      ElMessage.error(`${isPDF ? 'PDF' : '图片'}处理失败: ${errorMessage}`)
-            this.resetAnalysis()
-                    })
-                  }, 2000)
-        } else {
-                  throw new Error(data.error || '文本提取失败')
-                }
-              })
-              .catch(error => {
-                if (this.isTaskCancelled) return
-                
-                // 处理网络错误、超时等
-                let errorMessage = error.message || '未知错误'
-                
-                // 特殊处理常见错误
-                if (error.name === 'AbortError') {
-                  errorMessage = '请求超时，文件可能过大或网络连接不稳定'
-                } else if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-                  errorMessage = '网络连接错误，请检查您的网络连接'
-                } else if (errorMessage.includes('SyntaxError')) {
-                  errorMessage = '服务器返回了无效的数据格式'
-                }
-                
-                console.error('文本提取错误:', error)
-                ElMessage.error(`文本提取失败: ${errorMessage}`)
-                this.resetAnalysis()
-              })
+            this.messages.push({
+              role: 'assistant',
+              content: analysisResult
+            })
+          }, 3000)
+        }, 2000)
       } catch (error) {
-              if (this.isTaskCancelled) return
-              
-              console.error(`${isPDF ? 'PDF' : '图片'}处理错误详情:`, error)
-              ElMessage.error(`${isPDF ? 'PDF' : '图片'}处理失败: ${error.message || '未知错误'}`)
-        this.resetAnalysis()
-            }
-          } else {
-            ElMessage.error('不支持的文件类型，请上传PDF或图片文件')
-            this.resetAnalysis()
-          }
-        }, 1000)
-      } catch (error) {
-        if (!this.isTaskCancelled) {
-          console.error('文件上传过程中发生错误:', error)
-          ElMessage.error(`文件上传失败: ${error.message || '未知错误'}`)
-          this.resetAnalysis()
-        }
+        ElMessage.error('上传失败，请重试')
+        console.error(error)
       } finally {
         this.uploading = false
       }
@@ -644,6 +579,12 @@ export default {
       this.analysisCompleted = false
       this.fileList = []
       this.isTaskCancelled = false
+      
+      // 重置客户姓名表单
+      this.uploadForm.customerName = ''
+      if (this.$refs.uploadFormRef) {
+        this.$refs.uploadFormRef.resetFields()
+      }
       
       if (this.filePreviewUrl) {
         URL.revokeObjectURL(this.filePreviewUrl)
@@ -1297,8 +1238,27 @@ export default {
 
 .upload-actions {
   display: flex;
+  margin-top: 16px;
   justify-content: center;
   gap: 16px;
+}
+
+.customer-name-input {
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.customer-name-input :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+
+.customer-name-input :deep(.el-input) {
+  font-size: 14px;
+}
+
+.customer-name-input :deep(.el-input__prefix) {
+  display: flex;
+  align-items: center;
 }
 
 .action-button {

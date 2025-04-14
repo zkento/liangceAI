@@ -3,26 +3,54 @@
     <el-container>
       <el-header>
         <div class="header-content">
-          <router-link to="/" class="logo-container">
-            <img src="@/assets/logo.png" alt="良策网络 Logo" class="logo-image" />
-            <div class="separator"></div>
-            <div class="site-title">
-              <span class="title-text">良策AI</span>
-              <span class="subtitle">智能分析平台<span class="beta-tag"> Beta</span></span>
-            </div>
-          </router-link>
+          <div class="left-section">
+            <router-link to="/" class="logo-container">
+              <img src="@/assets/logo.png" alt="良策网络 Logo" class="logo-image" />
+              <div class="separator"></div>
+              <div class="site-title">
+                <span class="title-text">良策AI</span>
+                <span class="subtitle">智能分析平台<span class="beta-tag"> Beta</span></span>
+              </div>
+            </router-link>
+          </div>
+          <div class="right-section">
+            <HistoryButton />
+            <UserAvatar />
+          </div>
         </div>
       </el-header>
       <el-main>
         <router-view></router-view>
       </el-main>
     </el-container>
+    
+    <!-- 历史记录弹层 -->
+    <HistoryPanel />
   </div>
 </template>
 
 <script>
+import { onMounted } from 'vue'
+import { useStore } from 'vuex'
+import UserAvatar from '@/components/UserAvatar.vue'
+import HistoryButton from '@/components/HistoryButton.vue'
+import HistoryPanel from '@/components/HistoryPanel.vue'
+
 export default {
-  name: 'App'
+  name: 'App',
+  components: {
+    UserAvatar,
+    HistoryButton,
+    HistoryPanel
+  },
+  setup() {
+    const store = useStore()
+    
+    onMounted(() => {
+      store.dispatch('user/initUserInfo')
+      store.dispatch('history/fetchHistoryList')
+    })
+  }
 }
 </script>
 
@@ -36,14 +64,24 @@ export default {
   padding: 0 5%;
   height: 64px !important;
   line-height: 64px;
-  display: flex;
-  justify-content: flex-start;
 }
 
 .header-content {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   height: 100%;
+  width: 100%;
+}
+
+.left-section {
+  display: flex;
+  align-items: center;
+}
+
+.right-section {
+  display: flex;
+  align-items: center;
 }
 
 .logo-container {

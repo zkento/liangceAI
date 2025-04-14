@@ -4,6 +4,7 @@ import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import App from './App.vue'
 import router from './router'
+import store from './store'
 
 // 注入全局CSS变量，覆盖Element Plus默认主题
 import './styles/element-theme.css'
@@ -36,4 +37,5 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 app.use(ElementPlus)
 app.use(router)
+app.use(store)
 app.mount('#app') 
