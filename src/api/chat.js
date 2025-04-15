@@ -1,4 +1,4 @@
-// 最后修改记录时间 -> 2024-06-05 23:00
+// 最后修改记录时间 -> 2025-04-11 16:00:45
 // 使用相对路径，依赖webpack代理
 const API_BASE_URL = '';
 
@@ -131,25 +131,29 @@ export async function uploadPDFFile(file, chatType) {
       const data = await response.json();
       console.log('文件上传响应:', data);
       
-      // 确保返回一个包含role和content属性的对象
-      if (data.message && data.message.role && data.message.content) {
-        return data.message;
-      } else if (data.message && data.message.content) {
-        return {
-          role: 'assistant',
-          content: data.message.content
-        };
-      } else if (data.message) {
-        return {
-          role: 'assistant',
-          content: typeof data.message === 'string' ? data.message : JSON.stringify(data.message)
-        };
-      } else {
-        return {
-          role: 'assistant',
-          content: '文件已成功上传，但服务器未返回分析结果。'
-        };
+      // 返回包含提取文本和消息的对象
+      const result = {
+        role: 'assistant'
+      };
+      
+      // 添加提取的文本，如果有的话
+      if (data.extractedText) {
+        result.extractedText = data.extractedText;
       }
+      
+      // 添加消息内容
+      if (data.message && data.message.role && data.message.content) {
+        result.role = data.message.role;
+        result.content = data.message.content;
+      } else if (data.message && data.message.content) {
+        result.content = data.message.content;
+      } else if (data.message) {
+        result.content = typeof data.message === 'string' ? data.message : JSON.stringify(data.message);
+      } else {
+        result.content = '文件已成功上传，但服务器未返回分析结果。';
+      }
+      
+      return result;
     } catch (fetchError) {
       // 清除超时计时器
       clearTimeout(timeoutId);

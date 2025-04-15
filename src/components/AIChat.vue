@@ -483,17 +483,14 @@ export default {
       this.uploading = true
       
       try {
-        // 模拟上传过程
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        // 创建文件预览（这部分在真实应用中会变成实际上传）
+        // 创建文件预览
         this.createFilePreview(this.fileList[0].raw)
         
         // 在提交给服务器的数据中添加客户姓名
         const formData = new FormData()
         formData.append('file', this.fileList[0].raw)
         formData.append('customerName', this.uploadForm.customerName)
-        formData.append('taskType', this.chatType)
+        formData.append('chatType', this.chatType)
         
         // 更新分析状态
         this.analysisState = 'processing'
@@ -502,37 +499,69 @@ export default {
         this.startExtractionAnimation()
         this.startAnalysisTimer()
         
-        // 模拟分析过程（在真实应用中替换为实际API调用）
-        setTimeout(() => {
-          // 提取完成
-          this.stopExtractionAnimation()
-          this.extractionProgress = 100
+        // 使用真实API调用替代模拟过程
+        const response = await uploadPDFFile(this.fileList[0].raw, this.chatType)
+        
+        // 先停止提取动画，表示提取完成
+        this.stopExtractionAnimation()
+        this.extractionProgress = 100
+        
+        // 如果返回了提取的文本，显示它
+        if (response && response.extractedText) {
+          this.extractedText = response.extractedText
+        } else {
+          // 否则显示一个默认消息
           this.extractedText = '征信报告内容已成功提取，正在分析中...'
+        }
+        
+        // 等待一小段时间后更新界面状态
+        setTimeout(() => {
+          this.stopProgressAnimation()
+          this.stopAnalysisTimer()
+          this.analysisProgress = 100
+          this.analysisCompleted = true
           
-          // 模拟3秒后分析完成
-          setTimeout(() => {
-            this.stopProgressAnimation()
-            this.stopAnalysisTimer()
-            this.analysisProgress = 100
-            this.analysisCompleted = true
-            
-            // 模拟分析结果
-            let analysisResult
-            if (this.chatType === 'personal-credit') {
-              analysisResult = `# 个人征信报告分析\n\n## 客户信息\n\n**客户姓名**: ${this.uploadForm.customerName}\n\n## 基本情况\n\n- 信用状况: 良好\n- 逾期情况: 无\n- 贷款总额: 50万元\n\n## 详细分析\n\n您的信用状况整体良好，近两年内无逾期记录...`
-            } else if (this.chatType === 'business-credit') {
-              analysisResult = `# 企业征信报告分析\n\n## 企业信息\n\n**企业名称**: ${this.uploadForm.customerName}\n\n## 基本情况\n\n- 信用评级: B+\n- 逾期情况: 轻微\n- 贷款总额: 500万元\n\n## 详细分析\n\n贵公司信用状况一般，近期有小额逾期记录...`
-            }
-            
+          // 添加AI响应到消息列表
+          if (response && response.role && response.content) {
+            this.messages.push({
+              role: response.role,
+              content: response.content
+            })
+          } else if (response && typeof response === 'object') {
+            // 如果响应是对象但没有正确的格式，尝试提取可能的内容
             this.messages.push({
               role: 'assistant',
-              content: analysisResult
+              content: response.message || response.content || JSON.stringify(response)
             })
-          }, 3000)
-        }, 2000)
+          } else {
+            // 错误情况
+            this.messages.push({
+              role: 'assistant',
+              content: '分析过程中发生错误，请重试或联系客服'
+            })
+            console.error('API返回了无效的响应格式', response)
+          }
+          
+          // 更新到最终步骤
+          this.activeStep = 4
+        }, 1000)
       } catch (error) {
-        ElMessage.error('上传失败，请重试')
-        console.error(error)
+        // 处理上传或分析过程中的错误
+        this.stopExtractionAnimation()
+        this.stopProgressAnimation() 
+        this.stopAnalysisTimer()
+        
+        ElMessage.error(`分析失败: ${error.message}`)
+        console.error('征信报告分析错误:', error)
+        
+        // 添加错误消息
+        this.messages.push({
+          role: 'assistant',
+          content: `很抱歉，分析过程中出现错误: ${error.message}。请重试或联系客服。`
+        })
+        
+        // 重置状态，允许重新上传
+        this.resetAnalysis()
       } finally {
         this.uploading = false
       }
