@@ -14,6 +14,7 @@
             </router-link>
           </div>
           <div class="right-section">
+            <ModelSelector @model-changed="handleModelChanged" />
             <HistoryButton />
             <UserAvatar />
           </div>
@@ -35,13 +36,16 @@ import { useStore } from 'vuex'
 import UserAvatar from '@/components/UserAvatar.vue'
 import HistoryButton from '@/components/HistoryButton.vue'
 import HistoryPanel from '@/components/HistoryPanel.vue'
+import ModelSelector from '@/components/ModelSelector.vue'
+import { ElMessage } from 'element-plus'
 
 export default {
   name: 'App',
   components: {
     UserAvatar,
     HistoryButton,
-    HistoryPanel
+    HistoryPanel,
+    ModelSelector
   },
   setup() {
     const store = useStore()
@@ -50,6 +54,16 @@ export default {
       store.dispatch('user/initUserInfo')
       store.dispatch('history/fetchHistoryList')
     })
+    
+    // 处理模型变更
+    function handleModelChanged(modelId) {
+      console.log(`模型已切换到: ${modelId}`)
+      // 可以在这里添加全局模型切换通知或其他处理
+    }
+    
+    return {
+      handleModelChanged
+    }
   }
 }
 </script>
@@ -82,6 +96,7 @@ export default {
 .right-section {
   display: flex;
   align-items: center;
+  gap: 16px; /* 添加间距 */
 }
 
 .logo-container {

@@ -1,4 +1,4 @@
-// 最后修改记录时间 -> 2025-04-11 15:35:30
+// 最后修改记录时间 -> 2025-04-15 17:40
 
 require('dotenv').config();
 const express = require('express');
@@ -20,15 +20,55 @@ const { extractTextFromPDF, extractTextFromImage } = require('./src/api/document
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// DeepSeek API配置
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1';
-
-// 创建axios实例
-const deepseekApi = axios.create({
-  baseURL: DEEPSEEK_API_URL,
-  headers: {
-    'Content-Type': 'application/json'
+// AI模型配置
+const AI_MODELS = {
+  // DeepSeek云服务
+  DEEPSEEK: {
+    id: 'deepseek-chat',
+    apiEndpoint: 'https://api.deepseek.com/v1',
+    defaultParams: {
+      temperature: 0.3,
+      max_tokens: 2000
+    },
+    headers: {
+      'Content-Type': 'application/json'
+    }
   },
+  // Ollama本地服务 - Gemma3 12B
+  GEMMA3_12B: {
+    id: 'gemma3-12b',
+    apiEndpoint: 'http://localhost:11434/api',
+    modelIdentifier: 'gemma3:12b',
+    defaultParams: {
+      temperature: 0.7,
+      max_tokens: 1500
+    },
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  },
+  // Ollama本地服务 - Gemma3 4B
+  GEMMA3_4B: {
+    id: 'gemma3-4b',
+    apiEndpoint: 'http://localhost:11434/api',
+    modelIdentifier: 'gemma3:4b',
+    defaultParams: {
+      temperature: 0.7,
+      max_tokens: 1500
+    },
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  }
+};
+
+// 默认模型ID
+const DEFAULT_MODEL_ID = 'deepseek-chat';
+
+// 创建DeepSeek API客户端
+const deepseekApi = axios.create({
+  baseURL: AI_MODELS.DEEPSEEK.apiEndpoint,
+  headers: AI_MODELS.DEEPSEEK.headers,
   timeout: 90000
 });
 
@@ -45,6 +85,13 @@ deepseekApi.interceptors.request.use(config => {
   // 设置最新的Authorization header
   config.headers.Authorization = `Bearer ${apiKey}`;
   return config;
+});
+
+// 创建Ollama API客户端
+const ollamaApi = axios.create({
+  baseURL: AI_MODELS.GEMMA3_12B.apiEndpoint,
+  headers: AI_MODELS.GEMMA3_12B.headers,
+  timeout: 90000
 });
 
 // 配置文件上传
@@ -155,6 +202,152 @@ function clearPromptsCache() {
   console.log('提示词缓存清除完成');
 }
 
+/**
+ * 获取模型API客户端
+ * @param {string} modelId - 模型ID
+ * @returns {Object} - 模型API客户端和配置
+ */
+function getModelApiClient(modelId) {
+  switch(modelId) {
+    case 'deepseek-chat':
+      return {
+        client: deepseekApi,
+        config: AI_MODELS.DEEPSEEK
+      };
+    case 'gemma3-12b':
+      return {
+        client: ollamaApi,
+        config: AI_MODELS.GEMMA3_12B
+      };
+    case 'gemma3-4b':
+      return {
+        client: ollamaApi,
+        config: AI_MODELS.GEMMA3_4B
+      };
+    default:
+      // 默认返回DeepSeek
+      console.log(`未找到模型 ${modelId}，使用默认模型 deepseek-chat`);
+      return {
+        client: deepseekApi,
+        config: AI_MODELS.DEEPSEEK
+      };
+  }
+}
+
+/**
+ * 调用DeepSeek API
+ * @param {Array} messages - 消息列表
+ * @param {Object} options - 请求选项
+ * @returns {Promise<Object>} - DeepSeek响应
+ */
+async function callDeepSeekApi(messages, options = {}) {
+  const { client, config } = getModelApiClient('deepseek-chat');
+  
+  const params = {
+    ...config.defaultParams,
+    ...options
+  };
+  
+  const response = await client.post('/chat/completions', {
+    model: 'deepseek-chat',
+    messages: messages,
+    temperature: params.temperature,
+    max_tokens: params.max_tokens
+  });
+  
+  return response.data;
+}
+
+/**
+ * 调用Ollama API
+ * @param {Array} messages - 消息列表
+ * @param {string} modelId - 模型ID
+ * @param {Object} options - 请求选项
+ * @returns {Promise<Object>} - Ollama响应
+ */
+async function callOllamaApi(messages, modelId, options = {}) {
+  const { client, config } = getModelApiClient(modelId);
+  
+  // 提取系统消息
+  const systemMessages = messages.filter(msg => msg.role === 'system');
+  const otherMessages = messages.filter(msg => msg.role !== 'system');
+  
+  // 合并所有系统消息
+  let systemPrompt = '';
+  if (systemMessages.length > 0) {
+    systemPrompt = systemMessages.map(msg => msg.content).join('\n\n');
+  }
+  
+  // 处理其他消息
+  let prompt = otherMessages.length > 0 
+    ? otherMessages[otherMessages.length - 1].content 
+    : '请开始对话';
+  
+  // 合并参数
+  const params = {
+    ...config.defaultParams,
+    ...options
+  };
+  
+  // 构建Ollama请求
+  const requestBody = {
+    model: config.modelIdentifier,
+    prompt: prompt,
+    system: systemPrompt || undefined,
+    stream: false,
+    options: {
+      temperature: params.temperature,
+      num_predict: params.max_tokens
+    }
+  };
+  
+  const response = await client.post('/generate', requestBody);
+  
+  // 将Ollama响应转换为DeepSeek格式
+  return {
+    choices: [
+      {
+        message: {
+          role: 'assistant',
+          content: response.data.response
+        }
+      }
+    ]
+  };
+}
+
+/**
+ * 根据模型ID调用相应的API
+ * @param {Array} messages - 消息列表
+ * @param {string} modelId - 模型ID
+ * @param {Object} options - 请求选项
+ * @returns {Promise<Object>} - 标准化响应
+ */
+async function callModelApi(messages, modelId, options = {}) {
+  console.log(`使用模型 ${modelId} 发送请求`);
+  
+  try {
+    let result;
+    
+    if (modelId === 'deepseek-chat') {
+      // 调用DeepSeek API
+      result = await callDeepSeekApi(messages, options);
+    } else if (modelId.startsWith('gemma3-')) {
+      // 调用Ollama API
+      result = await callOllamaApi(messages, modelId, options);
+    } else {
+      // 默认使用DeepSeek
+      console.log(`未找到模型 ${modelId}，使用默认模型 deepseek-chat`);
+      result = await callDeepSeekApi(messages, options);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error(`调用模型 ${modelId} API失败:`, error);
+    throw error;
+  }
+}
+
 // 上传文件接口
 app.post('/api/upload', upload.single('file'), handleMulterError, async (req, res) => {
   // 设置更长的请求超时时间
@@ -177,8 +370,9 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
     const fileName = file.originalname;
     const fileType = file.mimetype;
     const chatType = req.body.chatType || 'default';
+    const modelId = req.body.modelId || DEFAULT_MODEL_ID;
     
-    console.log(`接收到文件上传请求: ${fileName}, 类型: ${fileType}, 聊天类型: ${chatType}`);
+    console.log(`接收到文件上传请求: ${fileName}, 类型: ${fileType}, 聊天类型: ${chatType}, 模型: ${modelId}`);
     console.log(`文件大小: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
     
     let extractedText = '';
@@ -251,7 +445,7 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
     // 获取提示词配置
     const promptConfig = getPromptConfigForType(chatType);
     
-    // 构建发送给DeepSeek的提示词
+    // 构建发送给AI模型的提示词
     const systemPrompt = promptConfig.systemPrompt || '你是一个专业的分析师';
     // 使用basePrompt作为用户提示词的基础，如果存在的话
     const basePrompt = promptConfig.basePrompt || '';
@@ -260,33 +454,31 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
       : `请分析以下内容:\n\n${extractedText}`;
     
     try {
-      console.log('开始调用DeepSeek API进行分析...');
+      console.log(`开始调用模型 ${modelId} 进行分析...`);
       console.log('提取的文本长度:', extractedText.length);
       
-      // 调用DeepSeek API
-      const deepseekResponse = await deepseekApi.post('/chat/completions', {
-        model: 'deepseek-chat',
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: userPrompt
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 2000
-      });
+      // 构建消息
+      const messages = [
+        {
+          role: 'system',
+          content: systemPrompt
+        },
+        {
+          role: 'user',
+          content: userPrompt
+        }
+      ];
+      
+      // 调用模型API
+      const modelResult = await callModelApi(messages, modelId);
       
       // 检查API响应是否包含预期的数据结构
-      if (!deepseekResponse.data || !deepseekResponse.data.choices || !deepseekResponse.data.choices.length) {
-        throw new Error('DeepSeek API返回的数据结构不符合预期');
+      if (!modelResult.choices || !modelResult.choices.length) {
+        throw new Error('AI API返回的数据结构不符合预期');
       }
       
-      // 提取DeepSeek的回复
-      const aiResponse = deepseekResponse.data.choices[0].message.content;
+      // 提取AI模型的回复
+      const aiResponse = modelResult.choices[0].message.content;
       
       console.log('成功获取AI分析结果');
       console.log('AI回复长度:', aiResponse.length);
@@ -322,6 +514,9 @@ app.post('/api/upload', upload.single('file'), handleMulterError, async (req, re
       } else if (error.response) {
         statusCode = error.response.status;
         errorMessage = error.response.data?.error || error.message;
+      } else if (error.code === 'ECONNREFUSED') {
+        statusCode = 503;
+        errorMessage = `无法连接到模型 ${modelId} 服务，请确保服务已启动`;
       }
       
       res.status(statusCode).json({ 
@@ -386,9 +581,10 @@ app.post('/api/chat', async (req, res) => {
   res.setTimeout(180000); // 3分钟超时
   
   try {
-    const { messages, chatType } = req.body;
+    const { messages, chatType, modelId } = req.body;
+    const selectedModelId = modelId || DEFAULT_MODEL_ID;
     
-    console.log(`接收到聊天请求，聊天类型: ${chatType}`);
+    console.log(`接收到聊天请求，聊天类型: ${chatType}, 模型: ${selectedModelId}`);
     console.log(`消息数量: ${messages ? messages.length : 0}`);
     
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -418,8 +614,8 @@ app.post('/api/chat', async (req, res) => {
     // 获取提示词配置
     const promptConfig = getPromptConfigForType(chatType || 'default');
     
-    // 构建发送给DeepSeek的消息
-    const deepseekMessages = [
+    // 构建发送给AI模型的消息
+    const modelMessages = [
       {
         role: 'system',
         content: promptConfig.systemPrompt
@@ -428,34 +624,29 @@ app.post('/api/chat', async (req, res) => {
     
     // 如果是关键词提取，只发送用户的最后一条消息加上基础提示词
     if (chatType === 'loan-keywords') {
-      deepseekMessages.push({
+      modelMessages.push({
         role: 'user',
         content: promptConfig.basePrompt + lastUserMessage.content.trim()
       });
     } else {
       // 其他类型的对话，保留完整的对话历史
-      deepseekMessages.push(...messages);
+      modelMessages.push(...messages);
     }
     
     try {
-      console.log('开始调用DeepSeek API进行聊天...');
+      console.log(`开始调用模型 ${selectedModelId} 进行聊天...`);
       console.log(`用户最后一条消息长度: ${lastUserMessage.content.length}`);
       
-      // 调用DeepSeek API
-      const deepseekResponse = await deepseekApi.post('/chat/completions', {
-        model: 'deepseek-chat',
-        messages: deepseekMessages,
-        temperature: 0.3,
-        max_tokens: 2000
-      });
+      // 调用模型API
+      const modelResult = await callModelApi(modelMessages, selectedModelId);
       
       // 检查API响应是否包含预期的数据结构
-      if (!deepseekResponse.data || !deepseekResponse.data.choices || !deepseekResponse.data.choices.length) {
-        throw new Error('DeepSeek API返回的数据结构不符合预期');
+      if (!modelResult.choices || !modelResult.choices.length) {
+        throw new Error('AI API返回的数据结构不符合预期');
       }
       
-      // 提取DeepSeek的回复
-      const aiResponse = deepseekResponse.data.choices[0].message.content;
+      // 提取AI的回复
+      const aiResponse = modelResult.choices[0].message.content;
       
       console.log('成功获取AI回复');
       console.log(`AI回复长度: ${aiResponse.length}`);
@@ -489,6 +680,9 @@ app.post('/api/chat', async (req, res) => {
         // 请求已发送但没有收到响应
         errorMessage = '无法连接到AI服务，请检查网络连接或稍后重试';
         statusCode = 503;
+      } else if (error.code === 'ECONNREFUSED') {
+        statusCode = 503;
+        errorMessage = `无法连接到模型 ${selectedModelId} 服务，请确保服务已启动`;
       }
       
       // 如果API调用失败，返回错误信息
@@ -577,6 +771,87 @@ app.get('/api/test', (req, res) => {
 // 所有其他请求返回前端应用
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// 添加模型信息API
+app.get('/api/models', (req, res) => {
+  const models = [
+    {
+      id: 'deepseek-chat',
+      name: 'DeepSeek Chat',
+      description: '云端DeepSeek大模型服务',
+      type: 'cloud',
+      provider: 'deepseek'
+    },
+    {
+      id: 'gemma3-12b',
+      name: 'Gemma 3 (12B)',
+      description: '本地部署的Google Gemma 3模型（12B参数）',
+      type: 'local',
+      provider: 'ollama'
+    },
+    {
+      id: 'gemma3-4b',
+      name: 'Gemma 3 (4B)',
+      description: '本地部署的Google Gemma 3模型（4B参数）',
+      type: 'local',
+      provider: 'ollama'
+    }
+  ];
+  
+  res.json({ models });
+});
+
+// 添加模型状态检查API
+app.get('/api/models/:modelId/status', async (req, res) => {
+  const { modelId } = req.params;
+  
+  try {
+    let isAvailable = false;
+    
+    if (modelId === 'deepseek-chat') {
+      // 检查DeepSeek API
+      try {
+        const response = await deepseekApi.post('/chat/completions', {
+          model: 'deepseek-chat',
+          messages: [{ role: 'user', content: '你好' }],
+          max_tokens: 5
+        });
+        isAvailable = response.status === 200;
+      } catch (error) {
+        console.error('检查DeepSeek API可用性失败:', error);
+        isAvailable = false;
+      }
+    } else if (modelId.startsWith('gemma3-')) {
+      // 检查Ollama API
+      try {
+        const { config } = getModelApiClient(modelId);
+        const response = await ollamaApi.get('/tags');
+        const models = response.data.models || [];
+        isAvailable = models.some(model => model.name === config.modelIdentifier);
+      } catch (error) {
+        console.error('检查Ollama API可用性失败:', error);
+        isAvailable = false;
+      }
+    } else {
+      return res.status(404).json({ 
+        success: false, 
+        error: `未找到模型: ${modelId}` 
+      });
+    }
+    
+    res.json({
+      success: true,
+      available: isAvailable,
+      modelId: modelId
+    });
+  } catch (error) {
+    console.error(`检查模型 ${modelId} 状态失败:`, error);
+    res.status(500).json({
+      success: false,
+      error: `检查模型状态失败: ${error.message}`
+    });
+  }
 });
 
 // 启动服务器

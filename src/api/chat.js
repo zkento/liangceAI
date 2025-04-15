@@ -1,77 +1,46 @@
-// 最后修改记录时间 -> 2025-04-11 16:00:45
-// 使用相对路径，依赖webpack代理
-const API_BASE_URL = '';
+// 最后修改记录时间 -> 2025-04-15 17:30
 
-export async function sendMessage(messages, chatType) {
+// 导入模型适配器
+import { chat as modelChat } from '@/api/models';
+import store from '@/store';
+
+/**
+ * 发送消息到AI模型
+ * @param {Array} messages - 消息列表
+ * @param {string} chatType - 聊天类型
+ * @param {Object} options - 其他选项
+ * @returns {Promise<Object>} - AI响应消息
+ */
+export async function sendMessage(messages, chatType, options = {}) {
   try {
-    console.log('发送请求到:', `/api/chat`);
-    console.log('请求数据:', { messages, chatType });
+    console.log('发送请求到AI模型');
+    console.log('消息数量:', messages.length);
+    console.log('聊天类型:', chatType);
     
-    // 创建AbortController用于超时控制
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 180000); // 3分钟超时
+    // 获取当前使用的模型ID
+    const modelId = options.modelId || store.getters['user/currentModelId'];
+    console.log('使用模型:', modelId);
     
-    try {
-      const response = await fetch(`/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ messages, chatType }),
-        mode: 'cors', // 启用CORS
-        credentials: 'omit', // 不发送cookies
-        signal: controller.signal
-      });
-      
-      // 清除超时计时器
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        // 处理HTTP错误状态
-        if (response.status === 504) {
-          throw new Error('请求超时，服务器处理时间过长。请尝试发送更简短的消息或稍后重试。');
-        }
-        
-        const errorText = await response.text();
-        console.error('服务器响应错误:', response.status, errorText);
-        
-        try {
-          // 尝试解析JSON错误
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.error || errorData.details || `服务器响应错误: ${response.status}`);
-        } catch (e) {
-          // 如果不是JSON，直接使用文本
-          throw new Error(`服务器响应错误: ${response.status} ${errorText.substring(0, 100)}`);
-        }
-      }
-
-      const data = await response.json();
-      console.log('服务器响应:', data);
-      
-      // 确保返回一个包含role和content属性的对象
-      if (data.message) {
-        return data.message;
-      } else {
-        return {
-          role: 'assistant',
-          content: '服务器返回了无效的响应格式。'
-        };
-      }
-    } catch (fetchError) {
-      // 清除超时计时器
-      clearTimeout(timeoutId);
-      
-      // 处理网络错误、超时等
-      if (fetchError.name === 'AbortError') {
-        throw new Error('请求超时，服务器响应时间过长。请稍后重试。');
-      } else {
-        throw fetchError;
-      }
+    // 调用统一的模型API
+    const result = await modelChat(messages, {
+      modelId,
+      chatType,
+      ...options
+    });
+    
+    if (!result.success) {
+      throw new Error(result.error || '发送消息失败');
     }
+    
+    return result.message;
   } catch (error) {
     console.error('API调用错误:', error);
-    throw error;
+    
+    // 返回标准格式的错误消息
+    return {
+      role: 'assistant',
+      content: `很抱歉，处理您的请求时出现错误: ${error.message || '未知错误'}。请稍后重试或联系系统管理员。`
+    };
   }
 }
 
@@ -79,9 +48,10 @@ export async function sendMessage(messages, chatType) {
  * 上传PDF文件并获取分析结果
  * @param {File} file - 要上传的PDF文件
  * @param {string} chatType - 聊天类型
+ * @param {Object} options - 其他选项
  * @returns {Promise<Object>} - 服务器响应
  */
-export async function uploadPDFFile(file, chatType) {
+export async function uploadPDFFile(file, chatType, options = {}) {
   try {
     console.log('上传PDF文件:', file.name);
     console.log('聊天类型:', chatType);
@@ -91,6 +61,11 @@ export async function uploadPDFFile(file, chatType) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('chatType', chatType);
+    
+    // 添加模型ID
+    const modelId = options.modelId || store.getters['user/currentModelId'];
+    formData.append('modelId', modelId);
+    console.log('使用模型:', modelId);
     
     // 创建AbortController用于超时控制
     const controller = new AbortController();
@@ -167,6 +142,9 @@ export async function uploadPDFFile(file, chatType) {
     }
   } catch (error) {
     console.error('文件上传失败:', error);
-    throw error;
+    return {
+      role: 'assistant',
+      content: `文件上传失败: ${error.message || '未知错误'}`
+    };
   }
 }
