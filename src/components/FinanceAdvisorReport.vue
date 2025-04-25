@@ -6,7 +6,7 @@
         <el-step title="提交客户需求" />
         <el-step v-if="hasCreditReport" title="AI分析征信报告" />
         <el-step title="匹配金融产品" />
-        <el-step title="生成融资报告" />
+        <el-step title="融资建议报告" />
       </el-steps>
     </div>
     
@@ -939,7 +939,8 @@ export default {
         
         // 创建一个模拟的AI思考过程内容
         const question = userMessage.content;
-        const thinkingProcessContent = `正在分析用户问题："${question}"
+        const thinkingProcessContent = `正在分析用户问题：
+"${question}"
 
 思考过程：
 1. 提取用户问题的关键信息
@@ -1506,7 +1507,6 @@ export default {
 }
 
 .steps-header {
-  // padding: 16px 20px;
   border-bottom: 1px solid #ebeef5;
   background-color: white;
 }

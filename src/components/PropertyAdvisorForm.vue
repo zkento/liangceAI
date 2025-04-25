@@ -1,415 +1,287 @@
 <template>
   <div class="property-advisor-form">
     <div class="form-container">
-      <el-form 
-        ref="propertyFormRef" 
-        :model="formData" 
-        :rules="formRules" 
-        label-position="top" 
-        @submit.prevent="submitForm"
-        class="form-main"
-      >
-        <!-- 基本信息部分 -->
-        <div class="form-section">
-          <div class="section-title">
-            <span>客户基本信息</span>
-          </div>
-          
-          <div class="form-row">
-            <el-form-item label="姓名" prop="name" class="form-item">
-              <el-input 
-                v-model="formData.name" 
-                placeholder="请输入客户姓名" 
-                maxlength="50" 
-                @focus="handleInputFocus"></el-input>
-            </el-form-item>
-            
-            <el-form-item label="联系方式" prop="phone" class="form-item">
-              <el-input 
-                v-model="formData.phone" 
-                placeholder="请输入联系电话" 
-                maxlength="20" 
-                @focus="handleInputFocus"></el-input>
-            </el-form-item>
-          </div>
-          
-          <div class="form-row">
-            <el-form-item label="家庭人口" prop="familySize" class="form-item">
-              <el-input-number 
-                v-model="formData.familySize" 
-                :min="1" 
-                :max="10" 
-                :precision="0" 
-                style="width: 100%" 
-                @focus="handleInputFocus"></el-input-number>
-            </el-form-item>
-            
-            <el-form-item label="购房目的" prop="purpose" class="form-item">
-              <el-select 
-                v-model="formData.purpose" 
-                placeholder="请选择购房目的" 
-                style="width: 100%"
-                @focus="handleInputFocus">
-                <el-option label="自住" value="self"></el-option>
-                <el-option label="投资" value="investment"></el-option>
-                <el-option label="改善" value="upgrade"></el-option>
-                <el-option label="养老" value="retirement"></el-option>
-                <el-option label="子女教育" value="education"></el-option>
-              </el-select>
-            </el-form-item>
-          </div>
+      <!-- 左侧输入区 -->
+      <div class="input-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">客户购房需求</h2>
         </div>
-
-        <!-- 购房预算部分 -->
-        <div class="form-section">
-          <div class="section-title">
-            <span>购房预算与偏好</span>
-          </div>
+        <div class="panel-content">
+          <p class="description-hint">请参照右侧的需求描述要点输入客户的购房需求，要点覆盖得越全面越好。</p>
           
-          <div class="form-row">
-            <el-form-item label="总预算(万元)" prop="totalBudget" class="form-item">
-              <el-input-number 
-                v-model="formData.totalBudget" 
-                :min="10" 
-                :max="10000" 
-                :precision="0" 
-                style="width: 100%" 
-                @focus="handleInputFocus"
-                class="bold-number"></el-input-number>
-            </el-form-item>
-            
-            <el-form-item label="首付比例(%)" prop="downPaymentRatio" class="form-item">
-              <el-input-number 
-                v-model="formData.downPaymentRatio" 
-                :min="20" 
-                :max="100" 
-                :step="5" 
-                :precision="0" 
-                style="width: 100%" 
-                @focus="handleInputFocus"
-                class="bold-number"></el-input-number>
-            </el-form-item>
-          </div>
-          
-          <div class="form-row">
-            <el-form-item label="期望区域" prop="preferredAreas" class="form-item form-item-full">
-              <el-select 
-                v-model="formData.preferredAreas" 
-                placeholder="请选择期望区域（可多选）" 
-                style="width: 100%"
-                multiple
-                @focus="handleInputFocus">
-                <el-option label="市中心" value="downtown"></el-option>
-                <el-option label="城东" value="east"></el-option>
-                <el-option label="城西" value="west"></el-option>
-                <el-option label="城南" value="south"></el-option>
-                <el-option label="城北" value="north"></el-option>
-                <el-option label="郊区" value="suburb"></el-option>
-              </el-select>
-            </el-form-item>
-          </div>
-          
-          <div class="form-row">
-            <el-form-item label="户型要求" prop="houseType" class="form-item">
-              <el-select 
-                v-model="formData.houseType" 
-                placeholder="请选择户型" 
-                style="width: 100%"
-                @focus="handleInputFocus">
-                <el-option label="一室" value="1"></el-option>
-                <el-option label="两室" value="2"></el-option>
-                <el-option label="三室" value="3"></el-option>
-                <el-option label="四室" value="4"></el-option>
-                <el-option label="五室及以上" value="5+"></el-option>
-              </el-select>
-            </el-form-item>
-            
-            <el-form-item label="装修状况" prop="decoration" class="form-item">
-              <el-select 
-                v-model="formData.decoration" 
-                placeholder="请选择装修要求" 
-                style="width: 100%"
-                @focus="handleInputFocus">
-                <el-option label="毛坯" value="undecorated"></el-option>
-                <el-option label="简装" value="basic"></el-option>
-                <el-option label="精装" value="deluxe"></el-option>
-                <el-option label="豪装" value="luxury"></el-option>
-              </el-select>
-            </el-form-item>
-          </div>
-        </div>
-
-        <!-- 房产面积和楼层 -->
-        <div class="form-section">
-          <div class="section-title">
-            <span>面积与楼层要求</span>
-          </div>
-          
-          <div class="form-row">
-            <el-form-item label="面积区间(㎡)" prop="areaRange" class="form-item">
-              <div class="range-input">
-                <el-form-item prop="minArea" class="range-item">
-                  <el-input-number 
-                    v-model="formData.minArea" 
-                    :min="20" 
-                    :max="500" 
-                    :precision="0" 
-                    style="width: 100%" 
-                    placeholder="最小面积" 
-                    @focus="handleInputFocus"
-                    @change="handleRangeInput('maxArea')"></el-input-number>
-                </el-form-item>
-                <span class="range-separator">至</span>
-                <el-form-item prop="maxArea" class="range-item">
-                  <el-input-number 
-                    v-model="formData.maxArea" 
-                    :min="20" 
-                    :max="500" 
-                    :precision="0" 
-                    style="width: 100%" 
-                    placeholder="最大面积" 
-                    @focus="handleInputFocus"></el-input-number>
-                </el-form-item>
-              </div>
-            </el-form-item>
-            
-            <el-form-item label="楼层要求" prop="floorPreference" class="form-item">
-              <el-select 
-                v-model="formData.floorPreference" 
-                placeholder="请选择楼层需求" 
-                style="width: 100%"
-                @focus="handleInputFocus">
-                <el-option label="低楼层" value="low"></el-option>
-                <el-option label="中楼层" value="middle"></el-option>
-                <el-option label="高楼层" value="high"></el-option>
-                <el-option label="顶楼带露台" value="penthouse"></el-option>
-                <el-option label="无特殊要求" value="any"></el-option>
-              </el-select>
-            </el-form-item>
-          </div>
-          
-          <div class="form-row">
-            <el-form-item label="朝向要求" prop="orientation" class="form-item">
-              <el-select 
-                v-model="formData.orientation" 
-                multiple
-                placeholder="请选择朝向要求（可多选）" 
-                style="width: 100%"
-                @focus="handleInputFocus">
-                <el-option label="坐北朝南" value="south"></el-option>
-                <el-option label="东向" value="east"></el-option>
-                <el-option label="西向" value="west"></el-option>
-                <el-option label="北向" value="north"></el-option>
-                <el-option label="东南" value="southeast"></el-option>
-                <el-option label="西南" value="southwest"></el-option>
-                <el-option label="东北" value="northeast"></el-option>
-                <el-option label="西北" value="northwest"></el-option>
-              </el-select>
-            </el-form-item>
-            
-            <el-form-item label="建筑年代" prop="buildingAge" class="form-item">
-              <el-select 
-                v-model="formData.buildingAge" 
-                placeholder="请选择建筑年代要求" 
-                style="width: 100%"
-                @focus="handleInputFocus">
-                <el-option label="5年内新房" value="<5"></el-option>
-                <el-option label="5-10年" value="5-10"></el-option>
-                <el-option label="10-20年" value="10-20"></el-option>
-                <el-option label="20年以上" value=">20"></el-option>
-                <el-option label="不限" value="any"></el-option>
-              </el-select>
-            </el-form-item>
-          </div>
-        </div>
-
-        <!-- 周边配套要求 -->
-        <div class="form-section">
-          <div class="section-title">
-            <span>配套设施要求</span>
-          </div>
-          
-          <div class="form-row">
-            <el-form-item label="关注的配套设施" prop="facilities" class="form-item form-item-full">
-              <el-checkbox-group v-model="formData.facilities">
-                <el-checkbox label="education">教育配套(学校、幼儿园)</el-checkbox>
-                <el-checkbox label="hospital">医疗设施</el-checkbox>
-                <el-checkbox label="shopping">商业购物</el-checkbox>
-                <el-checkbox label="transportation">交通便利</el-checkbox>
-                <el-checkbox label="park">公园绿地</el-checkbox>
-                <el-checkbox label="community">社区环境</el-checkbox>
-              </el-checkbox-group>
-            </el-form-item>
-          </div>
-        </div>
-
-        <!-- 需求描述输入区域 -->
-        <div class="form-section">
-          <div class="section-title">
-            <span>其他具体需求描述</span>
-          </div>
-          
-          <div class="description-input">
-            <el-form-item prop="additionalNotes" class="form-item form-item-full" :rules="[{ required: true, message: '请输入需求描述', trigger: 'blur' }]">
+          <el-form ref="propertyFormRef" :model="formData">
+            <el-form-item prop="requirements" :rules="[
+              { required: true, message: '请输入需求描述', trigger: 'blur' },
+              { min: 30, message: '需求描述不得少于30个字', trigger: 'blur' }
+            ]">
               <el-input
-                v-model="formData.additionalNotes"
+                v-model="formData.requirements"
                 type="textarea"
-                :rows="7"
-                :autosize="{ minRows: 7, maxRows: 10 }"
-                placeholder="请详细描述您的购房需求，包括但不限于：特殊户型要求、周边配套需求、生活便利性、投资回报预期等"
+                :rows="16"
+                :autosize="{ minRows: 16, maxRows: 23 }"
+                placeholder="请输入不少于30个字的客户购房需求"
+                @input="handleRequirementsInput"
                 @focus="handleInputFocus"
-                @input="handleDescriptionInput"
-                @blur="handleDescriptionBlur"
-                ref="descriptionTextarea"
-                maxlength="500"
+                maxlength="600"
                 show-word-limit
+                :disabled="isAnalyzing || hasAnalysisResult"
               ></el-input>
             </el-form-item>
-          </div>
-          
-          <!-- AI关键词提取区域 -->
-          <div class="keywords-section" :style="keywordsSectionStyle">
-            <div class="keywords-header">
-              <span class="keywords-title">
-                <el-icon><Aim /></el-icon>
-                {{ baseKeywordsTitle }}
-                <span v-if="showExtractionDuration" class="extraction-duration"> 用时{{ extractionDuration }}秒</span>
-              </span>
-              <el-button 
-                :type="hasAttemptedExtraction ? 'default' : 'primary'"
-                class="extract-button"
-                :loading="isExtractingKeywords"
-                @click="extractKeywords"
-                :disabled="!formData.additionalNotes || isExtractingKeywords || (formData.additionalNotes && formData.additionalNotes.trim().length < 10)"
-              >
-                {{ hasAttemptedExtraction ? '重新提取' : '开始提取' }}
-                <span class="shortcut-hint">Shift+Enter</span>
-              </el-button>
+            
+            <!-- 添加客户姓名输入框 -->
+            <div class="customer-name-input">
+              <el-form-item prop="customerName" :rules="customerNameRules">
+                <el-input 
+                  v-model="formData.customerName"
+                  placeholder="请输入客户姓名（必填，方便你查询结果）"
+                  clearable
+                  :disabled="isAnalyzing"
+                >
+                  <template #prefix>
+                    <el-icon><User /></el-icon>
+                  </template>
+                </el-input>
+              </el-form-item>
             </div>
-            <div class="keywords-content" v-if="aiKeywords.length > 0">
-              <el-tag
-                v-for="tag in aiKeywords"
-                :key="tag.name"
-                class="keyword-tag"
-                :type="tag.category === 'positive' ? 'success' : tag.category === 'negative' ? 'danger' : 'info'"
-                @close="removeKeyword(tag)"
-                closable
-                effect="plain"
-              >
-                {{ tag.name }}
-              </el-tag>
+            
+            <div class="form-actions">
+              <template v-if="!hasAnalysisResult">
+                <el-button 
+                  @click="resetForm" 
+                  plain
+                  :disabled="!formData.requirements"
+                >重置</el-button>
+                <el-button 
+                  type="primary" 
+                  @click="analyzeRequirements"
+                  :loading="isAnalyzing"
+                  :disabled="!formData.requirements || formData.requirements.length < 30"
+                >
+                  <template v-if="!isAnalyzing">
+                    让AI分析客户需求
+                    <!-- <span class="button-hint">Shift+Enter</span> -->
+                  </template>
+                  <template v-else>
+                    AI正在分析需求
+                    <span class="button-hint">用时{{currentAnalysisTime}}秒</span>
+                  </template>
+                </el-button>
+              </template>
+              <template v-else>
+                <el-button 
+                  @click="resetForm" 
+                  plain
+                >新的需求</el-button>
+                <el-button 
+                  type="primary" 
+                  @click="startMatchingHouses"
+                ><el-icon><CaretRight /></el-icon> 让AI生成购房建议报告</el-button>
+              </template>
             </div>
-          </div>
+          </el-form>
         </div>
+      </div>
 
-        <!-- 表单提交按钮 -->
-        <div class="form-actions">
-          <el-button @click="resetForm" plain>重置表单</el-button>
-          <el-button type="primary" @click="submitForm" :loading="isSubmitting">提交需求</el-button>
+      <!-- 右侧参考/结果区 -->
+      <div class="content-panel">
+        <template v-if="!hasAnalysisResult">
+          <div class="reference-content">
+            <div class="panel-header">
+              <h3 class="panel-title">购房需求描述要点</h3>
+            </div>
+            <div class="panel-content">
+              <div class="reference-grid">
+                <div v-for="(group, index) in requirementGuide" :key="index" class="reference-group">
+                  <h4>{{ group.title }}</h4>
+                  <div class="reference-items">
+                    <span v-for="(item, idx) in group.items" :key="idx" class="reference-item">
+                      <span class="item-label">{{ item.label }}：</span><em>{{ item.example }}</em>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="example-section">
+                <div class="example-block">
+                  <h4>购房需求描述参考示例：</h4>
+                  <blockquote class="example-quote" v-html="'预算总价580-620万，首付3成（约180万），需按揭贷款。意向天河区珠江新城或海珠区琶洲地铁沿线，重点考察3房2卫户型。购房目的为自住及子女教育，需带省级学位。<br>建面85-100㎡，优先中高楼层（15层以上），要求南向或东南向采光，接受10年内楼龄的房子。装修需精装以上标准，可接受局部翻新。<br>必须满足地铁500米内（3/5/18号线），步行15分钟内有大型商场。医疗配套不作硬性要求，但需规避临高架、加油站、餐饮街、夜市等嘈杂、危险区域。'">
+                  </blockquote>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+        
+        <template v-else>
+          <div class="analysis-content">
+            <div class="panel-header">
+              <h3 class="panel-title">
+                需求AI分析结果
+                <span class="analysis-time" v-if="analysisTime">
+                  用时{{ analysisTime }}秒
+                </span>
+              </h3>
+            </div>
+            <div class="panel-content">
+              <div class="reference-grid">
+                <div v-for="(group, index) in requirementGuide" :key="index" class="reference-group">
+                  <h4>{{ group.title }}</h4>
+                  <div class="reference-items">
+                    <span v-for="(item, idx) in group.items" :key="idx" class="reference-item" :class="getItemClass(group.title, item.label)">
+                      <span class="item-label">{{ item.label }}：</span><em>{{ getItemValue(group.title, item.label) }}</em>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="example-section">
+                <div class="example-block">
+                  <h4 class="result-title">AI分析结果建议</h4>
+                  <div class="user-requirement-result">
+                    需求建议内容稍后提供
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
         </div>
-      </el-form>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Aim } from '@element-plus/icons-vue'
+import { sendMessage } from '../api/chat'  // 添加导入sendMessage API
+import { User, CaretRight } from '@element-plus/icons-vue'  // 导入User和CaretRight图标
 
 export default {
   name: 'PropertyAdvisorForm',
   components: {
-    Aim
+    User, // 注册User图标组件
+    CaretRight // 注册CaretRight图标组件
   },
   emits: ['submit'],
+  
   setup(props, { emit }) {
     // 表单引用
     const propertyFormRef = ref(null)
-    const descriptionTextarea = ref(null)
     
     // 表单数据对象
     const formData = reactive({
-      // 基本信息
-      name: '',
-      phone: '',
-      familySize: 3,
-      purpose: '',
-      
-      // 预算和偏好
-      totalBudget: null,
-      downPaymentRatio: 30,
-      preferredAreas: [],
-      houseType: '',
-      decoration: '',
-      
-      // 面积和楼层
-      minArea: null,
-      maxArea: null,
-      floorPreference: '',
-      orientation: [],
-      buildingAge: '',
-      
-      // 配套设施
-      facilities: [],
-      
-      // 其他需求
-      additionalNotes: '',
-      
-      // AI提取的关键词
-      aiKeywords: []
+      requirements: '',  // 需求描述
+      customerName: '',  // 客户姓名
     })
     
-    // 验证规则
-    const formRules = {
-      name: [
-        { required: true, message: '请输入客户姓名', trigger: 'blur' },
-        { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
-      ],
-      phone: [
-        { required: true, message: '请输入联系方式', trigger: 'blur' },
-        { pattern: /^1[3456789]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
-      ],
-      totalBudget: [
-        { required: true, message: '请输入购房预算', trigger: 'blur' }
-      ],
-      preferredAreas: [
-        { required: true, message: '请选择期望区域', trigger: 'change' }
-      ],
-      additionalNotes: [
-        { required: true, message: '请输入需求描述', trigger: 'blur' },
-        { min: 10, message: '需求描述不能少于10个字符', trigger: 'blur' }
+    // 分析状态
+    const isAnalyzing = ref(false)
+    const hasAnalysisResult = ref(false)
+    const analysisTime = ref(0)
+    const analysisStartTime = ref(0)
+    const timerInterval = ref(null)
+    const currentAnalysisTime = ref(0)
+    
+    // AI分析结果
+    const analysisResult = ref([])
+    
+    // 计算客户姓名的验证规则 - 只有分析结果后才是必填
+    const customerNameRules = computed(() => {
+      return [
+        { required: hasAnalysisResult.value, message: '请输入客户姓名', trigger: 'blur' },
+        { min: 2, max: 50, message: '长度在2到50个字符', trigger: 'blur' }
       ]
+    })
+    
+    // 辅助方法 - 获取分析结果中特定标签的值
+    const getItemValue = (groupTitle, itemLabel) => {
+      if (!hasAnalysisResult.value) return ''
+      
+      // 将组标题映射到分析结果的类别
+      const categoryMapping = {
+        '1. 核心需求': '核心需求',
+        '2. 居住偏好': '居住偏好',
+        '3. 配套要求': '配套要求',
+        '4. 特殊关注': '特殊关注',
+        '5. 补充说明': '补充说明'
+      }
+      
+      const category = categoryMapping[groupTitle]
+      if (!category) return '需求中未包含此信息'
+      
+      // 在分析结果中查找对应的类别和项
+      const foundCategory = analysisResult.value.find(c => c.category === category)
+      if (!foundCategory) return '需求中未包含此信息'
+      
+      const foundItem = foundCategory.items.find(item => item.label === itemLabel)
+      if (foundItem) {
+        return foundItem.value
+      }
+      
+      return '需求中未包含此信息'
     }
     
-    // 关键词提取状态
-    const isExtractingKeywords = ref(false)
-    const hasAttemptedExtraction = ref(false)
-    const extractionStartTime = ref(0)
-    const extractionEndTime = ref(0)
-    const extractionDuration = ref(0)
-    const showExtractionDuration = ref(false)
-    const baseKeywordsTitle = ref('需求关键词提取')
+    // 辅助方法 - 获取项目的CSS类
+    const getItemClass = (groupTitle, itemLabel) => {
+      if (!hasAnalysisResult.value) return ''
+      
+      const value = getItemValue(groupTitle, itemLabel)
+      return value && value !== '需求中未包含此信息' ? 'item-found' : 'item-not-found'
+    }
     
-    // 表单提交状态
-    const isSubmitting = ref(false)
-    
-    // AI提取的关键词
-    const aiKeywords = ref([])
-    
-    // 计算属性 - 关键词提取区域样式
-    const keywordsSectionStyle = computed(() => {
-      return {
-        margin: aiKeywords.value.length > 0 ? '12px 0' : '0',
-        display: formData.additionalNotes ? 'block' : 'none'
+    // 需求描述指南
+    const requirementGuide = [
+      {
+        title: '1. 核心需求',
+        items: [
+          { label: '预算范围', example: '如总价600万左右，首付3成' },
+          { label: '购房目的', example: '自住/投资/改善/养老/子女教育' },
+          { label: '意向区域', example: '如天河区珠江新城、海珠区琶洲' },
+          { label: '户型需求', example: '如3房2卫' },
+        ]
+      },
+      {
+        title: '2. 居住偏好',
+        items: [
+          
+          { label: '面积区间', example: '如建面80-100㎡' },
+          { label: '楼层要求', example: '低楼层/中楼层/高楼层/顶楼带露台' },
+          { label: '朝向要求', example: '南北通透/东向/西向/南向/北向' },
+          { label: '装修标准', example: '翻新/简装/精装/豪装' }
+        ]
+      },
+      {
+        title: '3. 配套要求',
+        items: [
+          { label: '交通便利', example: '如地铁步行10分钟内' },
+          { label: '教育资源', example: '如省级学位小学' },
+          { label: '商圈覆盖', example: '商场/超市/菜市场需求' },
+          { label: '医疗条件', example: '三甲医院车程要求' },
+          { label: '景观要求', example: '江景/公园/无硬性要求' }
+        ]
+      },
+      {
+        title: '4. 特殊关注',
+        items: [
+          { label: '产权性质', example: '商品房/公寓/法拍房' },
+          { label: '楼龄要求', example: '次新房/5-10年/10-20年/20年以上' },
+          { label: '交易周期', example: '急需/可等合适房源' },
+          { label: '装修情况', example: '毛坯/简装/精装/豪装' },
+          { label: '抗性因素', example: '临高架/加油站/殡仪馆等' }
+        ]
+      },
+      {
+        title: '5. 补充说明',
+        items: [
+          { label: '按揭贷款', example: '是否需要按揭贷款' }
+        ]
       }
-    })
+    ]
     
     // 方法 - 输入框焦点处理
     const handleInputFocus = (event) => {
       if (event && event.target) {
         setTimeout(() => {
-          // 检查元素是否支持select方法
           if (event.target.select && typeof event.target.select === 'function') {
             event.target.select()
           }
@@ -417,137 +289,234 @@ export default {
       }
     }
     
-    // 方法 - 区间输入处理
-    const handleRangeInput = (targetField) => {
-      nextTick(() => {
-        // 确保最小值不大于最大值
-        if (targetField === 'maxArea' && formData.minArea && formData.maxArea && formData.minArea > formData.maxArea) {
-          formData.maxArea = formData.minArea
-        }
-      })
+    // 方法 - 需求输入处理
+    const handleRequirementsInput = () => {
+      if (hasAnalysisResult.value) {
+        hasAnalysisResult.value = false
+        analysisResult.value = []
+      }
     }
     
-    // 方法 - 描述输入处理
-    const handleDescriptionInput = () => {
-      // 可以在这里添加输入时的处理逻辑
-    }
-    
-    // 方法 - 描述失焦处理
-    const handleDescriptionBlur = () => {
-      // 可以在这里添加失焦时的处理逻辑
-    }
-    
-    // 方法 - 提取关键词
-    const extractKeywords = async () => {
-      if (!formData.additionalNotes || formData.additionalNotes.trim().length < 10) {
-        ElMessage.warning('需求描述内容过短，无法提取关键词')
+    // 方法 - 分析需求
+    const analyzeRequirements = async () => {
+      if (!formData.requirements || formData.requirements.trim().length < 30) {
+        ElMessage.warning('需求描述内容过短，无法进行分析')
         return
       }
       
-      isExtractingKeywords.value = true
-      hasAttemptedExtraction.value = true
-      extractionStartTime.value = Date.now()
-      
       try {
-        // 这里应该调用后端API进行关键词提取
-        // 为了演示，我们使用模拟数据
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        isAnalyzing.value = true
+        analysisStartTime.value = Date.now()
+        currentAnalysisTime.value = 0
         
-        // 模拟的关键词提取结果
-        const mockKeywords = [
-          { name: '南北通透', category: 'positive', score: 0.95 },
-          { name: '近地铁', category: 'positive', score: 0.90 },
-          { name: '学区房', category: 'positive', score: 0.85 },
-          { name: '精装修', category: 'positive', score: 0.80 },
-          { name: '大户型', category: 'neutral', score: 0.75 },
-          { name: '远离噪音', category: 'positive', score: 0.70 },
-          { name: '有阳台', category: 'positive', score: 0.65 },
-          { name: '停车方便', category: 'positive', score: 0.60 },
-          { name: '绿化好', category: 'positive', score: 0.55 }
+        // 启动计时器
+        clearInterval(timerInterval.value)
+        timerInterval.value = setInterval(() => {
+          currentAnalysisTime.value = Math.round((Date.now() - analysisStartTime.value) / 1000)
+        }, 1000)
+        
+        // 构建用户输入消息
+        const messages = [
+          {
+            role: 'user',
+            content: formData.requirements.trim()
+          }
         ]
         
-        aiKeywords.value = mockKeywords
+        // ===== 暂时注释掉真正调用API的代码 =====
+        /*
+        // 调用API，使用property-needs-analytics作为chatType
+        const response = await sendMessage(messages, 'property-needs-analytics')
         
-        // 记录提取时间
-        extractionEndTime.value = Date.now()
-        extractionDuration.value = Math.round((extractionEndTime.value - extractionStartTime.value) / 100) / 10
-        showExtractionDuration.value = true
-        
-        formData.aiKeywords = mockKeywords.map(kw => kw.name)
-        
-        ElMessage.success('关键词提取成功')
-      } catch (error) {
-        console.error('关键词提取失败:', error)
-        ElMessage.error('关键词提取失败，请重试')
-      } finally {
-        isExtractingKeywords.value = false
-      }
-    }
-    
-    // 方法 - 移除关键词
-    const removeKeyword = (tag) => {
-      aiKeywords.value = aiKeywords.value.filter(item => item.name !== tag.name)
-      formData.aiKeywords = formData.aiKeywords.filter(name => name !== tag.name)
-    }
-    
-    // 方法 - 提交表单
-    const submitForm = async () => {
-      if (!propertyFormRef.value) return
-      
-      try {
-        await propertyFormRef.value.validate()
-        
-        isSubmitting.value = true
-        
-        // 如果还没有提取关键词且有描述内容，自动提取关键词
-        if (aiKeywords.value.length === 0 && formData.additionalNotes && formData.additionalNotes.trim().length >= 10) {
-          await extractKeywords()
+        // 检查响应是否包含错误
+        if (response.error) {
+          console.error('API返回错误:', response.error)
+          throw new Error(response.message || '需求分析失败')
         }
         
-        // 准备提交的数据
-        const formDataToSubmit = {
-          ...formData,
-          aiKeywords: aiKeywords.value.map(kw => kw.name)
+        try {
+          // 解析API返回的内容
+          const responseText = response.content
+          
+          if (!responseText || responseText.trim() === '') {
+            throw new Error('AI返回了空响应，请重试')
+          }
+          
+          // 使用正则表达式从响应中提取JSON部分
+          const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+          
+          if (!jsonMatch) {
+            console.warn('无法从AI响应中提取JSON:', responseText)
+            throw new Error('无法解析AI分析结果，请修改描述后重试')
+          }
+          
+          // 解析JSON
+          const jsonData = JSON.parse(jsonMatch[0])
+          
+          // 验证JSON结构是否符合预期
+          if (!jsonData.categories || !Array.isArray(jsonData.categories)) {
+            console.warn('AI返回的JSON结构不符合预期:', jsonData)
+            throw new Error('AI分析结果格式不正确，请重试')
+          }
+          
+          // 将API返回的数据转换为组件所需格式
+          analysisResult.value = jsonData.categories.map(category => ({
+            category: category.name,
+            items: category.items.map(item => ({
+              label: item.label,
+              value: item.value
+            }))
+          }))
+        */
+        
+        // ===== 添加模拟的AI分析结果 =====
+        // 模拟分析延迟
+        await new Promise(resolve => setTimeout(resolve, 5000))
+        
+        // 模拟分析结果
+        const mockResult = {
+          categories: [
+            {
+              name: "核心需求",
+              items: [
+                {label: "预算范围", value: "总价580-620万，首付3成（约180万）"},
+                {label: "购房目的", value: "自住及子女教育"},
+                {label: "意向区域", value: "天河区珠江新城或海珠区琶洲地铁沿线"},
+                {label: "户型需求", value: "3房2卫"}
+              ]
+            },
+            {
+              name: "居住偏好",
+              items: [
+                {label: "面积区间", value: "建面85-100㎡"},
+                {label: "楼层要求", value: "中高楼层（15层以上）"},
+                {label: "朝向要求", value: "南向或东南向"},
+                {label: "装修标准", value: "精装以上标准，可接受局部翻新部翻新"}
+              ]
+            },
+            {
+              name: "配套要求",
+              items: [
+                {label: "交通便利", value: "地铁500米内（3/5/18号线）"},
+                {label: "教育资源", value: "需带省级学位"},
+                {label: "商圈覆盖", value: "步行15分钟内有大型商场"},
+                {label: "医疗条件", value: "不作硬性要求"},
+                {label: "景观要求", value: "需求中未包含此信息"}
+              ]
+            },
+            {
+              name: "特殊关注",
+              items: [
+                {label: "产权性质", value: "需求中未包含此信息"},
+                {label: "楼龄要求", value: "10年内楼龄"},
+                {label: "交易周期", value: "需求中未包含此信息"},
+                {label: "装修情况", value: "需求中未包含此信息"},
+                {label: "抗性因素", value: "规避临高架、加油站、餐饮街、夜市等嘈杂、危险区域"}
+              ]
+            },
+            {
+              name: "补充说明",
+              items: [
+                {label: "按揭贷款", value: "需按揭贷款"}
+              ]
+            }
+          ]
+        };
+          
+        // 将模拟数据转换为组件所需格式
+        analysisResult.value = mockResult.categories.map(category => ({
+          category: category.name,
+          items: category.items.map(item => ({
+            label: item.label,
+            value: item.value
+          }))
+        }))
+          
+        // 计算分析用时
+        analysisTime.value = Math.round((Date.now() - analysisStartTime.value) / 100) / 10
+        hasAnalysisResult.value = true
+        
+        // 停止计时器
+        clearInterval(timerInterval.value)
+        timerInterval.value = null
+        
+        ElMessage.success('需求分析完成')
+        /*
+        } catch (parseError) {
+          console.error('解析AI响应时出错:', parseError)
+          throw new Error('解析分析结果时出错: ' + parseError.message)
         }
-        
-        // 模拟提交到服务器的过程
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        // 向父组件发送数据
-        emit('submit', formDataToSubmit)
-        
-        ElMessage.success('需求提交成功')
+        */
       } catch (error) {
-        console.error('表单验证失败:', error)
-        ElMessage.error('请完成必填项后再提交')
+        console.error('需求分析失败:', error)
+        ElMessage.error(error.message || '需求分析失败，请重试')
       } finally {
-        isSubmitting.value = false
+        isAnalyzing.value = false
+        // 确保计时器停止
+        clearInterval(timerInterval.value)
+        timerInterval.value = null
       }
     }
     
     // 方法 - 重置表单
     const resetForm = () => {
-      ElMessageBox.confirm('确定要重置表单吗？所有填写的内容将被清空。', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
-        propertyFormRef.value.resetFields()
-        aiKeywords.value = []
-        formData.aiKeywords = []
-        hasAttemptedExtraction.value = false
-        showExtractionDuration.value = false
-        ElMessage.success('表单已重置')
-      }).catch(() => {
-        // 用户取消了重置操作
-      })
+      if (isAnalyzing.value) {
+        ElMessageBox.confirm('正在进行需求分析，确认要中止分析过程么？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          // 中止分析
+          isAnalyzing.value = false
+          // 停止计时器
+          clearInterval(timerInterval.value)
+          timerInterval.value = null
+          
+          // 重置表单
+          formData.requirements = ''
+          formData.customerName = '' // 清空客户姓名
+          hasAnalysisResult.value = false
+          analysisResult.value = []
+          ElMessage.success('需求输入框内容已清空')
+        }).catch(() => {
+          // 用户取消了重置操作
+        })
+      } else if (hasAnalysisResult.value) {
+        ElMessageBox.confirm('确定放弃当前分析结果，开始新的需求分析么？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          formData.requirements = ''
+          formData.customerName = '' // 清空客户姓名
+          hasAnalysisResult.value = false
+          analysisResult.value = []
+          ElMessage.success('需求输入框内容已清空')
+        }).catch(() => {
+          // 用户取消了重置操作
+        })
+      } else {
+        ElMessageBox.confirm('确定要清空所有已填写的内容么？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          formData.requirements = ''
+          formData.customerName = '' // 清空客户姓名
+          hasAnalysisResult.value = false
+          analysisResult.value = []
+          ElMessage.success('需求输入框内容已清空')
+        }).catch(() => {
+          // 用户取消了重置操作
+        })
+      }
     }
     
     // 键盘快捷键处理
     const handleKeyDown = (e) => {
-      // Shift+Enter 快捷键提取关键词
-      if (e.key === 'Enter' && e.shiftKey && formData.additionalNotes && !isExtractingKeywords.value) {
-        extractKeywords()
+      // Shift+Enter 快捷键分析需求
+      if (e.key === 'Enter' && e.shiftKey && formData.requirements && formData.requirements.length >= 30 && !isAnalyzing.value) {
+        analyzeRequirements()
         e.preventDefault()
       }
     }
@@ -555,33 +524,83 @@ export default {
     // 生命周期钩子
     onMounted(() => {
       window.addEventListener('keydown', handleKeyDown)
+      
+      // 监听右侧内容区域的滚动事件
+      const panelContent = document.querySelector('.content-panel .panel-content')
+      if (panelContent) {
+        panelContent.addEventListener('scroll', handleContentScroll)
+      }
     })
     
     onBeforeUnmount(() => {
       window.removeEventListener('keydown', handleKeyDown)
+      
+      // 移除滚动事件监听
+      const panelContent = document.querySelector('.content-panel .panel-content')
+      if (panelContent) {
+        panelContent.removeEventListener('scroll', handleContentScroll)
+      }
+      
+      // 确保计时器停止
+      clearInterval(timerInterval.value)
+    })
+    
+    // 处理内容滚动
+    const handleContentScroll = (e) => {
+      const header = document.querySelector('.content-panel .panel-header')
+      if (header) {
+        // 当滚动位置大于0时添加scrolled类
+        if (e.target.scrollTop > 0) {
+          header.classList.add('scrolled')
+        } else {
+          header.classList.remove('scrolled')
+        }
+      }
+    }
+    
+    // 开始匹配房源
+    const startMatchingHouses = () => {
+      // 使用表单验证
+      propertyFormRef.value.validate((valid) => {
+        if (valid) {
+          // 验证通过，触发提交事件，传递表单数据给父组件
+          emit('submit', formData)
+        } else {
+          // 验证失败，不做操作，表单会自动显示错误提示
+          return false
+        }
+      })
+    }
+    
+    // 监听分析结果状态变化
+    watch(hasAnalysisResult, (newValue) => {
+      if (newValue) {
+        // 当有分析结果后，重新验证表单
+        // 延迟一帧执行，确保UI更新后再验证
+        nextTick(() => {
+          propertyFormRef.value?.clearValidate()
+        })
+      }
     })
     
     return {
       propertyFormRef,
-      descriptionTextarea,
       formData,
-      formRules,
-      isSubmitting,
-      isExtractingKeywords,
-      hasAttemptedExtraction,
-      extractionDuration,
-      showExtractionDuration,
-      baseKeywordsTitle,
-      aiKeywords,
-      keywordsSectionStyle,
+      isAnalyzing,
+      hasAnalysisResult,
+      analysisTime,
+      analysisResult,
+      requirementGuide,
       handleInputFocus,
-      handleRangeInput,
-      handleDescriptionInput,
-      handleDescriptionBlur,
-      extractKeywords,
-      removeKeyword,
-      submitForm,
-      resetForm
+      handleRequirementsInput,
+      analyzeRequirements,
+      resetForm,
+      getItemValue,
+      getItemClass,
+      currentAnalysisTime,
+      analysisStartTime,
+      startMatchingHouses,
+      customerNameRules
     }
   }
 }
@@ -591,141 +610,422 @@ export default {
 .property-advisor-form {
   width: 100%;
   height: 100%;
-  overflow-y: auto;
   padding: 20px;
-}
-
-.form-container {
-  max-width: 1000px;
-  margin: 0 auto;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  background-color: #f5f7fa;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
   overflow: hidden;
 }
 
-.form-main {
-  padding: 30px;
+.form-container {
+  width: 100%;
+  max-width: 1000px;
+  height: 100%;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.form-section {
-  margin-bottom: 30px;
+.input-panel {
+  width: 400px; 
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid #dcdfe6;
 }
 
-.section-title {
+.panel-header {
+  padding: 0;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+  height: 60px;
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+/* 右侧内容面板标题悬浮 */
+.content-panel .panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #f8f9fa; /* 确保背景色 */
+  transition: box-shadow 0.3s ease; /* 添加阴影过渡效果 */
+}
+
+/* 当滚动时增强阴影效果 */
+.content-panel .panel-header.scrolled {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.panel-title {
+  padding: 0;
+  color: #000000;
   font-size: 18px;
-  font-weight: bold;
-  color: #1b68de;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #ebeef5;
-}
-
-.form-row {
+  font-weight: 500;
+  line-height: 60px;
+  margin: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  margin-bottom: 10px;
-}
-
-.form-item {
-  flex: 1;
-  min-width: calc(50% - 10px);
-}
-
-.form-item-full {
-  flex: 0 0 100%;
-  width: 100%;
-}
-
-@media (max-width: 768px) {
-  .form-item {
-    flex: 0 0 100%;
-  }
-}
-
-.description-input {
-  margin-bottom: 10px;
-}
-
-.keywords-section {
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
-  padding: 10px;
-  background-color: #f5f7fa;
-  transition: all 0.3s;
-}
-
-.keywords-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
 }
 
-.keywords-title {
+.analysis-time {
   font-size: 14px;
+  color: #909399;
+  margin-left: 12px;
+  font-weight: normal;
+}
+
+.panel-content {
+  padding: 0 20px 20px 20px; /* 调整内边距，顶部为0以避免与标题重叠 */
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #dcdfe6 #f5f7fa;
+  flex: 1; /* 使内容区域占据剩余空间 */
+}
+
+.panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+  background-color: #dcdfe6;
+  border-radius: 3px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+  background-color: #f5f7fa;
+}
+
+.description-hint {
   color: #606266;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.el-form {
   display: flex;
-  align-items: center;
+  flex-direction: column;
 }
 
-.extraction-duration {
-  font-size: 12px;
-  color: #909399;
-  margin-left: 8px;
-}
-
-.extract-button {
-  font-size: 12px;
-}
-
-.shortcut-hint {
-  font-size: 10px;
-  margin-left: 4px;
-  opacity: 0.6;
-}
-
-.keywords-content {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.keyword-tag {
-  margin-right: 0;
-}
-
-.range-input {
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.range-item {
-  flex: 1;
-  margin-bottom: 0;
-}
-
-.range-separator {
-  margin: 0 10px;
-  color: #909399;
+.el-form-item {
+  margin-bottom: 12px;
 }
 
 .form-actions {
   display: flex;
   justify-content: center;
-  gap: 20px;
-  margin-top: 40px;
+  gap: 12px;
+  margin-top: 20px;
 }
 
-.bold-number :deep(.el-input-number__decrease),
-.bold-number :deep(.el-input-number__increase) {
-  background-color: #f5f7fa;
+.button-hint {
+  font-size: 12px;
+  margin-left: 4px;
+  opacity: 0.7;
 }
 
-.bold-number :deep(.el-input__inner) {
-  color: #1b68de;
+.content-panel {
+  flex: 1;
+  overflow-y: hidden; /* 整个面板不滚动 */
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: none;
+  height: 100%; /* 确保高度占满可用空间 */
+}
+
+.reference-content,
+.analysis-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* 确保高度占满父容器 */
+  position: relative;
+}
+
+.reference-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+  /* padding-top: 15px; 添加顶部内边距，与标题保持距离 */
+}
+
+.reference-group {
+  min-width: 0;
+}
+
+.reference-group h4 {
+  font-size: 14px;
+  color: #909399;
+  margin-bottom: 12px;
+}
+
+.reference-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reference-item {
+  font-size: 13px;
+  color: #909399;
+  line-height: 1.5;
+  display: flex;
+  align-items: baseline;
+}
+
+.reference-item em {
+  color: #a0a9b6;
+  font-style: normal;
+  margin-left: 0px;
+  flex: 1;
+}
+
+.analysis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.result-group {
+  margin-bottom: 20px;
+}
+
+.result-group h4 {
+  font-size: 15px;
+  color: #303133;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.result-items {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 24px;
+}
+
+.result-item {
+  font-size: 14px;
+  line-height: 1.5;
+  display: flex;
+  align-items: baseline;
+}
+
+.item-label {
+  color: #606266;
   font-weight: 500;
+  min-width: 70px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.item-value {
+  color: #303133;
+  font-weight: 500;
+  flex: 1;
+}
+
+/* 中等屏幕：保持左右布局，但要点变为单列 */
+@media (max-width: 1024px) {
+  .property-advisor-form {
+    overflow: hidden;
+  }
+
+  .form-container {
+    overflow: hidden;
+  display: flex;
+  }
+
+  .input-panel {
+    flex-shrink: 0;
+    height: auto;
+  }
+
+  .content-panel {
+    flex: 1;
+    overflow-y: auto;
+    height: 100%;
+  }
+
+  .reference-grid,
+  .result-items {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .reference-group {
+    margin-bottom: 4px;
+  }
+
+  .reference-item {
+    line-height: 1.;
+  }
+  
+  .reference-group h4 {
+    margin-bottom: 8px;
+  }
+}
+
+/* 窄屏：切换为上下布局 */
+@media (max-width: 768px) {
+  .property-advisor-form {
+    padding: 12px;
+  }
+
+  .input-panel {
+  width: 100%;
+    border-right: none;
+  }
+
+  .form-container {
+    height: auto;
+    min-height: calc(100vh - 24px);
+    flex-direction: column;
+  }
+
+  .panel-content {
+    padding: 12px 16px;
+  }
+
+  .reference-grid {
+    gap: 4px;
+  }
+
+  .reference-group {
+  margin-bottom: 0;
+}
+
+  .reference-group h4 {
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+  }
+
+  .reference-items {
+    gap: 4px;
+  }
+
+  .reference-item {
+    line-height: 1.4;
+  }
+
+  .example-block {
+    margin-top: 8px;
+  }
+
+  .example-block h4 {
+    margin-bottom: 6px;
+  }
+
+  .example-quote {
+    padding: 10px 12px;
+  }
+  
+  .user-requirement-result {
+    padding: 10px 12px;
+    max-height: 120px;
+  }
+}
+
+.example-section {
+  padding-top: 16px;
+}
+
+.example-block {
+  margin-top: 16px;
+}
+
+.example-block h4 {
+  font-size: 14px;
+  color: #a0a9b6;
+  margin-bottom: 8px;
+}
+
+.example-quote {
+  margin: 0;
+  padding: 12px 16px;
+  background-color: #f8f9fb;
+  /* border-left: 4px solid #409eff; */
+  border-radius: 4px;
+  color: #909399;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+/* 新增样式 */
+.item-found {
+  color: #303133 !important;
+  font-weight: 500;  
+}
+
+.item-found em {
+  color: #303133 !important;
+  font-weight: 500;
+}
+
+.item-not-found {
+  color: #f56c6c;
+  font-weight: 500;
+}
+
+.item-not-found em {
+  color: #f56c6c;
+}
+
+.result-title {
+  color: #303133 !important;
+  font-weight: 500;
+}
+
+.user-requirement-result {
+  margin: 0;
+  padding: 12px 16px;
+  background-color: #fbf8d2;
+  border-radius: 4px;
+  color: #a2940b;
+  font-size: 13px;
+  line-height: 1.6;
+  max-height: 130px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  white-space: pre-line;
+}
+
+.user-requirement-result::-webkit-scrollbar {
+  width: 4px;
+}
+
+.user-requirement-result::-webkit-scrollbar-thumb {
+  background-color: #dcdfe6;
+  border-radius: 2px;
+}
+
+/* 姓名输入框样式 */
+.customer-name-input {
+  margin-bottom: 20px;
+  margin-top: 10px;
+}
+
+.customer-name-input .el-form-item {
+  margin-bottom: 0;
+}
+
+.customer-name-input .el-input {
+  width: 100%;
+}
+
+.customer-name-input .el-input__prefix {
+  color: #909399;
+  padding-left: 4px;
 }
 </style>

@@ -530,13 +530,13 @@
 
           <!-- 提交按钮 -->
           <div class="form-actions">
+            <el-button @click="resetForm">重置</el-button>
             <el-button 
               type="primary" 
               @click="submitFinanceForm" 
               :loading="submitting"
               :disabled="isExtractingKeywords"
-            >{{ isExtractingKeywords ? 'AI正在提取关键词' : '获取AI建议报告' }}</el-button>
-            <el-button @click="resetForm">重置</el-button>
+            >{{ isExtractingKeywords ? 'AI正在提取关键词' : '让AI生成融资建议报告' }}</el-button>            
             </div>
           </div>
         </el-form>
@@ -2526,7 +2526,7 @@ export default {
 .panel-title {
   padding: 0;
   padding-left: 20px;
-  color: #1b68de;
+  color: #000000;
   font-size: 18px;
   font-weight: 500;
   line-height: 60px; /* 确保垂直居中 */
@@ -2558,7 +2558,7 @@ export default {
 .section-title {
   font-size: 16px;
   font-weight: 500;
-  color: #1b68de;
+  color: #000000;
   margin-bottom: 16px;
   padding-bottom: 8px;
   border-bottom: 1px solid #eee;
@@ -2630,13 +2630,13 @@ export default {
   margin-bottom: 10px; /* 减小标题和内容的间距 */
   font-size: 16px;
   font-weight: 500;
-  color: #1b68de;
+  color: #000000;
 }
 
 .upload-title .el-icon {
   margin-right: 8px;
   font-size: 20px;
-  color: #1b68de;
+  color: #000000;
 }
 
 .upload-optional {

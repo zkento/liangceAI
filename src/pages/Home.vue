@@ -50,16 +50,16 @@ export default {
           icon: 'OfficeBuilding'
         },
         {
-          title: '买家顾问报告',
-          description: '描述客户置业相关需求，获取专业分析结果和置业报告',
-          path: '/property-advice',
-          icon: 'House'
-        },
-        {
           title: '融资顾问报告',
           description: '描述客户融资相关需求，获取专业分析结果和融资报告',
           path: '/finance-advice',
           icon: 'Money'
+        },
+        {
+          title: '买家顾问报告',
+          description: '描述客户置业相关需求，获取专业分析结果和置业报告',
+          path: '/property-advice',
+          icon: 'House'
         }
       ]
     }
