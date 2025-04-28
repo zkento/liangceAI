@@ -5,7 +5,7 @@
       <div class="input-panel">
         <div class="panel-header">
           <h2 class="panel-title">客户购房需求</h2>
-        </div>
+          </div>
         <div class="panel-content">
           <p class="description-hint">请参照右侧的需求描述要点输入客户的购房需求，要点覆盖得越全面越好。</p>
           
@@ -14,11 +14,11 @@
               { required: true, message: '请输入需求描述', trigger: 'blur' },
               { min: 30, message: '需求描述不得少于30个字', trigger: 'blur' }
             ]">
-              <el-input
+              <el-input 
                 v-model="formData.requirements"
                 type="textarea"
-                :rows="16"
-                :autosize="{ minRows: 16, maxRows: 23 }"
+                :rows="12"
+                :autosize="{ minRows: 12, maxRows: 21 }"
                 placeholder="请输入不少于30个字的客户购房需求"
                 @input="handleRequirementsInput"
                 @focus="handleInputFocus"
@@ -31,7 +31,7 @@
             <!-- 添加客户姓名输入框 -->
             <div class="customer-name-input">
               <el-form-item prop="customerName" :rules="customerNameRules">
-                <el-input 
+              <el-input 
                   v-model="formData.customerName"
                   placeholder="请输入客户姓名（必填，方便你查询结果）"
                   clearable
@@ -41,9 +41,9 @@
                     <el-icon><User /></el-icon>
                   </template>
                 </el-input>
-              </el-form-item>
-            </div>
-            
+            </el-form-item>
+          </div>
+          
             <div class="form-actions">
               <template v-if="!hasAnalysisResult">
                 <el-button 
@@ -75,20 +75,21 @@
                 <el-button 
                   type="primary" 
                   @click="startMatchingHouses"
+                  :disabled="isAnalyzing"
                 ><el-icon><CaretRight /></el-icon> 让AI生成购房建议报告</el-button>
               </template>
-            </div>
+          </div>
           </el-form>
         </div>
-      </div>
-
+          </div>
+          
       <!-- 右侧参考/结果区 -->
       <div class="content-panel">
         <template v-if="!hasAnalysisResult">
           <div class="reference-content">
             <div class="panel-header">
               <h3 class="panel-title">购房需求描述要点</h3>
-            </div>
+          </div>
             <div class="panel-content">
               <div class="reference-grid">
                 <div v-for="(group, index) in requirementGuide" :key="index" class="reference-group">
@@ -97,18 +98,21 @@
                     <span v-for="(item, idx) in group.items" :key="idx" class="reference-item">
                       <span class="item-label">{{ item.label }}：</span><em>{{ item.example }}</em>
                     </span>
-                  </div>
-                </div>
-              </div>
+          </div>
+          </div>
+        </div>
 
               <div class="example-section">
                 <div class="example-block">
                   <h4>购房需求描述参考示例：</h4>
-                  <blockquote class="example-quote" v-html="'预算总价580-620万，首付3成（约180万），需按揭贷款。意向天河区珠江新城或海珠区琶洲地铁沿线，重点考察3房2卫户型。购房目的为自住及子女教育，需带省级学位。<br>建面85-100㎡，优先中高楼层（15层以上），要求南向或东南向采光，接受10年内楼龄的房子。装修需精装以上标准，可接受局部翻新。<br>必须满足地铁500米内（3/5/18号线），步行15分钟内有大型商场。医疗配套不作硬性要求，但需规避临高架、加油站、餐饮街、夜市等嘈杂、危险区域。'">
+                  <blockquote 
+                    class="example-quote" 
+                    @click="copyExampleText"
+                    v-html="'预算总价800-1000万，首付3成（约240万），需按揭贷款。意向天河区珠江新城或海珠区琶洲地铁沿线，重点考察3房2卫户型。购房目的为自住及子女教育，需带省级学位。<br>建面85-100㎡，优先中高楼层（15层以上），要求南向或东南向采光，接受10年内楼龄的房子。装修需精装以上标准，可接受局部翻新。<br>必须满足地铁500米内（3/5/18号线），步行15分钟内有大型商场。医疗配套不作硬性要求，但需规避临高架、加油站、餐饮街、夜市等嘈杂、危险区域。'">
                   </blockquote>
-                </div>
+          </div>
               </div>
-            </div>
+          </div>
           </div>
         </template>
         
@@ -121,7 +125,20 @@
                   用时{{ analysisTime }}秒
                 </span>
               </h3>
-            </div>
+              <!-- 增加重新分析按钮 -->
+              <el-button 
+                class="reanalyze-button" 
+                @click="analyzeRequirements" 
+                :loading="isAnalyzing"
+              >
+                <template v-if="!isAnalyzing">
+                  重新分析 <span class="button-hint">Shift+Enter</span>
+                </template>
+                <template v-else>
+                  分析中 <span class="button-hint">用时{{currentAnalysisTime}}秒</span>
+                </template>
+              </el-button>
+          </div>
             <div class="panel-content">
               <div class="reference-grid">
                 <div v-for="(group, index) in requirementGuide" :key="index" class="reference-group">
@@ -130,20 +147,19 @@
                     <span v-for="(item, idx) in group.items" :key="idx" class="reference-item" :class="getItemClass(group.title, item.label)">
                       <span class="item-label">{{ item.label }}：</span><em>{{ getItemValue(group.title, item.label) }}</em>
                     </span>
-                  </div>
-                </div>
-              </div>
-
+          </div>
+        </div>
+          </div>
+          
               <div class="example-section">
                 <div class="example-block">
                   <h4 class="result-title">AI分析结果建议</h4>
-                  <div class="user-requirement-result">
-                    需求建议内容稍后提供
+                  <div class="user-requirement-suggestion" v-html="generateRequirementSuggestion()">
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+        </div>
         </template>
         </div>
     </div>
@@ -181,6 +197,8 @@ export default {
     const analysisStartTime = ref(0)
     const timerInterval = ref(null)
     const currentAnalysisTime = ref(0)
+    // 添加变量控制是否忽略返回的结果 - 用于重置按钮和新的需求按钮
+    const shouldIgnoreResult = ref(false)
     
     // AI分析结果
     const analysisResult = ref([])
@@ -197,25 +215,137 @@ export default {
     const getItemValue = (groupTitle, itemLabel) => {
       if (!hasAnalysisResult.value) return ''
       
-      // 将组标题映射到分析结果的类别
+      // 将组标题映射到分析结果的类别 - 添加更多可能的映射关系
       const categoryMapping = {
-        '1. 核心需求': '核心需求',
-        '2. 居住偏好': '居住偏好',
-        '3. 配套要求': '配套要求',
-        '4. 特殊关注': '特殊关注',
-        '5. 补充说明': '补充说明'
+        '1. 核心需求': ['核心需求', '预算', '预算信息', '基本信息', '核心信息', '主要需求', '区位偏好', '购房用途', '附加需求', '预算', '区域偏好', '购房目的'],
+        '2. 居住偏好': ['居住偏好', '房源要求', '户型需求', '房屋属性', '居住要求', '房型偏好', '房源要求', '户型需求', '房屋条件'],
+        '3. 配套要求': ['配套要求', '周边配套', '区位偏好', '区位要求', '配套设施', '地段要求', '附加需求', '区位偏好', '配套设施', '周边配套'],
+        '4. 特殊关注': ['特殊关注', '附加需求', '特殊要求', '其他要求', '附加条件', '物业属性', '房源要求', '物业属性', '房屋条件'],
+        '5. 金融服务': ['金融服务', '按揭需求', '贷款需求', '金融需求', '贷款要求', '融资需求', '预算']
       }
       
-      const category = categoryMapping[groupTitle]
-      if (!category) return '需求中未包含此信息'
+      // 标签映射 - 匹配不同名称的相似字段
+      const labelMappings = {
+        '预算范围': ['预算范围', '总价范围', '总价', '预算', '总预算', '价格范围', '价格区间'],
+        '购房目的': ['购房目的', '购房用途', '用途', '主要用途', '购买目的'],
+        '意向区域': ['意向区域', '区域', '位置', '地点', '行政区', '区位', '首选区域'],
+        '户型需求': ['户型需求', '户型', '户型结构', '房型', '房屋类型', '户型偏好'],
+        '面积区间': ['面积区间', '面积范围', '面积', '建筑面积', '使用面积', '建面'],
+        '楼层要求': ['楼层要求', '楼层', '楼层偏好', '所在楼层', '楼层需求'],
+        '朝向要求': ['朝向要求', '朝向', '朝向偏好', '采光方向', '朝向需求'],
+        '装修标准': ['装修标准', '装修要求', '装修程度', '装修', '装修情况', '装修水平'],
+        '交通便利': ['交通便利', '交通', '交通要求', '交通配套', '出行', '地铁要求'],
+        '教育资源': ['教育资源', '学位要求', '学区', '学位', '教育', '学校'],
+        '商圈覆盖': ['商圈覆盖', '商业配套', '商场', '商业', '购物'],
+        '医疗条件': ['医疗条件', '医疗配套', '医院', '诊所', '医疗'],
+        '景观要求': ['景观要求', '景观', '视野', '景色', '风景'],
+        '产权性质': ['产权性质', '产权', '房屋产权', '产权年限', '产权要求'],
+        '楼龄要求': ['楼龄要求', '楼龄', '房龄', '建筑年代', '房屋年龄', '楼龄限制'],
+        '交易周期': ['交易周期', '交易时间', '交易要求', '交易限制'],
+        '抗性因素': ['抗性因素', '避嫌设施', '避免区域', '规避设施', '禁忌因素'],
+        '按揭贷款': ['按揭贷款', '贷款方式', '按揭', '贷款', '贷款需求'],
+        '购房后融资': ['购房后融资', '融资', '后续融资', '抵押融资', '再融资']
+      }
       
-      // 在分析结果中查找对应的类别和项
-      const foundCategory = analysisResult.value.find(c => c.category === category)
+      // 获取匹配的类别列表
+      const categoryNames = categoryMapping[groupTitle] || []
+      if (categoryNames.length === 0) return '需求中未包含此信息'
+      
+      // 在分析结果中查找对应的类别 - 使用多种可能的字段名和类别名称进行匹配
+      let foundCategory = null
+      
+      // 尝试精确匹配
+      for (const categoryName of categoryNames) {
+        const exactMatch = analysisResult.value.find(c => 
+          (c.category === categoryName) || (c.name === categoryName)
+        )
+        if (exactMatch) {
+          foundCategory = exactMatch
+          break
+        }
+      }
+      
+      // 如果没找到精确匹配，尝试模糊匹配
+      if (!foundCategory) {
+        for (const categoryName of categoryNames) {
+          const fuzzyMatch = analysisResult.value.find(c => {
+            const catName = (c.category || c.name || '').toString()
+            return catName.toLowerCase().includes(categoryName.toLowerCase()) ||
+                  categoryName.toLowerCase().includes(catName.toLowerCase())
+          })
+          if (fuzzyMatch) {
+            foundCategory = fuzzyMatch
+            break
+          }
+        }
+      }
+      
       if (!foundCategory) return '需求中未包含此信息'
       
-      const foundItem = foundCategory.items.find(item => item.label === itemLabel)
-      if (foundItem) {
-        return foundItem.value
+      // 根据不同的数据结构查找对应的值
+      if (foundCategory.items && Array.isArray(foundCategory.items)) {
+        // 原始预期格式：使用items数组，每个项有label和value
+        const matchLabels = labelMappings[itemLabel] || [itemLabel]
+        
+        for (const matchLabel of matchLabels) {
+          const foundItem = foundCategory.items.find(item => {
+            if (!item || !item.label || typeof item.label !== 'string') return false;
+            return item.label === matchLabel || 
+              item.label.toLowerCase().includes(matchLabel.toLowerCase()) || 
+              matchLabel.toLowerCase().includes(item.label.toLowerCase())
+          })
+          if (foundItem) return foundItem.value
+        }
+      } 
+      else if (foundCategory.details && typeof foundCategory.details === 'object') {
+        // 详细信息对象格式：使用details对象，直接以键值对方式存储
+        const matchLabels = labelMappings[itemLabel] || [itemLabel]
+        
+        // 尝试使用映射的标签名称查找
+        for (const matchLabel of matchLabels) {
+          if (matchLabel && foundCategory.details[matchLabel] !== undefined) {
+            const value = foundCategory.details[matchLabel]
+            return Array.isArray(value) ? value.join('、') : String(value)
+          }
+          
+          // 尝试模糊匹配键名
+          if (matchLabel) {
+            const matchingKey = Object.keys(foundCategory.details).find(key => {
+              if (!key || typeof key !== 'string') return false;
+              return key.toLowerCase().includes(matchLabel.toLowerCase()) ||
+                matchLabel.toLowerCase().includes(key.toLowerCase())
+            })
+            if (matchingKey) {
+              const value = foundCategory.details[matchingKey]
+              return Array.isArray(value) ? value.join('、') : String(value)
+            }
+          }
+        }
+      }
+      else if (foundCategory.requirements && Array.isArray(foundCategory.requirements)) {
+        // 需求列表格式：尝试从数组中找到与itemLabel相关的项
+        const relevantRequirements = foundCategory.requirements.join('、')
+        if (relevantRequirements) return relevantRequirements
+      }
+      else {
+        // 其他键值对格式：直接检查category对象中是否有匹配的键
+        const matchLabels = labelMappings[itemLabel] || [itemLabel]
+        
+        for (const matchLabel of matchLabels) {
+          if (!matchLabel) continue; // 跳过无效的标签
+          
+          const keys = Object.keys(foundCategory).filter(k => {
+            if (!k || typeof k !== 'string') return false;
+            return k !== 'name' && k !== 'category' && (
+              k.toLowerCase().includes(matchLabel.toLowerCase()) ||
+              matchLabel.toLowerCase().includes(k.toLowerCase())
+            )
+          })
+          if (keys.length > 0) {
+            const value = foundCategory[keys[0]]
+            return Array.isArray(value) ? value.join('、') : String(value)
+          }
+        }
       }
       
       return '需求中未包含此信息'
@@ -227,6 +357,235 @@ export default {
       
       const value = getItemValue(groupTitle, itemLabel)
       return value && value !== '需求中未包含此信息' ? 'item-found' : 'item-not-found'
+    }
+    
+    // AI分析结果建议内容的生成算法
+    const generateRequirementSuggestion = () => {
+      if (!hasAnalysisResult.value) return '需求建议内容稍后提供'
+      
+      // 需求项权重配置 - 分级权重体系
+      const weightConfig = {
+        // T0级 - 核心需求（权重最高）
+        T0: {
+          '预算范围': 10,
+          '购房目的': 9,
+          '意向区域': 9,
+          '户型需求': 8
+        },
+        // T1级 - 居住偏好（次高权重）
+        T1: {
+          '面积区间': 7,
+          '楼层要求': 5,
+          '朝向要求': 5,
+          '装修标准': 6
+        },
+        // T2级 - 配套要求（中等权重）
+        T2: {
+          '交通便利': 6,
+          '教育资源': 7,
+          '商圈覆盖': 5,
+          '医疗条件': 4,
+          '景观要求': 3
+        },
+        // T3级 - 特殊关注（低权重，但数量多时需要关注）
+        T3: {
+          '产权性质': 5,
+          '楼龄要求': 6,
+          '交易周期': 4,
+          '抗性因素': 6
+        },
+        // T4级 - 金融服务（补充权重）
+        T4: {
+          '按揭贷款': 7,
+          '购房后融资': 4
+        }
+      }
+      
+      // 匹配需求指南与权重配置
+      const weightMapping = {
+        '1. 核心需求': 'T0',
+        '2. 居住偏好': 'T1',
+        '3. 配套要求': 'T2',
+        '4. 特殊关注': 'T3',
+        '5. 金融服务': 'T4'
+      }
+      
+      // 收集缺失项和已有项
+      let missingItems = []
+      let existingItems = []
+      
+      requirementGuide.forEach(group => {
+        const groupTitle = group.title
+        const weightLevel = weightMapping[groupTitle]
+        
+        group.items.forEach(item => {
+          const value = getItemValue(groupTitle, item.label)
+          const itemInfo = {
+            group: groupTitle,
+            label: item.label,
+            example: item.example,
+            weight: weightConfig[weightLevel][item.label] || 1,
+            weightLevel,
+            value: value
+          }
+          
+          if (value === '需求中未包含此信息') {
+            missingItems.push(itemInfo)
+          } else {
+            existingItems.push(itemInfo)
+          }
+        })
+      })
+      
+      // 如果没有缺失项，直接返回完整评价
+      if (missingItems.length === 0) {
+        return '客户的需求描述非常完整！已包含所有描述要点，马上让AI为客户生成购房建议报告吧~'
+      }
+      
+      // 缺失项按权重排序
+      missingItems.sort((a, b) => b.weight - a.weight)
+      
+      // 统计各级别缺失项数量
+      const missingStats = {
+        T0: missingItems.filter(item => item.weightLevel === 'T0').length,
+        T1: missingItems.filter(item => item.weightLevel === 'T1').length,
+        T2: missingItems.filter(item => item.weightLevel === 'T2').length,
+        T3: missingItems.filter(item => item.weightLevel === 'T3').length,
+        T4: missingItems.filter(item => item.weightLevel === 'T4').length,
+        total: missingItems.length
+      }
+      
+      // 检查已有项中的简单描述，如果字数过少，也提示可以补充
+      const briefDescriptionItems = existingItems.filter(item => {
+        const description = item.value.trim()
+        // 简单描述的判断标准：字数少于4个字符或不包含具体数字和详细地点
+        return description.length < 4 || 
+              (item.label === '预算范围' && !description.match(/\d{3,}/)) || // 预算范围应包含至少三位数字
+              (item.label === '意向区域' && !description.match(/[区县市镇]|[城]/)) // 区域应包含"区县市镇"或"城"字
+      })
+      
+      // 按权重对简单描述的项进行排序
+      briefDescriptionItems.sort((a, b) => b.weight - a.weight)
+      
+      // 计算综合缺失得分
+      const missingScore = missingItems.reduce((score, item) => score + item.weight, 0)
+      
+      // 建议模板选择
+      let suggestionTemplate = ''
+      let detailSuggestions = []
+      let enhancementSuggestions = []
+      
+      // 处理已有项但描述不够详细的情况
+      if (briefDescriptionItems.length > 0) {
+        // 取前3个权重最高的项提示完善
+        const topBriefItems = briefDescriptionItems.slice(0, 3)
+        enhancementSuggestions.push('以下信息可以更详细描述：')
+        
+        topBriefItems.forEach(item => {
+          enhancementSuggestions.push(`• ${item.label}：当前为"${item.value}"，建议具体到${item.example}`)
+        })
+      }
+      
+      // T0级缺失项处理（最高优先级）
+      if (missingStats.T0 > 0) {
+        const t0Items = missingItems.filter(item => item.weightLevel === 'T0')
+        suggestionTemplate = '客户的需求缺少重要的核心信息，建议补充：'
+        
+        t0Items.forEach(item => {
+          detailSuggestions.push(`• ${item.label}：${item.example}`)
+        })
+        
+        // 如果只有1-2个T0项缺失，添加其他高权重的T1项
+        if (missingStats.T0 <= 2 && missingStats.T1 > 0) {
+          const highT1Items = missingItems
+            .filter(item => item.weightLevel === 'T1' && item.weight >= 6)
+            .slice(0, 2)
+          
+          if (highT1Items.length > 0) {
+            detailSuggestions.push('同时建议也考虑提供：')
+            highT1Items.forEach(item => {
+              detailSuggestions.push(`• ${item.label}：${item.example}`)
+            })
+          }
+        }
+      }
+      // 没有T0缺失但T1缺失较多
+      else if (missingStats.T1 >= 3 || (missingStats.T1 >= 2 && missingStats.T2 >= 3)) {
+        suggestionTemplate = '客户的核心需求已明确，但居住偏好信息不足，建议补充：'
+        
+        const t1Items = missingItems
+          .filter(item => item.weightLevel === 'T1')
+          .slice(0, 3)
+        
+        t1Items.forEach(item => {
+          detailSuggestions.push(`• ${item.label}：${item.example}`)
+        })
+        
+        // 如果有高权重的T2项，也提示补充
+        const highT2Items = missingItems
+          .filter(item => item.weightLevel === 'T2' && item.weight >= 6)
+          .slice(0, 2)
+        
+        if (highT2Items.length > 0) {
+          detailSuggestions.push('为提高匹配精度，也请考虑：')
+          highT2Items.forEach(item => {
+            detailSuggestions.push(`• ${item.label}：${item.example}`)
+          })
+        }
+      }
+      // T2/T3/T4级缺失较多
+      else if (missingScore > 25) {
+        // 选择权重最高的5个项目提示
+        const topItems = missingItems.slice(0, 5)
+        
+        suggestionTemplate = '客户的需求基本明确，为提高房源匹配精度，建议补充以下信息：'
+        
+        topItems.forEach(item => {
+          detailSuggestions.push(`• ${item.label}：${item.example}`)
+        })
+      }
+      // 缺失较少
+      else {
+        suggestionTemplate = '客户的需求描述已相当完整，如有以下补充将更有助于精准匹配：'
+        
+        // 选择权重最高的3个项目提示
+        const topItems = missingItems.slice(0, 3)
+        
+        topItems.forEach(item => {
+          detailSuggestions.push(`• ${item.label}：${item.example}`)
+        })
+      }
+      
+      // 情况概述
+      const summaryText = `客户的需求描述中共有${missingStats.total}项信息缺失：核心需求${missingStats.T0}项、居住偏好${missingStats.T1}项、配套要求${missingStats.T2}项、特殊关注${missingStats.T3}项、金融服务${missingStats.T4}项。`
+      
+      // 使用HTML格式组织输出，保持紧凑格式
+      let htmlOutput = `<div class="suggestion-summary">${summaryText}</div>`
+      htmlOutput += `<div class="suggestion-main">${suggestionTemplate}</div>`
+      
+      // 转换列表项为HTML格式
+      let inSubSection = false
+      
+      detailSuggestions.forEach(item => {
+        if (item.startsWith('同时') || item.startsWith('为提高')) {
+          // 处理小标题
+          htmlOutput += `<div class="suggestion-subtitle">${item}</div>`
+          inSubSection = true
+        } else {
+          // 处理常规列表项
+          htmlOutput += `<div class="suggestion-item">${item}</div>`
+        }
+      })
+      
+      // 处理增强建议部分
+      if (enhancementSuggestions.length > 0) {
+        htmlOutput += `<div class="enhancement-title">${enhancementSuggestions[0]}</div>`
+        enhancementSuggestions.slice(1).forEach(item => {
+          htmlOutput += `<div class="suggestion-item">${item}</div>`
+        })
+      }
+      
+      return htmlOutput
     }
     
     // 需求描述指南
@@ -266,14 +625,14 @@ export default {
           { label: '产权性质', example: '商品房/公寓/法拍房' },
           { label: '楼龄要求', example: '次新房/5-10年/10-20年/20年以上' },
           { label: '交易周期', example: '急需/可等合适房源' },
-          { label: '装修情况', example: '毛坯/简装/精装/豪装' },
           { label: '抗性因素', example: '临高架/加油站/殡仪馆等' }
         ]
       },
       {
-        title: '5. 补充说明',
+        title: '5. 金融服务',
         items: [
-          { label: '按揭贷款', example: '是否需要按揭贷款' }
+          { label: '按揭贷款', example: '是否需要按揭贷款' },
+          { label: '购房后融资', example: '若全款购房是否需要抵押融资' }
         ]
       }
     ]
@@ -323,10 +682,15 @@ export default {
           }
         ]
         
-        // ===== 暂时注释掉真正调用API的代码 =====
-        /*
         // 调用API，使用property-needs-analytics作为chatType
         const response = await sendMessage(messages, 'property-needs-analytics')
+        
+        // 如果在等待返回结果过程中用户取消了分析，则忽略这个结果
+        if (shouldIgnoreResult.value) {
+          console.log('用户已取消分析，忽略返回的结果')
+          shouldIgnoreResult.value = false
+          return
+        }
         
         // 检查响应是否包含错误
         if (response.error) {
@@ -359,78 +723,51 @@ export default {
             throw new Error('AI分析结果格式不正确，请重试')
           }
           
-          // 将API返回的数据转换为组件所需格式
-          analysisResult.value = jsonData.categories.map(category => ({
-            category: category.name,
-            items: category.items.map(item => ({
-              label: item.label,
-              value: item.value
-            }))
-          }))
-        */
-        
-        // ===== 添加模拟的AI分析结果 =====
-        // 模拟分析延迟
-        await new Promise(resolve => setTimeout(resolve, 5000))
-        
-        // 模拟分析结果
-        const mockResult = {
-          categories: [
-            {
-              name: "核心需求",
-              items: [
-                {label: "预算范围", value: "总价580-620万，首付3成（约180万）"},
-                {label: "购房目的", value: "自住及子女教育"},
-                {label: "意向区域", value: "天河区珠江新城或海珠区琶洲地铁沿线"},
-                {label: "户型需求", value: "3房2卫"}
-              ]
-            },
-            {
-              name: "居住偏好",
-              items: [
-                {label: "面积区间", value: "建面85-100㎡"},
-                {label: "楼层要求", value: "中高楼层（15层以上）"},
-                {label: "朝向要求", value: "南向或东南向"},
-                {label: "装修标准", value: "精装以上标准，可接受局部翻新部翻新"}
-              ]
-            },
-            {
-              name: "配套要求",
-              items: [
-                {label: "交通便利", value: "地铁500米内（3/5/18号线）"},
-                {label: "教育资源", value: "需带省级学位"},
-                {label: "商圈覆盖", value: "步行15分钟内有大型商场"},
-                {label: "医疗条件", value: "不作硬性要求"},
-                {label: "景观要求", value: "需求中未包含此信息"}
-              ]
-            },
-            {
-              name: "特殊关注",
-              items: [
-                {label: "产权性质", value: "需求中未包含此信息"},
-                {label: "楼龄要求", value: "10年内楼龄"},
-                {label: "交易周期", value: "需求中未包含此信息"},
-                {label: "装修情况", value: "需求中未包含此信息"},
-                {label: "抗性因素", value: "规避临高架、加油站、餐饮街、夜市等嘈杂、危险区域"}
-              ]
-            },
-            {
-              name: "补充说明",
-              items: [
-                {label: "按揭贷款", value: "需按揭贷款"}
-              ]
+          // 将API返回的数据规范化为内部统一格式
+          analysisResult.value = jsonData.categories.map(category => {
+            // 确定类别名称 - 尝试从多个可能的字段中获取
+            const categoryName = category.name || category.category || '未命名类别'
+            
+            // 根据不同的数据结构创建统一的内部表示
+            let items = []
+            
+            if (category.items && Array.isArray(category.items)) {
+              // 原始预期格式
+              items = category.items
+            } 
+            else if (category.details && typeof category.details === 'object') {
+              // 详细信息对象格式
+              items = Object.entries(category.details).map(([key, value]) => ({
+                label: key,
+                value: Array.isArray(value) ? value.join(', ') : String(value)
+              }))
             }
-          ]
-        };
-          
-        // 将模拟数据转换为组件所需格式
-        analysisResult.value = mockResult.categories.map(category => ({
-          category: category.name,
-          items: category.items.map(item => ({
-            label: item.label,
-            value: item.value
-          }))
-        }))
+            else if (category.requirements && Array.isArray(category.requirements)) {
+              // 需求列表格式
+              items = [{
+                label: categoryName,
+                value: category.requirements.join(', ')
+              }]
+            }
+            else {
+              // 其他键值对格式 - 将非标准字段作为items
+              const itemKeys = Object.keys(category).filter(k => 
+                k !== 'name' && k !== 'category'
+              )
+              
+              items = itemKeys.map(key => ({
+                label: key,
+                value: Array.isArray(category[key]) ? 
+                  category[key].join(', ') : 
+                  String(category[key])
+              }))
+            }
+            
+            return {
+              category: categoryName,
+              items: items
+            }
+          })
           
         // 计算分析用时
         analysisTime.value = Math.round((Date.now() - analysisStartTime.value) / 100) / 10
@@ -441,12 +778,10 @@ export default {
         timerInterval.value = null
         
         ElMessage.success('需求分析完成')
-        /*
         } catch (parseError) {
           console.error('解析AI响应时出错:', parseError)
           throw new Error('解析分析结果时出错: ' + parseError.message)
         }
-        */
       } catch (error) {
         console.error('需求分析失败:', error)
         ElMessage.error(error.message || '需求分析失败，请重试')
@@ -462,10 +797,13 @@ export default {
     const resetForm = () => {
       if (isAnalyzing.value) {
         ElMessageBox.confirm('正在进行需求分析，确认要中止分析过程么？', '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }).then(() => {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+          // 设置忽略标志，丢弃即将返回的结果
+          shouldIgnoreResult.value = true
+          
           // 中止分析
           isAnalyzing.value = false
           // 停止计时器
@@ -487,6 +825,11 @@ export default {
           cancelButtonText: '取消',
           type: 'warning'
         }).then(() => {
+          // 如果处于重新分析过程中，设置忽略标志
+          if (isAnalyzing.value) {
+            shouldIgnoreResult.value = true
+          }
+          
           formData.requirements = ''
           formData.customerName = '' // 清空客户姓名
           hasAnalysisResult.value = false
@@ -506,9 +849,9 @@ export default {
           hasAnalysisResult.value = false
           analysisResult.value = []
           ElMessage.success('需求输入框内容已清空')
-        }).catch(() => {
-          // 用户取消了重置操作
-        })
+      }).catch(() => {
+        // 用户取消了重置操作
+      })
       }
     }
     
@@ -561,12 +904,22 @@ export default {
     // 开始匹配房源
     const startMatchingHouses = () => {
       // 使用表单验证
-      propertyFormRef.value.validate((valid) => {
+      propertyFormRef.value.validate((valid, fields) => {
         if (valid) {
           // 验证通过，触发提交事件，传递表单数据给父组件
           emit('submit', formData)
         } else {
-          // 验证失败，不做操作，表单会自动显示错误提示
+          // 验证失败，检查是否是客户姓名字段验证失败
+          if (fields && fields.customerName) {
+            // 延迟一帧执行，确保DOM更新完成
+            nextTick(() => {
+              // 找到el-input组件并聚焦
+              const inputEl = document.querySelector('.customer-name-input .el-input__inner')
+              if (inputEl) {
+                inputEl.focus()
+              }
+            })
+          }
           return false
         }
       })
@@ -582,6 +935,35 @@ export default {
         })
       }
     })
+    
+    // 示例文本复制功能
+    const copyExampleText = () => {
+      const exampleText = '预算总价800-1000万，首付3成（约240万），需按揭贷款。意向天河区珠江新城或海珠区琶洲地铁沿线，重点考察3房2卫户型。购房目的为自住及子女教育，需带省级学位。\n建面85-100㎡，优先中高楼层（15层以上），要求南向或东南向采光，接受10年内楼龄的房子。装修需精装以上标准，可接受局部翻新。\n必须满足地铁500米内（3/5/18号线），步行15分钟内有大型商场。医疗配套不作硬性要求，但需规避临高架、加油站、餐饮街、夜市等嘈杂、危险区域。'
+      
+      // 使用navigator.clipboard API复制到剪贴板
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(exampleText)
+          .catch(err => {
+            console.error('无法复制文本:', err)
+          })
+      } else {
+        // 兼容性处理 - 创建临时textarea元素
+        const textarea = document.createElement('textarea')
+        textarea.value = exampleText
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = 0
+        document.body.appendChild(textarea)
+        textarea.select()
+        
+        try {
+          document.execCommand('copy')
+        } catch (err) {
+          console.error('复制失败:', err)
+        }
+        
+        document.body.removeChild(textarea)
+      }
+    }
     
     return {
       propertyFormRef,
@@ -600,13 +982,18 @@ export default {
       currentAnalysisTime,
       analysisStartTime,
       startMatchingHouses,
-      customerNameRules
+      customerNameRules,
+      copyExampleText,
+      shouldIgnoreResult,
+      generateRequirementSuggestion
     }
   }
 }
 </script>
 
-<style scoped>
+<style>
+/* 移除scoped属性，确保样式能应用到v-html内容 */
+
 .property-advisor-form {
   width: 100%;
   height: 100%;
@@ -643,7 +1030,7 @@ export default {
   padding: 0;
   border-bottom: 1px solid #eee;
   background-color: #f8f9fa;
-  height: 60px;
+  height: 55px;
   box-sizing: border-box;
   position: relative;
   display: flex;
@@ -657,8 +1044,12 @@ export default {
   position: sticky;
   top: 0;
   z-index: 10;
-  background-color: #f8f9fa; /* 确保背景色 */
-  transition: box-shadow 0.3s ease; /* 添加阴影过渡效果 */
+  background-color: #f8f9fa;
+  transition: box-shadow 0.3s ease;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* 当滚动时增强阴影效果 */
@@ -724,7 +1115,8 @@ export default {
   display: flex;
   justify-content: center;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 6px;
+  margin-bottom: 16px;
 }
 
 .button-hint {
@@ -880,21 +1272,62 @@ export default {
 @media (max-width: 768px) {
   .property-advisor-form {
     padding: 12px;
-  }
-
-  .input-panel {
-  width: 100%;
-    border-right: none;
+    height: auto; /* 允许高度自适应内容 */
+    overflow-y: auto; /* 整个表单区域可滚动 */
+    display: block; /* 使用块级布局 */
   }
 
   .form-container {
-    height: auto;
-    min-height: calc(100vh - 24px);
-    flex-direction: column;
+    height: auto; /* 自适应高度 */
+    min-height: auto; /* 移除最小高度限制 */
+    display: block; /* 使用块级布局 */
+    overflow: visible; /* 允许内容溢出 */
+  }
+
+  .input-panel {
+    width: 100%;
+    border-right: none;
+    height: auto; /* 自适应高度 */
+    overflow: visible; /* 允许内容溢出 */
+  }
+
+  .content-panel {
+    width: 100%;
+    overflow: visible; /* 允许内容溢出 */
+    height: auto; /* 自适应高度 */
+  }
+
+  .content-panel .panel-header {
+    position: sticky; /* 保持sticky定位 */
+    top: 0;
+    z-index: 10;
+    background-color: #f8f9fa;
+    width: 100%;
+  }
+
+  .content-panel .panel-content {
+    overflow: visible; /* 允许内容溢出 */
+    height: auto; /* 自适应高度 */
+  }
+
+  .reference-content,
+  .analysis-content {
+    height: auto; /* 自适应高度 */
+    overflow: visible; /* 允许内容溢出 */
   }
 
   .panel-content {
     padding: 12px 16px;
+    overflow: visible; /* 移除滚动行为 */
+  }
+
+  /* 确保sticky正常工作 */
+  .reference-content .panel-header,
+  .analysis-content .panel-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: #f8f9fa;
   }
 
   .reference-grid {
@@ -929,11 +1362,6 @@ export default {
   .example-quote {
     padding: 10px 12px;
   }
-  
-  .user-requirement-result {
-    padding: 10px 12px;
-    max-height: 120px;
-  }
 }
 
 .example-section {
@@ -960,6 +1388,12 @@ export default {
   font-size: 13px;
   line-height: 1.6;
   white-space: pre-line;
+   /* cursor: pointer; 添加指针样式提示可点击 */
+  transition: background-color 0.2s; /* 添加过渡效果 */
+}
+
+.example-quote:hover {
+  background-color: #ecf5ff80; /* 悬停时的背景色 */
 }
 
 /* 新增样式 */
@@ -987,27 +1421,54 @@ export default {
   font-weight: 500;
 }
 
-.user-requirement-result {
+.user-requirement-suggestion {
   margin: 0;
   padding: 12px 16px;
   background-color: #fbf8d2;
   border-radius: 4px;
-  color: #a2940b;
+  color: #6b6204;
   font-size: 13px;
   line-height: 1.6;
-  max-height: 130px;
+  /* max-height: 150px; */
   overflow-y: auto;
   scrollbar-width: thin;
   white-space: pre-line;
 }
 
-.user-requirement-result::-webkit-scrollbar {
+.user-requirement-suggestion::-webkit-scrollbar {
   width: 4px;
 }
 
-.user-requirement-result::-webkit-scrollbar-thumb {
+.user-requirement-suggestion::-webkit-scrollbar-thumb {
   background-color: #dcdfe6;
   border-radius: 2px;
+}
+
+/* 新增建议内容样式 - 适用于v-html内容 */
+.user-requirement-suggestion .suggestion-summary {
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.user-requirement-suggestion .suggestion-main {
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.user-requirement-suggestion .suggestion-subtitle {
+  margin-top: 8px;
+  margin-bottom: 3px;
+  font-weight: 500;
+}
+
+.user-requirement-suggestion .suggestion-item {
+  padding-left: 8px;
+}
+
+.user-requirement-suggestion .enhancement-title {
+  margin-top: 8px;
+  margin-bottom: 3px;
+  font-weight: 500;
 }
 
 /* 姓名输入框样式 */
@@ -1027,5 +1488,31 @@ export default {
 .customer-name-input .el-input__prefix {
   color: #909399;
   padding-left: 4px;
+}
+
+/* 重新分析按钮样式 */
+.reanalyze-button {
+  height: 30px;
+  padding: 0 15px;
+  border-radius: 4px;
+  font-size: 14px;
+  border: 1px solid #1b68de;
+  color: #1b68de;
+  background-color: transparent;
+  transition: all 0.3s;
+}
+
+.reanalyze-button:hover {
+  background-color: #ecf5ff;
+}
+
+.reanalyze-button:active {
+  background-color: #e6f1ff;
+}
+
+.reanalyze-button .button-hint {
+  font-size: 12px;
+  margin-left: 4px;
+  opacity: 0.7;
 }
 </style>

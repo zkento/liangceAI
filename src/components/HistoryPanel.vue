@@ -1,4 +1,4 @@
-<!-- 最后修改记录时间 -> 2025-04-13 09:00:00 -->
+<!-- 最后修改记录时间 -> 2025-04-28 16:00:00 -->
 <template>
   <teleport to="body">
     <!-- 历史任务列表面板 -->
@@ -123,16 +123,35 @@
         <div v-else class="table-view" :style="{ width: tableViewWidth }">
           <!-- 搜索筛选区域 -->
           <div class="search-filters">
-            <el-form :inline="true" :model="searchForm" size="small" class="adaptive-form">
-              <el-form-item label="">
-                <el-select v-model="searchForm.taskTypes" multiple placeholder="请选择任务类型" clearable collapse-tags class="adaptive-select">
+            <div class="filter-row">
+              <!-- 任务类型 -->
+              <div class="filter-item">
+                <el-select 
+                  v-model="searchForm.taskTypes" 
+                  multiple 
+                  placeholder="请选择任务类型" 
+                  clearable 
+                  collapse-tags 
+                  size=""
+                  :disabled="false"
+                >
                   <el-option v-for="item in taskTypeOptions" :key="item" :label="item" :value="item" />
                 </el-select>
-              </el-form-item>
-              <el-form-item label="">
-                <el-input v-model="searchForm.customerName" placeholder="请输入客户姓名" clearable class="adaptive-input" />
-              </el-form-item>
-              <el-form-item label="">
+              </div>
+              
+              <!-- 客户姓名 -->
+              <div class="filter-item">
+                <el-input 
+                  v-model="searchForm.customerName" 
+                  placeholder="请输入客户姓名" 
+                  clearable 
+                  size=""
+                  :disabled="false"
+                />
+              </div>
+              
+              <!-- 提交任务时间 -->
+              <div class="filter-item">
                 <el-date-picker
                   v-model="searchForm.submitTimeRange"
                   type="daterange"
@@ -140,10 +159,13 @@
                   start-placeholder="提交任务时间"
                   end-placeholder="提交任务时间"
                   value-format="YYYY/MM/DD"
-                  class="adaptive-date-picker"
+                  size=""
+                  :disabled="false"
                 />
-              </el-form-item>
-              <el-form-item label="">
+              </div>
+              
+              <!-- 任务结束时间 -->
+              <div class="filter-item">
                 <el-date-picker
                   v-model="searchForm.endTimeRange"
                   type="daterange"
@@ -151,210 +173,249 @@
                   start-placeholder="任务结束时间"
                   end-placeholder="任务结束时间"
                   value-format="YYYY/MM/DD"
-                  class="adaptive-date-picker"
+                  size=""
+                  :disabled="false"
                 />
-              </el-form-item>
-              <el-form-item label="">
-                <el-select v-model="searchForm.taskResults" multiple placeholder="请选择任务结果" clearable collapse-tags class="adaptive-select">
+              </div>
+              
+              <!-- 任务结果 -->
+              <div class="filter-item">
+                <el-select 
+                  v-model="searchForm.taskResults" 
+                  multiple 
+                  placeholder="请选择任务结果" 
+                  clearable 
+                  collapse-tags 
+                  size=""
+                  :disabled="false"
+                >
                   <el-option v-for="item in taskResultOptions" :key="item" :label="item" :value="item" />
                 </el-select>
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" @click="handleSearch" class="adaptive-button">搜索</el-button>
-                <el-button @click="resetSearch" class="adaptive-button">重置</el-button>
-              </el-form-item>
-            </el-form>
-          </div>
-          
-          <el-table
-            :data="paginatedHistoryList"
-            style="width: 100%"
-            :border="true"
-            :stripe="true"
-            :height="calcTableHeight"
-            size="small"
-            fit
-            :header-cell-style="{ 'white-space': 'nowrap', 'height': '35px', 'font-size': '13px', 'font-weight': '400' }"
-            :table-layout="'fixed'"
-            :cell-style="{ 'color': '#606266', 'font-size': '13px' }"
-            :row-style="{ height: '35px' }"
-          >
-            <el-table-column prop="type" label="AI任务类型" min-width="130" :fixed="tableNeedsScroll ? 'left' : null" show-overflow-tooltip/>
-            <el-table-column prop="customerName" label="客户姓名" min-width="155" show-overflow-tooltip/>
-            <el-table-column label="上传的文件" min-width="190">
-              <template #default="scope">
-                <!-- 统一处理单文件和多文件情况 -->
-                <template v-if="(scope.row.uploadFiles && scope.row.uploadFiles.length) || scope.row.uploadFile">
-                  <div 
-                    class="file-cell" 
-                    v-for="(file, index) in scope.row.uploadFiles && scope.row.uploadFiles.length ? scope.row.uploadFiles : [scope.row.uploadFile]" 
-                    :key="index"
-                  >
-                    <div class="file-info">
-                      <el-tooltip 
-                        :content="file.name || file" 
-                        placement="top" 
-                        :show-after="100"
-                        :hide-after="0"
-                      >
-                        <span class="file-name">{{ file.name || file }}</span>
-                      </el-tooltip>
-                    </div>
-                    <el-link type="primary" :underline="false" @click="viewUploadedFile(file)">查看</el-link>
-                  </div>
-                </template>
-                <!-- 无文件情况 -->
-                <template v-else>
-                  <span class="no-file">-</span>
-                </template>
-              </template>
-            </el-table-column>
-            <el-table-column prop="submitTime" label="提交任务时间" min-width="155" show-overflow-tooltip />
-            <el-table-column prop="queuePosition" label="任务队列位置" min-width="95">
-              <template #default="scope">
-                <template v-if="(scope.row.result.includes('排队中') || scope.row.result.includes('进行中')) && scope.row.queuePosition && scope.row.queuePosition !== '-'">
-                  {{ scope.row.queuePosition }}
-                </template>
-                <template v-else>
-                  <!-- 当无值时，不显示"-"，直接留空 -->
-                </template>
-              </template>
-            </el-table-column>
-            
-            <!-- 预计开始时间列 -->
-            <el-table-column label="任务预计开始时间" min-width="155" show-overflow-tooltip>
-              <template #default="scope">
-                <template v-if="!scope.row.result.includes('排队中')">
-                  <!-- 非排队中任务不显示预计开始时间 -->
-                </template>
-                <template v-else>
-                  {{ scope.row.expectedStartTime || '' }}
-                </template>
-              </template>
-            </el-table-column>
-            
-            <el-table-column prop="actualStartTime" label="任务实际开始时间" min-width="155" show-overflow-tooltip>
-              <template #default="scope">
-                <template v-if="scope.row.result.includes('排队中') || scope.row.result.includes('已取消')">
-                  <!-- 排队中或已取消任务的实际开始时间为空 -->
-                </template>
-                <template v-else>
-                  {{ scope.row.actualStartTime || '' }}
-                </template>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="任务结束时间" min-width="155" show-overflow-tooltip>
-              <template #default="scope">
-                <template v-if="scope.row.result.includes('进行中') || scope.row.result.includes('排队中')">
-                  <!-- 进行中/排队中任务结束时间为空 -->
-                </template>
-                <template v-else>
-                  {{ scope.row.endTime || '' }}
-                </template>
-              </template>
-            </el-table-column>
-            <el-table-column label="任务结果" min-width="90">
-              <template #default="scope">
-                <el-tag :type="getStatusType(scope.row.result)">{{ scope.row.result }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="处理耗时" min-width="80" show-overflow-tooltip>
-              <template #default="scope">
-                <template v-if="scope.row.result.includes('排队中') || scope.row.result.includes('已取消')">
-                  <!-- 排队中或已取消任务处理耗时为空 -->
-                </template>
-                <template v-else-if="scope.row.result.includes('进行中')">
-                  <!-- 进行中任务动态计算处理耗时 -->
-                  {{ calculateProcessingTime(scope.row) }}
-                </template>
-                <template v-else>
-                  {{ scope.row.processingTime || '' }}
-                </template>
-              </template>
-            </el-table-column>
-            <el-table-column label="全部耗时" min-width="80" show-overflow-tooltip>
-              <template #default="scope">
-                <template v-if="scope.row.result.includes('排队中') || scope.row.result.includes('已取消')">
-                  <!-- 排队中或已取消任务全部耗时为空 -->
-                </template>
-                <template v-else-if="scope.row.result.includes('进行中')">
-                  <!-- 进行中任务动态计算全部耗时 -->
-                  {{ calculateTotalTime(scope.row) }}
-                </template>
-                <template v-else>
-                  {{ scope.row.totalTime || '' }}
-                </template>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" min-width="90" :fixed="tableNeedsScroll ? 'right' : null">
-              <template #default="scope">
+              </div>
+              
+              <!-- 按钮组 -->
+              <div class="filter-item button-group">
                 <el-button 
                   type="primary" 
-                  link
-                  v-if="scope.row.result === '已出结果'"
-                  @click="viewResult(scope.row)"
+                  @click="handleSearch" 
+                  size=""
+                  :loading="tableDataLoading"
+                  :disabled="tableDataLoading"
                 >
-                  查看结果
+                  {{ tableDataLoading ? '搜索中...' : '搜索' }}
                 </el-button>
-                
                 <el-button 
-                  type="danger" 
-                  link
-                  v-if="scope.row.result.includes('排队中')"
-                  @click="showCancelConfirm(scope.row.id)"
-                  class="cancel-btn"
+                  @click="resetSearch" 
+                  size=""
+                  :disabled="tableDataLoading"
                 >
-                  取消任务
+                  重置
                 </el-button>
-                
-                <el-tooltip
-                  content="暂未能支持取消进行中的任务"
-                  placement="top"
-                  :show-after="100"
-                  v-if="scope.row.result.includes('进行中')"
-                >
+              </div>
+            </div>
+          </div>
+          
+          <!-- 表格区域包装器 -->
+          <div class="table-wrapper">
+            <!-- 表格，调整loading效果 -->
+            <el-table
+              :data="paginatedHistoryList"
+              style="width: 100%"
+              :border="true"
+              :stripe="true"
+              :height="calcTableHeight"
+              size="small"
+              fit
+              :header-cell-style="{ 'white-space': 'nowrap', 'height': '35px', 'font-size': '13px', 'font-weight': '400' }"
+              :table-layout="'fixed'"
+              :cell-style="{ 'color': '#606266', 'font-size': '13px' }"
+              :row-style="{ height: '35px' }"
+            >
+              <el-table-column prop="type" label="AI任务类型" min-width="130" :fixed="tableNeedsScroll ? 'left' : null" show-overflow-tooltip/>
+              <el-table-column prop="customerName" label="客户姓名" min-width="155" show-overflow-tooltip/>
+              <el-table-column label="上传的文件" min-width="190">
+                <template #default="scope">
+                  <!-- 统一处理单文件和多文件情况 -->
+                  <template v-if="(scope.row.uploadFiles && scope.row.uploadFiles.length) || scope.row.uploadFile">
+                    <div 
+                      class="file-cell" 
+                      v-for="(file, index) in scope.row.uploadFiles && scope.row.uploadFiles.length ? scope.row.uploadFiles : [scope.row.uploadFile]" 
+                      :key="index"
+                    >
+                      <div class="file-info">
+                        <el-tooltip 
+                          :content="file.name || file" 
+                          placement="top" 
+                          :show-after="100"
+                          :hide-after="0"
+                        >
+                          <span class="file-name">{{ file.name || file }}</span>
+                        </el-tooltip>
+                      </div>
+                      <el-link type="primary" :underline="false" @click="viewUploadedFile(file)">查看</el-link>
+                    </div>
+                  </template>
+                  <!-- 无文件情况 -->
+                  <template v-else>
+                    <span class="no-file">-</span>
+                  </template>
+                </template>
+              </el-table-column>
+              <el-table-column prop="submitTime" label="提交任务时间" min-width="155" show-overflow-tooltip />
+              <el-table-column prop="queuePosition" label="任务队列位置" min-width="95">
+                <template #default="scope">
+                  <template v-if="(scope.row.result.includes('排队中') || scope.row.result.includes('进行中')) && scope.row.queuePosition && scope.row.queuePosition !== '-'">
+                    {{ scope.row.queuePosition }}
+                  </template>
+                  <template v-else>
+                    <!-- 当无值时，不显示"-"，直接留空 -->
+                  </template>
+                </template>
+              </el-table-column>
+              
+              <!-- 预计开始时间列 -->
+              <el-table-column label="任务预计开始时间" min-width="155" show-overflow-tooltip>
+                <template #default="scope">
+                  <template v-if="!scope.row.result.includes('排队中')">
+                    <!-- 非排队中任务不显示预计开始时间 -->
+                  </template>
+                  <template v-else>
+                    {{ scope.row.expectedStartTime || '' }}
+                  </template>
+                </template>
+              </el-table-column>
+              
+              <el-table-column prop="actualStartTime" label="任务实际开始时间" min-width="155" show-overflow-tooltip>
+                <template #default="scope">
+                  <template v-if="scope.row.result.includes('排队中') || scope.row.result.includes('已取消')">
+                    <!-- 排队中或已取消任务的实际开始时间为空 -->
+                  </template>
+                  <template v-else>
+                    {{ scope.row.actualStartTime || '' }}
+                  </template>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="任务结束时间" min-width="155" show-overflow-tooltip>
+                <template #default="scope">
+                  <template v-if="scope.row.result.includes('进行中') || scope.row.result.includes('排队中')">
+                    <!-- 进行中/排队中任务结束时间为空 -->
+                  </template>
+                  <template v-else>
+                    {{ scope.row.endTime || '' }}
+                  </template>
+                </template>
+              </el-table-column>
+              <el-table-column label="任务结果" min-width="90">
+                <template #default="scope">
+                  <el-tag :type="getStatusType(scope.row.result)">{{ scope.row.result }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="处理耗时" min-width="80" show-overflow-tooltip>
+                <template #default="scope">
+                  <template v-if="scope.row.result.includes('排队中') || scope.row.result.includes('已取消')">
+                    <!-- 排队中或已取消任务处理耗时为空 -->
+                  </template>
+                  <template v-else-if="scope.row.result.includes('进行中')">
+                    <!-- 进行中任务动态计算处理耗时 -->
+                    {{ calculateProcessingTime(scope.row) }}
+                  </template>
+                  <template v-else>
+                    {{ scope.row.processingTime || '' }}
+                  </template>
+                </template>
+              </el-table-column>
+              <el-table-column label="全部耗时" min-width="80" show-overflow-tooltip>
+                <template #default="scope">
+                  <template v-if="scope.row.result.includes('排队中') || scope.row.result.includes('已取消')">
+                    <!-- 排队中或已取消任务全部耗时为空 -->
+                  </template>
+                  <template v-else-if="scope.row.result.includes('进行中')">
+                    <!-- 进行中任务动态计算全部耗时 -->
+                    {{ calculateTotalTime(scope.row) }}
+                  </template>
+                  <template v-else>
+                    {{ scope.row.totalTime || '' }}
+                  </template>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" min-width="90" :fixed="tableNeedsScroll ? 'right' : null">
+                <template #default="scope">
+                  <el-button 
+                    type="primary" 
+                    link
+                    v-if="scope.row.result === '已出结果'"
+                    @click="viewResult(scope.row)"
+                  >
+                    查看结果
+                  </el-button>
+                  
                   <el-button 
                     type="danger" 
                     link
-                    disabled
+                    v-if="scope.row.result.includes('排队中')"
+                    @click="showCancelConfirm(scope.row.id)"
+                    class="cancel-btn"
                   >
                     取消任务
                   </el-button>
-                </el-tooltip>
-
-                <!-- 为任务失败状态添加失败原因按钮 -->
-                <el-tooltip
-                  :content="'失败原因：' + (scope.row.content.includes('原因：') ? scope.row.content.split('原因：')[1] : scope.row.content)"
-                  placement="top"
-                  :show-after="100"
-                  v-if="scope.row.result.includes('任务失败')"
-                >
-                  <el-button 
-                    type="info" 
-                    link
+                  
+                  <el-tooltip
+                    content="暂未能支持取消进行中的任务"
+                    placement="top"
+                    :show-after="100"
+                    v-if="scope.row.result.includes('进行中')"
                   >
-                    查看原因
-                  </el-button>
-                </el-tooltip>
+                    <el-button 
+                      type="danger" 
+                      link
+                      disabled
+                    >
+                      取消任务
+                    </el-button>
+                  </el-tooltip>
 
-                <span v-if="!scope.row.result.includes('排队中') && !scope.row.result.includes('进行中') && scope.row.result !== '已出结果' && !scope.row.result.includes('任务失败')">-</span>
-              </template>
-            </el-table-column>
-          </el-table>
-          
-          <!-- 分页组件 -->
-          <div class="pagination-container">
-            <el-pagination
-              v-model:current-page="currentPage"
-              v-model:page-size="pageSize"
-              :page-sizes="[10, 20, 50, 100]"
-              layout="total, sizes, prev, pager, next, jumper"
-              :total="filteredHistoryList.length"
-              @size-change="handleSizeChange"
-              @current-change="handleCurrentChange"
-              background
-            />
+                  <!-- 为任务失败状态添加失败原因按钮 -->
+                  <el-tooltip
+                    :content="'失败原因：' + (scope.row.content.includes('原因：') ? scope.row.content.split('原因：')[1] : scope.row.content)"
+                    placement="top"
+                    :show-after="100"
+                    v-if="scope.row.result.includes('任务失败')"
+                  >
+                    <el-button 
+                      type="info" 
+                      link
+                    >
+                      查看原因
+                    </el-button>
+                  </el-tooltip>
+
+                  <span v-if="!scope.row.result.includes('排队中') && !scope.row.result.includes('进行中') && scope.row.result !== '已出结果' && !scope.row.result.includes('任务失败')">-</span>
+                </template>
+              </el-table-column>
+            </el-table>
+            
+            <!-- 分页容器样式 -->
+            <div class="pagination-container">
+              <el-pagination
+                v-model:current-page="currentPage"
+                v-model:page-size="pageSize"
+                :page-sizes="[10, 20, 50, 100]"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="filteredHistoryList.length"
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                background
+              />
+            </div>
+            
+            <!-- 自定义加载层 -->
+            <div v-if="tableDataLoading" class="custom-loading-mask">
+              <div class="custom-loading-container">
+                <div class="custom-loading-spinner"></div>
+                <span class="custom-loading-text">正在搜索历史任务...</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -635,6 +696,9 @@ export default {
       '已取消'
     ]
     
+    // 添加表格数据加载状态
+    const tableDataLoading = ref(false)
+    
     // 分页相关
     const currentPage = ref(1)
     const pageSize = ref(20) // 默认每页20条
@@ -700,9 +764,35 @@ export default {
       return filteredHistoryList.value.slice(start, end)
     })
     
-    // 处理搜索
-    const handleSearch = () => {
-      currentPage.value = 1 // 搜索后重置为第一页
+    // 处理搜索 - 修改为模拟网络请求
+    const handleSearch = async () => {
+      try {
+        tableDataLoading.value = true;
+        currentPage.value = 1; // 搜索后重置为第一页
+        
+        // 模拟与服务器通信的延迟
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // 模拟服务器端搜索逻辑
+        // 在实际应用中，这里会使用store.dispatch来调用API获取数据
+        // store.dispatch('history/searchHistoryTasks', searchForm.value);
+        
+        // 此处仅使用本地过滤代替，实际应用需要替换为真实API调用
+        ElMessage({
+          type: 'success',
+          message: '搜索完成',
+          duration: 2000
+        });
+      } catch (error) {
+        ElMessage({
+          type: 'error',
+          message: '搜索失败，请稍后重试',
+          duration: 2000
+        });
+        console.error('搜索历史任务失败:', error);
+      } finally {
+        tableDataLoading.value = false;
+      }
     }
     
     // 重置搜索条件
@@ -714,7 +804,7 @@ export default {
         endTimeRange: [],
         taskResults: []
       }
-      currentPage.value = 1
+      // 不自动执行搜索，等用户点击搜索按钮
     }
     
     // 处理页码变化
@@ -1589,17 +1679,17 @@ export default {
     })
     
     // 刷新历史任务列表
-    const refreshHistoryList = () => {
-      // 设置加载状态
-      loadingSummaryData.value = true;
-      
-      // 重置分页状态
-      resetSummaryPaging();
-      
-      // 调用store的获取历史任务方法
-      store.dispatch('history/fetchHistoryList').then(() => {
-        // 加载完成后关闭加载状态
-        loadingSummaryData.value = false;
+    const refreshHistoryList = async () => {
+      try {
+        // 设置加载状态
+        tableDataLoading.value = true;
+        loadingSummaryData.value = true;
+        
+        // 重置分页状态
+        resetSummaryPaging();
+        
+        // 调用store的获取历史任务方法
+        await store.dispatch('history/fetchHistoryList');
         
         // 显示刷新成功提示
         ElMessage({
@@ -1607,15 +1697,19 @@ export default {
           type: 'success',
           duration: 2000
         });
-      }).catch(() => {
+      } catch (error) {
         // 加载失败处理
-        loadingSummaryData.value = false;
         ElMessage({
           message: '刷新历史任务列表失败，请稍后重试',
           type: 'error',
           duration: 2000
         });
-      });
+        console.error('刷新历史任务失败:', error);
+      } finally {
+        // 无论成功失败都关闭加载状态
+        tableDataLoading.value = false;
+        loadingSummaryData.value = false;
+      }
     };
     
     return {
@@ -1668,7 +1762,8 @@ export default {
       loadMoreSummaryData,
       handleScroll,
       // 刷新功能
-      refreshHistoryList
+      refreshHistoryList,
+      tableDataLoading
     }
   }
 }
@@ -2154,73 +2249,75 @@ export default {
   margin-bottom: 0;
 }
 
-/* 搜索和筛选区域样式 */
+/* 重构的搜索筛选区域样式 */
 .search-filters {
-  padding: 4px 8px;
+  padding: 8px;
   background-color: #f5f7fa;
   border-radius: 4px 4px 0 0;
   border-bottom: 1px solid #e4e7ed;
 }
 
-/* 自适应表单样式 */
-:deep(.adaptive-form) {
+.filter-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   width: 100%;
+  gap: 8px;
 }
 
-:deep(.adaptive-form .el-form-item) {
-  margin: 4px 8px 4px 0;
-  flex-grow: 1;
-  display: flex;
-}
-
-:deep(.adaptive-form .el-form-item__content) {
-  flex-grow: 1;
-  display: flex;
-}
-
-/* 自适应输入框和选择器样式 */
-:deep(.adaptive-select),
-:deep(.adaptive-input),
-:deep(.adaptive-date-picker) {
-  min-width: 100px;
+.filter-item {
   flex: 1;
-  width: auto;
+  min-width: 100px;
+  flex-shrink: 0;
+  display: flex;
 }
 
-/* 自适应按钮样式 */
-:deep(.adaptive-button) {
-  min-width: 60px;  
+.filter-item .el-select,
+.filter-item .el-input,
+.filter-item .el-date-editor {
+  width: 100%;
+  min-width: 100px;
+  flex-shrink: 0;
 }
 
-:deep(.adaptive-button:last-child) {
-  margin-right: 0;
+/* 日期范围选择器需要更宽一些 */
+.filter-item .el-date-editor--daterange {
+  min-width: 220px;
 }
 
-/* 搜索区域的输入框、选择框和按钮高度统一设置 */
-:deep(.search-filters .el-input__wrapper),
-:deep(.search-filters .el-input__inner),
-:deep(.search-filters .el-select),
-:deep(.search-filters .el-select__wrapper),
-:deep(.search-filters .el-date-editor),
-:deep(.search-filters .el-range-editor),
-:deep(.search-filters .el-button) {
-  min-height: 30px;
-  height: 30px;
-  line-height: 30px;
+.button-group {
+  flex: 0 0 auto;
+  min-width: 130px;
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
 }
 
-/* 特别处理日期选择器 */
-:deep(.search-filters .el-date-editor .el-range__icon),
-:deep(.search-filters .el-date-editor .el-range__close-icon),
-:deep(.search-filters .el-date-editor .el-range-separator) {
-  line-height: 24px;
+.button-group .el-button {
+  min-width: 60px;
+  margin-left: 8px;
 }
 
-/* 紧凑搜索表单样式 */
-:deep(.search-filters .el-form--inline .el-form-item) {
-  margin: 4px 8px 4px 0;
+/* 媒体查询确保在小屏幕上合理换行 */
+@media (max-width: 1200px) {
+  .button-group {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+  
+  .filter-item {
+    min-width: 180px;
+  }
+  
+  .filter-item .el-select,
+  .filter-item .el-input,
+  .filter-item .el-date-editor {
+    min-width: 180px;
+  }
+  
+  .filter-item .el-date-editor--daterange {
+    min-width: 250px;
+  }
 }
 
 /* 分页容器样式 */
@@ -2344,32 +2441,6 @@ export default {
   margin-bottom: 5px;
 }
 
-.spinner circle {
-  stroke: #409eff;
-  stroke-linecap: round;
-  animation: dash 1.5s ease-in-out infinite;
-}
-
-@keyframes rotate {
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes dash {
-  0% {
-    stroke-dasharray: 1, 150;
-    stroke-dashoffset: 0;
-  }
-  50% {
-    stroke-dasharray: 90, 150;
-    stroke-dashoffset: -35;
-  }
-  100% {
-    stroke-dasharray: 90, 150;
-    stroke-dashoffset: -124;
-  }
-}
 
 .load-more-text {
   cursor: pointer;
@@ -2428,5 +2499,69 @@ h3 {
   margin-left: 10px;
   padding: 5px 10px;
   height: 28px;
+}
+
+/* 表格区域包装器 */
+.table-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 自定义加载层 */
+.custom-loading-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  pointer-events: none; /* 允许鼠标事件穿透到下层元素，可以滚动 */
+}
+
+.custom-loading-container {
+  width: 210px;
+  height: 115px;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+  pointer-events: auto; /* 加载容器本身可以接收鼠标事件 */
+}
+
+.custom-loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #c3c3c3;
+  border-top: 3px solid #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+.custom-loading-text {
+  font-size: 14px;
+  color: white;
+  text-align: center;
+}
+
+/* 修正旋转动画关键帧名称 */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

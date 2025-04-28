@@ -144,10 +144,10 @@
                       </div>
                       <div class="consultation-thinking" v-html="thinking"></div>
                     </template>
-                        </div>
-                      </div>
-                    </div>
-                    
+                  </div>
+                </div>
+              </div>
+              
               <!-- 可调整大小的垂直分隔线 -->
               <div class="resizer-vertical" @mousedown="startResizeVertical"></div>
               
@@ -158,7 +158,7 @@
                     <el-icon class="header-icon"><ChatDotSquare /></el-icon>
                     继续向AI咨询
                     <span v-if="consultationThinkingTimer > 0" class="thinking-status">
-                      AI正在准备回答中{{consultationThinkingDots}}，{{consultationThinkingTimer}}秒
+                      AI正在回复中{{consultationThinkingDots}}，{{consultationThinkingTimer}}秒
                     </span>
                     <span v-else-if="consultationResponseStatus" class="response-status">
                       {{consultationResponseStatus}} 耗时{{consultationResponseTime}}秒
@@ -168,14 +168,14 @@
                 <div class="panel-content chat-messages">
                   <div v-for="(message, index) in consultationMessages" 
                        :key="index" 
-                         :class="['message', message.role]">
-                      <div class="message-content">
-                        <div v-if="message.role === 'assistant'" class="ai-avatar">AI</div>
+                       :class="['message', message.role]">
+                    <div class="message-content">
+                      <div v-if="message.role === 'assistant'" class="ai-avatar">AI</div>
                       <div class="text" v-if="message.role === 'user'">{{ message.content }}</div>
                       <div class="text markdown-content" v-else v-html="renderMarkdown(message.content)"></div>
-                      </div>
-                        </div>
-                        </div>
+                    </div>
+                  </div>
+                </div>
                   <div class="chat-input">
                     <el-input
                       v-model="consultationInput"
@@ -868,7 +868,7 @@ export default {
         second: '2-digit'
       }).replace(/\//g, '-');
       
-      reportContent.value = `# 购房建议报告
+      reportContent.value = `# 买家顾问购房建议报告
 
 编制日期：${currentDate}
 
@@ -1074,7 +1074,7 @@ export default {
     const restartAdvisor = () => {
       // 提示用户确认重新开始
       ElMessageBox.confirm(
-        '确定要重新开始新的买家顾问流程吗？',
+        '确定要开始新的买家顾问流程吗？',
         '提示',
         {
         confirmButtonText: '确定',
@@ -1167,12 +1167,29 @@ export default {
      formData.value.purpose === 'self_use' ? '翡翠天际' : '绿城花园'
    }`;
 
-        // 将思考过程添加到数组中
-        consultationThinkingProcesses.value.push(thinkingProcessContent);
+        // 将思考过程存储为完整内容以备后用
+        const fullThinkingContent = thinkingProcessContent;
         
-        // 延迟一定时间后模拟AI回复
-        setTimeout(() => {
-    // 生成模拟回复
+        // 先添加一个空字符串到思考过程数组
+        consultationThinkingProcesses.value.push('');
+        
+        // 获取当前思考过程的索引
+        const currentThinkingIndex = consultationThinkingProcesses.value.length - 1;
+        
+        // 准备逐字显示
+        let typingIndex = 0;
+        const startTime = Date.now();
+        const totalLength = fullThinkingContent.length;
+        
+        // 计算每秒应该显示的字符数，控制在10秒左右完成
+        const charsPerSecond = totalLength / 10;
+        
+        // 完成咨询思考过程的显示函数
+        const completeConsultationThinking = () => {
+          // 确保显示完整内容
+          consultationThinkingProcesses.value[currentThinkingIndex] = fullThinkingContent;
+          
+          // 生成回复内容
           let reply = '';
           
           if (question.includes('房价') || question.includes('价格')) {
@@ -1265,8 +1282,8 @@ export default {
 3. 如预算有限，可考虑绿城花园，但主要价值在于居住而非投资
 
 请注意，房产投资周期长，流动性低，建议做好5年以上的资金规划，并关注市场政策变化`;
-      } else {
-            reply = `### 综合购房建议
+          } else {
+            reply = `综合购房建议
 
 基于您的需求和当前市场情况，我为您提供以下建议：
 
@@ -1301,24 +1318,104 @@ export default {
 祝您购房顺利！如有其他具体问题，欢迎随时咨询。`;
           }
           
-          // 添加回复到消息列表
-          consultationMessages.value.push({
-            role: 'assistant',
-            content: reply
-          });
-          
-          // 更新状态
-          consultationLoading.value = false;
-          stopConsultationThinking('success');
-          
-          // 自动滚动到底部
+          // 延迟一定时间后模拟AI回复
           setTimeout(() => {
-            const messagesContainer = document.querySelector('.chat-messages');
-            if (messagesContainer) {
-              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            // 添加回复到消息列表
+            consultationMessages.value.push({
+              role: 'assistant',
+              content: reply
+            });
+            
+            // 更新状态
+            consultationLoading.value = false;
+            stopConsultationThinking('success');
+            
+            // 自动滚动到底部
+            setTimeout(() => {
+              const messagesContainer = document.querySelector('.chat-messages');
+              if (messagesContainer) {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              }
+            }, 100);
+          }, 1000);
+        };
+        
+        // 创建逐字显示的计时器
+        const typingInterval = setInterval(() => {
+          if (typingIndex < fullThinkingContent.length) {
+            // 计算当前已经过的时间(秒)
+            const elapsedTime = (Date.now() - startTime) / 1000;
+            
+            // 计算按当前速度应该显示到的索引位置
+            const targetIndex = Math.floor(elapsedTime * charsPerSecond);
+            
+            // 计算本次应该显示多少字符
+            let chunkSize = 1;
+            
+            // 如果落后于目标进度，则加速
+            if (typingIndex < targetIndex - 10) {
+              chunkSize = 3; // 严重落后，快速追赶
+            } else if (typingIndex < targetIndex - 5) {
+              chunkSize = 2; // 略有落后，稍微加速
             }
-          }, 100);
-        }, 5000 + Math.random() * 3000); // 5-8秒的随机时间
+            
+            // 保证不会越界
+            const remainingChars = fullThinkingContent.length - typingIndex;
+            const actualChunkSize = Math.min(chunkSize, remainingChars);
+            
+            // 添加字符块到显示内容
+            const nextChunk = fullThinkingContent.substring(typingIndex, typingIndex + actualChunkSize);
+            
+            // 更新数组中对应索引的内容
+            consultationThinkingProcesses.value[currentThinkingIndex] += nextChunk;
+            typingIndex += actualChunkSize;
+            
+            // 检查是否遇到特殊字符需要停顿
+            const lastChar = nextChunk[nextChunk.length - 1];
+            if (lastChar === '。' || lastChar === '\n' || lastChar === '：') {
+              // 句子结束后稍微暂停
+              clearInterval(typingInterval);
+              setTimeout(() => {
+                // 自动滚动到底部
+                const thinkingContent = document.querySelector('.thinking-content');
+                if (thinkingContent) {
+                  thinkingContent.scrollTop = thinkingContent.scrollHeight;
+                }
+                
+                // 继续逐字显示
+                const continuedInterval = setInterval(() => {
+                  if (typingIndex < fullThinkingContent.length) {
+                    // 添加下一个字符
+                    const nextChar = fullThinkingContent[typingIndex];
+                    consultationThinkingProcesses.value[currentThinkingIndex] += nextChar;
+                    typingIndex++;
+                    
+                    // 自动滚动到底部
+                    const thinkingContent = document.querySelector('.thinking-content');
+                    if (thinkingContent) {
+                      thinkingContent.scrollTop = thinkingContent.scrollHeight;
+                    }
+                  } else {
+                    // 所有内容显示完毕
+                    clearInterval(continuedInterval);
+                    completeConsultationThinking();
+                  }
+                }, 40); // 较慢速度继续显示
+              }, 200); // 短暂停顿
+              return;
+            }
+            
+            // 自动滚动到底部
+            const thinkingContent = document.querySelector('.thinking-content');
+            if (thinkingContent) {
+              thinkingContent.scrollTop = thinkingContent.scrollHeight;
+            }
+          } else {
+            // 所有内容显示完毕
+            clearInterval(typingInterval);
+            completeConsultationThinking();
+          }
+        }, 30); // 基础显示间隔
       } catch (error) {
         console.error('发送咨询消息出错:', error);
         consultationLoading.value = false;
@@ -1474,10 +1571,6 @@ export default {
     const resizeHorizontal = (e) => {
       if (!isResizingHorizontal.value) return;
       
-      // 节流，避免频繁更新
-      if (Date.now() - lastResizeTime < 16) return; // 约60fps
-      lastResizeTime = Date.now();
-      
       const container = document.querySelector('.report-layout');
       if (!container) return;
       
@@ -1488,8 +1581,11 @@ export default {
       if (percent >= 30 && percent <= 80) {
         horizontalSplit.value = percent;
         
-        // 更新CSS变量
-        document.documentElement.style.setProperty('--horizontal-split', `${percent}%`);
+        // 更新组件根元素的CSS变量
+        const reportContainer = document.querySelector('.property-advisor-report');
+        if (reportContainer) {
+          reportContainer.style.setProperty('--horizontal-split', `${percent}%`);
+        }
         
         // 实时更新输入框容器的样式，确保它总是占据右侧部分的全宽
         requestAnimationFrame(() => {
@@ -1526,10 +1622,6 @@ export default {
     // 垂直调整大小处理
     const resizeVertical = (e) => {
       if (!isResizingVertical.value) return;
-      
-      // 节流，避免频繁更新
-      if (Date.now() - lastResizeTime < 16) return; // 约60fps
-      lastResizeTime = Date.now();
       
       if (resizeThrottleTimeout) {
         clearTimeout(resizeThrottleTimeout);
@@ -1571,8 +1663,7 @@ export default {
       // 设置初始垂直分隔位置
       document.documentElement.style.setProperty('--vertical-split', `${verticalSplit.value}%`);
       
-      // 设置初始的水平分隔比例
-      document.documentElement.style.setProperty('--horizontal-split', `${horizontalSplit.value}%`);
+      // 不再在document level设置horizontal-split，而是依赖组件级别的CSS变量
       
       // 设置初始的聊天输入框宽度
       document.documentElement.style.setProperty('--chat-input-width', '100%');
@@ -1618,9 +1709,8 @@ export default {
       document.removeEventListener('mousemove', resizeVertical);
       document.removeEventListener('mouseup', stopResizeVertical);
       
-      // 确保CSS变量被重置，防止影响其他组件
+      // 不再需要清除document level的horizontal-split变量
       document.documentElement.style.removeProperty('--vertical-split');
-      document.documentElement.style.removeProperty('--horizontal-split');
       document.documentElement.style.removeProperty('--chat-input-width');
       
       // 断开MutationObserver
@@ -1668,6 +1758,7 @@ export default {
       verticalSplit,
       aiThinkingProcess,
       matchThinkingContent,
+      consultationThinkingProcesses, // 添加这一行，确保将consultationThinkingProcesses暴露到模板
       renderMarkdown,
       handleFormSubmit,
       startPropertyMatching,
@@ -1706,6 +1797,10 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%; /* 使用百分比高度填充父容器 */
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  --horizontal-split: 55%; /* 在组件根元素上设置CSS变量 */
 }
 
 .steps-header {
@@ -1831,10 +1926,10 @@ export default {
   align-items: center;
   justify-content: center;
   margin-top: 20px; /* 设置顶部外边距为20px */
-  
+
   .ai-timer {
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
     color: #909399;
     font-size: 14px;
     margin-right: 30px; /* 设置右侧外边距为30px */
@@ -1976,6 +2071,7 @@ export default {
   height: 100%;
   position: relative;
   overflow: hidden;
+  width: 100%; /* 确保容器占满全宽 */
 }
 
 .report-left {
@@ -2092,7 +2188,7 @@ export default {
 
 .panel-header {
   padding: 0 16px;
-  height: 50px;
+  height: 55px;
   border-bottom: 1px solid #ebeef5;
   display: flex;
   align-items: center;
@@ -2108,7 +2204,7 @@ export default {
   }
   
   .report-duration {
-    font-size: 14px;
+  font-size: 14px;
     color: #909399;
     font-weight: normal;
     margin-left: 8px;
@@ -2122,7 +2218,7 @@ export default {
   }
   
   h3 {
-    display: flex;
+  display: flex;
     align-items: center;
     margin: 0;
     font-size: 16px;
@@ -2151,7 +2247,7 @@ export default {
     
     /* 添加思考完成状态样式 */
     .thinking-completed {
-      font-size: 14px;
+  font-size: 14px;
       color: #909399;
       font-weight: normal;
       margin-left: 8px;
@@ -2270,17 +2366,25 @@ export default {
 .resizer-horizontal {
   position: absolute;
   top: 0;
-  left: var(--horizontal-split, 55%);
+  bottom: 0;
   width: 6px;
-  height: 100%;
   background-color: transparent;
   cursor: col-resize;
   z-index: 10;
+  left: var(--horizontal-split, 55%);
   transform: translateX(-3px);
+  transition: background-color 0.2s;
 }
 
-.resizer-horizontal:hover, .resizer-horizontal:active {
+.resizer-horizontal:hover,
+.resizer-horizontal:active {
   background-color: rgba(64, 158, 255, 0.2);
+}
+
+/* 添加新的样式类用于拖动时的状态 */
+.is-resizing {
+  user-select: none;
+  cursor: col-resize;
 }
 
 @keyframes spin {
@@ -2326,14 +2430,14 @@ export default {
   }
   
   p {
-    margin-top: 0;
+  margin-top: 0;
     margin-bottom: 10px;
   }
   
   ul, ol {
     padding-left: 2em;
     margin-top: 0;
-    margin-bottom: 16px;
+  margin-bottom: 16px;
   }
   
   li {
@@ -2502,7 +2606,7 @@ export default {
   
   /* 表格样式微调 */
   table {
-    font-size: 14px;
+  font-size: 14px;
     margin-bottom: 10px;
   }
   
@@ -2545,11 +2649,11 @@ export default {
   }
   
   /* 输入区域样式 */
-  .chat-input {
+.chat-input {
     flex-shrink: 0; /* 防止被压缩 */
     border-top: 1px solid #ebeef5;
     background-color: #fff;
-    display: flex;
+  display: flex;
     flex-direction: row;
     align-items: center; /* 确保垂直居中 */
     gap: 8px;
@@ -2606,7 +2710,13 @@ export default {
         background: #ffffff;
         overflow-x: hidden;
         border-top-left-radius: 0;
+        padding-top: 6px; /* 减少顶部内边距，使文本更接近头像顶部 */
       }
+      
+      /* 移除这个内部的margin-top设置，避免冲突 */
+      /* .ai-avatar {
+        margin-top: 10px;
+      } */
     }
     
     /* 系统消息样式 */
@@ -2651,6 +2761,8 @@ export default {
     font-weight: bold;
     flex-shrink: 0;
     font-size: 12px;
+    align-self: flex-start; /* 确保头像顶部对齐 */
+    margin-top: 6px; /* 调整头像位置，使其与文本第一行对齐 */
   }
   
   /* 文本样式 */
@@ -2664,6 +2776,15 @@ export default {
     max-width: 100%;
     overflow-wrap: break-word;
     box-sizing: border-box;
+  }
+  
+  /* 消息样式细节优化 */
+  .assistant .message-content {
+    align-items: flex-start; /* 确保内容顶部对齐 */
+  }
+  
+  .assistant .text {
+    margin-top: 0; /* 确保文本没有顶部边距 */
   }
 }
 

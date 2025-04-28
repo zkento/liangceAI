@@ -167,7 +167,7 @@
                     <el-icon class="header-icon"><ChatDotSquare /></el-icon>
                     继续向AI咨询
                     <span v-if="consultationThinkingTimer > 0" class="thinking-status">
-                      AI正在准备回答中{{consultationThinkingDots}}，{{consultationThinkingTimer}}秒
+                      AI正在回复中{{consultationThinkingDots}}，{{consultationThinkingTimer}}秒
                     </span>
                     <span v-else-if="consultationResponseStatus" class="response-status">
                       {{consultationResponseStatus}} 耗时{{consultationResponseTime}}秒
@@ -496,22 +496,15 @@ export default {
           // 模拟AI思考过程
           // 设置完整的AI思考过程数据
           const fullThinkingProcess = `从客户描述中提取到的个人信息：
-首先，我需要处理报告的基本信息。但提供的文件中并没有包含姓名、证件类型、证件号码、婚姻状态、报告时间和报告编号等信息。因此，在报告基本信息部分，可能都需要填写"未获得此信息"。
+- 客户姓名：${formData.value.name || '未提供'}
+- 业务地区：${formData.value.businessArea?.length >= 2 ? formData.value.businessArea.join('-') : '未提供'}
+- 联系方式：${formData.value.phone || '未提供'}
+- 婚姻状况：${formData.value.maritalStatus === 'married' ? '已婚' : 
+             formData.value.maritalStatus === 'single' ? '未婚' : 
+             formData.value.maritalStatus === 'divorced' ? '离异' : 
+             formData.value.maritalStatus === 'widowed' ? '丧偶' : '未提供'}
 
-接下来是征信报告内容。首先是贷款明细。在用户提供的第16页中，有多个授信协议，看起来像是贷款或信用额度。例如，授信协议1到授信协议11。每个协议都有授信额度、已用额度、下种等信息。需要将这些信息整理成贷款明细表格。
-根据表格要求，需要管理机构、业务种类、借款金额、当前余额、余额占比、状态。其中，如果当前余额等于授信额度，可能状态为未结清，需要加粗。但需要确认每个协议的状态是否为未结清。例如，授信协议1的已用额度等于授信额度，说明可能已全部使用，状态可能为未结清。同样，授信协议3的已用额度接近授信额度，授信协议4的已用额度超过授信额度，可能存在风险，需要加粗。授信协议2的已用额度为0，可能未使用，状态为结清?
-
-但用户提供的授信协议信息中，业务种类可能都是"领取贷款额度"，但不确定是属于贷款或贷记卡。需要进一步确认。如果都是贷款，则归入贷款明细；如果是贷记卡，则归入贷记卡明细。但根据表格中的"授信额度用途"为"领取贷款额度"，推测可能是贷款类业务。
-
-然后，贷记卡明细。用户提供的授信协议信息中是否有贷记卡？可能没有明确提到。需要检查是否有贷记卡相关信息。如果没有，贷记卡明细可能显示"未获得此信息"。
-
-担保责任明细部分，用户提供的文件中没有相关数据，因此可能也是"未获得此信息"。
-
-查询记录部分，当前月份是2025年03月。需要查找近三个月（2025年01月、02月、03月）和近半年（2024年10月至2025年03月）的查询次数。但用户提供的文件中没有查询记录的信息，所以可能结果为0次，但根据用户指示，如果没有数据应填写"未获得此信息"，但用户特别说明如果找不到相关月份数据则为0次。需要确认是否有查询记录，但根据提供的内容，可能没有，所以填写0次。主要查询原因也因为没有数据而无法列出。
-
-基于客户的需求和征信情况，现在开始匹配合适的金融产品。
-
-分析客户需求：
+分析客户融资需求：
 1. 贷款类型：${formData.value.loanType === 'mortgage' ? '按揭贷款' : 
     formData.value.loanType === 'secured' ? '抵押贷款' : 
     formData.value.loanType === 'credit' ? '信用贷款' : '未指定'}
@@ -520,37 +513,19 @@ export default {
 4. 利率要求：${formData.value.minInterestRate}-${formData.value.maxInterestRate || 0}%
 5. 还款方式偏好：${formData.value.repaymentMethod?.join(', ') || '未指定'}
 
-基于以上分析，我推荐以下金融产品：
+根据业务地区【${formData.value.businessArea?.length >= 2 ? formData.value.businessArea.join('-') : '未指定'}】的市场情况，我需要考虑当地政策和经济环境：
+1. 当地平均房价水平和贷款政策
+2. 当地主要银行及其贷款产品特点
+3. 区域特殊政策（如有）
 
-方案1：优质客户信用贷
-- 适用人群：征信良好、有稳定工作的个人
-- 贷款额度：最高50万元
-- 贷款期限：1-3年
-- 贷款利率：3.8%
-- 产品优势：无需抵押、审批速度快、手续简便
-- 匹配度：★★★★☆
+基于以上分析，我将为客户匹配以下类型的金融产品：
+1. 符合客户贷款类型需求的产品
+2. 满足客户贷款金额和期限要求的产品
+3. 利率范围符合客户预期的产品
+4. 支持客户偏好还款方式的产品
+5. 针对${formData.value.businessArea?.length >= 2 ? formData.value.businessArea[1] : '当地'}客户的特色金融产品
 
-方案2：小微企业经营贷
-- 适用人群：小微企业主、个体工商户
-- 贷款额度：最高200万元
-- 贷款期限：1-5年
-- 贷款利率：4.5%
-- 产品优势：额度高、可用于经营周转、灵活支取
-- 匹配度：★★★★☆
-
-方案3：房产抵押贷款
-- 适用人群：有房产的个人或企业
-- 贷款额度：最高500万元 (房产评估值的70%)
-- 贷款期限：1-10年
-- 贷款利率：3.0%
-- 产品优势：利率低、额度高、期限长
-- 匹配度：★★★★★
-
-综合考虑客户情况，最终推荐方案1：优质客户信用贷，理由如下：
-1. 无需抵押，手续简便
-2. 放款速度快，能够快速满足客户需求
-3. 利率相对合理，在客户可接受范围内
-4. 适合客户的贷款金额和期限要求`;
+接下来，我将为客户推荐最适合的三款金融产品，并进行详细比较分析...`;
 
           // 开始模拟AI思考过程逐字显示
           aiThinkingProcess.value = fullThinkingProcess; // 保存完整内容以便后续使用
@@ -752,7 +727,7 @@ export default {
         second: '2-digit'
       }).replace(/\//g, '-');
       
-      reportContent.value = `# 融资顾问报告
+      reportContent.value = `# 融资顾问融资建议报告
 
 编制日期：${currentDate}
 
@@ -760,6 +735,7 @@ export default {
 
 **客户姓名**：${formData.value.name || '未提供'}
 **联系电话**：${formData.value.phone || '未提供'}
+**业务地区**：${formData.value.businessArea?.length >= 2 ? formData.value.businessArea.join('-') : '未提供'}
 **融资金额**：${formData.value.loanAmount ? formData.value.loanAmount + '万元' : '未提供'}
 **融资方式**：${formData.value.loanType === 'mortgage' ? '按揭贷款' : 
            formData.value.loanType === 'secured' ? '抵押贷款' : 
@@ -1005,11 +981,11 @@ export default {
           
           // 生成回复内容
           const responses = {
-            '利率': '我们的产品利率根据市场情况和个人资质有所不同。目前优质客户信用贷的年化利率为3.8%，小微企业经营贷为4.5%，房产抵押贷款为3.0%。实际利率会根据您的具体情况可能有所调整。',
-            '贷款': '您可以根据自己的需求选择适合的贷款产品。我们提供的贷款产品包括信用贷款、抵押贷款和按揭贷款。每种产品有不同的额度、期限和利率，可以根据您的具体情况为您推荐合适的方案。',
-            '申请': '申请贷款需要准备的材料通常包括：个人身份证明、收入证明、银行流水、征信报告等。具体材料清单会根据您选择的贷款产品有所不同，您可以参考融资报告中的"融资方案审批材料清单"部分。',
-            '流程': '贷款申请流程一般包括：提交申请材料、银行审核、审批通过、签订合同、放款。整个流程通常需要1-2周时间，但根据不同产品和银行政策可能有所不同。',
-            '还款': '我们提供多种还款方式，包括等额本息、等额本金、先息后本等。您可以根据自己的资金规划选择合适的还款方式。建议选择最适合您现金流情况的方案，避免产生还款压力。'
+            '利率': '贷款利率详情\n\n我们的产品利率根据市场情况和个人资质有所不同。目前优质客户信用贷的年化利率为3.8%，小微企业经营贷为4.5%，房产抵押贷款为3.0%。实际利率会根据您的具体情况可能有所调整。',
+            '贷款': '贷款产品介绍\n\n您可以根据自己的需求选择适合的贷款产品。我们提供的贷款产品包括信用贷款、抵押贷款和按揭贷款。每种产品有不同的额度、期限和利率，可以根据您的具体情况为您推荐合适的方案。',
+            '申请': '贷款申请材料\n\n申请贷款需要准备的材料通常包括：个人身份证明、收入证明、银行流水、征信报告等。具体材料清单会根据您选择的贷款产品有所不同，您可以参考融资报告中的"融资方案审批材料清单"部分。',
+            '流程': '贷款申请流程\n\n贷款申请流程一般包括：提交申请材料、银行审核、审批通过、签订合同、放款。整个流程通常需要1-2周时间，但根据不同产品和银行政策可能有所不同。',
+            '还款': '还款方式说明\n\n我们提供多种还款方式，包括等额本息、等额本金、先息后本等。您可以根据自己的资金规划选择合适的还款方式。建议选择最适合您现金流情况的方案，避免产生还款压力。'
           };
           
           // 检查问题是否包含特定关键词
@@ -1023,7 +999,7 @@ export default {
           
           // 如果没有匹配到关键词，使用默认回复
           if (!responseText) {
-            responseText = '感谢您的咨询。针对您的问题，建议您参考融资顾问报告中的相关内容，或者联系我们的客服人员获取更详细的解答。如果您有具体的贷款需求，也可以提供更多信息，我们可以为您提供更精准的建议。';
+            responseText = '综合财务建议\n\n感谢您的咨询。针对您的问题，建议您参考融资顾问报告中的相关内容，或者联系我们的客服人员获取更详细的解答。如果您有具体的贷款需求，也可以提供更多信息，我们可以为您提供更精准的建议。';
           }
           
           // 模拟AI回复
@@ -1418,9 +1394,9 @@ export default {
       }
     });
     
-    // 重置顾问流程
+    // 重新开始顾问流程
     const restartAdvisor = () => {
-      ElMessageBox.confirm('确定要重新开始新的融资顾问流程吗？', '提示', {
+      ElMessageBox.confirm('确定要开始新的融资顾问流程吗？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
@@ -1888,7 +1864,7 @@ export default {
 
 .panel-header {
   padding: 0 16px;
-  height: 50px;
+  height: 55px;
   border-bottom: 1px solid #ebeef5;
   display: flex;
   align-items: center;
@@ -2402,6 +2378,7 @@ export default {
         background: #ffffff;
         overflow-x: hidden;
         border-top-left-radius: 0;
+        padding-top: 6px; /* 减少顶部内边距，使文本更接近头像顶部 */
       }
     }
     
@@ -2447,6 +2424,8 @@ export default {
     font-weight: bold;
     flex-shrink: 0;
     font-size: 12px;
+    align-self: flex-start; /* 确保头像顶部对齐 */
+    margin-top: 6px; /* 调整头像位置，使其与文本第一行对齐 */
   }
   
   /* 文本样式 */

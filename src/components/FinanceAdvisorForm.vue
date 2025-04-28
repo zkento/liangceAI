@@ -14,8 +14,22 @@
               <el-form-item label="姓名" prop="name" class="form-item">
                 <el-input v-model="formData.name" placeholder="请输入客户姓名" @focus="handleInputFocus"></el-input>
               </el-form-item>
-              <el-form-item label="年龄" class="form-item">
-                <el-input-number v-model="formData.age" :min="18" :max="100" :precision="0" :step="1" placeholder="请输入年龄"  @focus="handleInputFocus"></el-input-number>
+              <el-form-item label="业务地区" prop="businessArea" class="form-item">
+                <el-cascader
+                  v-model="formData.businessArea"
+                  :options="provinceOptions"
+                  :props="{
+                    expandTrigger: 'hover',
+                    value: 'value',
+                    label: 'label',
+                    children: 'children'
+                  }"
+                  placeholder="请选择省/市"
+                  clearable
+                  filterable
+                  style="width: 100%"
+                  @focus="handleInputFocus">
+                </el-cascader>
               </el-form-item>
             </div>
             <div class="form-row">
@@ -862,7 +876,7 @@ export default {
       formData: {
         // 基本信息
         name: '',
-        age: null,
+        businessArea: [], // 省市二级联动，[省份值, 城市值]
         maritalStatus: '',
         phone: '',
         
@@ -914,8 +928,18 @@ export default {
         name: [
           { required: true, message: '请输入客户姓名', trigger: 'blur' }
         ],
-        age: [
-          { required: false }
+        businessArea: [
+          { required: true, message: '请选择业务地区', trigger: 'change' },
+          { 
+            validator: (rule, value, callback) => {
+              if (!value || value.length < 2) {
+                callback(new Error('请选择省份和城市'));
+              } else {
+                callback();
+              }
+            }, 
+            trigger: 'change' 
+          }
         ],
         maritalStatus: [
           { required: false }
@@ -1122,6 +1146,174 @@ export default {
       
       // 提取任务控制
       extractionTaskId: 0,
+      provinceOptions: [
+        {
+          value: '北京',
+          label: '北京',
+          children: [{ value: '北京市', label: '北京市' }]
+        },
+        {
+          value: '上海',
+          label: '上海',
+          children: [{ value: '上海市', label: '上海市' }]
+        },
+        {
+          value: '天津',
+          label: '天津',
+          children: [{ value: '天津市', label: '天津市' }]
+        },
+        {
+          value: '重庆',
+          label: '重庆',
+          children: [{ value: '重庆市', label: '重庆市' }]
+        },
+        {
+          value: '广东',
+          label: '广东',
+          children: [
+            { value: '广州市', label: '广州市' },
+            { value: '深圳市', label: '深圳市' },
+            { value: '珠海市', label: '珠海市' },
+            { value: '汕头市', label: '汕头市' },
+            { value: '佛山市', label: '佛山市' },
+            { value: '韶关市', label: '韶关市' },
+            { value: '江门市', label: '江门市' },
+            { value: '湛江市', label: '湛江市' },
+            { value: '茂名市', label: '茂名市' },
+            { value: '肇庆市', label: '肇庆市' },
+            { value: '惠州市', label: '惠州市' },
+            { value: '梅州市', label: '梅州市' },
+            { value: '汕尾市', label: '汕尾市' },
+            { value: '河源市', label: '河源市' },
+            { value: '阳江市', label: '阳江市' },
+            { value: '清远市', label: '清远市' },
+            { value: '东莞市', label: '东莞市' },
+            { value: '中山市', label: '中山市' },
+            { value: '潮州市', label: '潮州市' },
+            { value: '揭阳市', label: '揭阳市' },
+            { value: '云浮市', label: '云浮市' }
+          ]
+        },
+        {
+          value: '江苏',
+          label: '江苏',
+          children: [
+            { value: '南京市', label: '南京市' },
+            { value: '无锡市', label: '无锡市' },
+            { value: '徐州市', label: '徐州市' },
+            { value: '常州市', label: '常州市' },
+            { value: '苏州市', label: '苏州市' },
+            { value: '南通市', label: '南通市' },
+            { value: '连云港市', label: '连云港市' },
+            { value: '淮安市', label: '淮安市' },
+            { value: '盐城市', label: '盐城市' },
+            { value: '扬州市', label: '扬州市' },
+            { value: '镇江市', label: '镇江市' },
+            { value: '泰州市', label: '泰州市' },
+            { value: '宿迁市', label: '宿迁市' }
+          ]
+        },
+        {
+          value: '浙江',
+          label: '浙江',
+          children: [
+            { value: '杭州市', label: '杭州市' },
+            { value: '宁波市', label: '宁波市' },
+            { value: '温州市', label: '温州市' },
+            { value: '嘉兴市', label: '嘉兴市' },
+            { value: '湖州市', label: '湖州市' },
+            { value: '绍兴市', label: '绍兴市' },
+            { value: '金华市', label: '金华市' },
+            { value: '衢州市', label: '衢州市' },
+            { value: '舟山市', label: '舟山市' },
+            { value: '台州市', label: '台州市' },
+            { value: '丽水市', label: '丽水市' }
+          ]
+        },
+        {
+          value: '安徽',
+          label: '安徽',
+          children: [
+            { value: '合肥市', label: '合肥市' },
+            { value: '芜湖市', label: '芜湖市' },
+            { value: '蚌埠市', label: '蚌埠市' },
+            { value: '淮南市', label: '淮南市' },
+            { value: '马鞍山市', label: '马鞍山市' },
+            { value: '淮北市', label: '淮北市' },
+            { value: '铜陵市', label: '铜陵市' },
+            { value: '安庆市', label: '安庆市' },
+            { value: '黄山市', label: '黄山市' },
+            { value: '阜阳市', label: '阜阳市' },
+            { value: '宿州市', label: '宿州市' },
+            { value: '滁州市', label: '滁州市' },
+            { value: '六安市', label: '六安市' },
+            { value: '宣城市', label: '宣城市' },
+            { value: '池州市', label: '池州市' },
+            { value: '亳州市', label: '亳州市' }
+          ]
+        },
+        {
+          value: '福建',
+          label: '福建',
+          children: [
+            { value: '福州市', label: '福州市' },
+            { value: '厦门市', label: '厦门市' },
+            { value: '莆田市', label: '莆田市' },
+            { value: '三明市', label: '三明市' },
+            { value: '泉州市', label: '泉州市' },
+            { value: '漳州市', label: '漳州市' },
+            { value: '南平市', label: '南平市' },
+            { value: '龙岩市', label: '龙岩市' },
+            { value: '宁德市', label: '宁德市' }
+          ]
+        },
+        {
+          value: '山东',
+          label: '山东',
+          children: [
+            { value: '济南市', label: '济南市' },
+            { value: '青岛市', label: '青岛市' },
+            { value: '淄博市', label: '淄博市' },
+            { value: '枣庄市', label: '枣庄市' },
+            { value: '东营市', label: '东营市' },
+            { value: '烟台市', label: '烟台市' },
+            { value: '潍坊市', label: '潍坊市' },
+            { value: '济宁市', label: '济宁市' },
+            { value: '泰安市', label: '泰安市' },
+            { value: '威海市', label: '威海市' },
+            { value: '日照市', label: '日照市' },
+            { value: '临沂市', label: '临沂市' },
+            { value: '德州市', label: '德州市' },
+            { value: '聊城市', label: '聊城市' },
+            { value: '滨州市', label: '滨州市' },
+            { value: '菏泽市', label: '菏泽市' }
+          ]
+        },
+        {
+          value: '河南',
+          label: '河南',
+          children: [
+            { value: '郑州市', label: '郑州市' },
+            { value: '开封市', label: '开封市' },
+            { value: '洛阳市', label: '洛阳市' },
+            { value: '平顶山市', label: '平顶山市' },
+            { value: '安阳市', label: '安阳市' },
+            { value: '鹤壁市', label: '鹤壁市' },
+            { value: '新乡市', label: '新乡市' },
+            { value: '焦作市', label: '焦作市' },
+            { value: '濮阳市', label: '濮阳市' },
+            { value: '许昌市', label: '许昌市' },
+            { value: '漯河市', label: '漯河市' },
+            { value: '三门峡市', label: '三门峡市' },
+            { value: '南阳市', label: '南阳市' },
+            { value: '商丘市', label: '商丘市' },
+            { value: '信阳市', label: '信阳市' },
+            { value: '周口市', label: '周口市' },
+            { value: '驻马店市', label: '驻马店市' },
+            { value: '济源市', label: '济源市' }
+          ]
+        }
+      ],
     }
   },
   computed: {
@@ -2516,7 +2708,7 @@ export default {
   padding: 0;
   border-bottom: 1px solid #eee;
   background-color: #f8f9fa;
-  height: 60px; /* 固定标题栏高度 */
+  height: 55px; /* 固定标题栏高度 */
   box-sizing: border-box;
   position: relative; /* 为loan-type-switch提供相对定位参考 */
   display: flex;

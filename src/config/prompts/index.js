@@ -1,10 +1,11 @@
-// 最后修改时间: 2024-06-12 12:35
+// 最后修改时间: 2024-08-11 17:05:22
 const personalCredit = require('./personal-credit');
 const businessCredit = require('./business-credit');
 const propertyAdvice = require('./property-advice');
 const financingAdvice = require('./financing-advice');
 const followupChat = require('./followup-chat');
 const loanKeywordExtractor = require('./loanKeywordExtractor');
+const propertyNeedsAnalytics = require('./propertyNeedsAnalytics');
 
 const promptsConfig = {
   'personal-credit': personalCredit,
@@ -12,7 +13,8 @@ const promptsConfig = {
   'property-advice': propertyAdvice,
   'financing-advice': financingAdvice,
   'followup-chat': followupChat,
-  'loan-keywords': loanKeywordExtractor
+  'loan-keywords': loanKeywordExtractor,
+  'property-needs-analytics': propertyNeedsAnalytics
 };
 
 function getPromptConfig(chatType) {
