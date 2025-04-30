@@ -2536,6 +2536,7 @@ h3 {
   align-items: center;
   padding: 20px;
   box-sizing: border-box;
+  margin-bottom: 100px; /* 在整个任务面板上下居中，而不是在列表范围内上下居中 */
   pointer-events: auto; /* 加载容器本身可以接收鼠标事件 */
 }
 

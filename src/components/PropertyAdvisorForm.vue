@@ -95,7 +95,7 @@
                 <div v-for="(group, index) in requirementGuide" :key="index" class="reference-group">
                   <h4>{{ group.title }}</h4>
                   <div class="reference-items">
-                    <span v-for="(item, idx) in group.items" :key="idx" class="reference-item">
+                    <span v-for="(item, idx) in group.items" :key="idx" class="reference-item" :class="getItemClass(group.title, item.label)">
                       <span class="item-label">{{ item.label }}：</span><em>{{ item.example }}</em>
                     </span>
           </div>
@@ -145,7 +145,53 @@
                   <h4>{{ group.title }}</h4>
                   <div class="reference-items">
                     <span v-for="(item, idx) in group.items" :key="idx" class="reference-item" :class="getItemClass(group.title, item.label)">
-                      <span class="item-label">{{ item.label }}：</span><em>{{ getItemValue(group.title, item.label) }}</em>
+                      <span class="item-label">{{ item.label }}：</span>
+                      
+                      <!-- 金融服务-按揭贷款：使用单选框 -->
+                      <template v-if="group.title === '5. 金融服务' && item.label === '按揭贷款'">
+                        <div class="radio-options">
+                          <el-radio-group v-model="editableResults[group.title][item.label]" @change="handleMortgageChange" :disabled="isAnalyzing">
+                            <el-radio label="需要">需要</el-radio>
+                            <el-radio label="不需要">不需要</el-radio>
+                          </el-radio-group>
+                        </div>
+                      </template>
+                      
+                      <!-- 金融服务-购房后融资：根据按揭贷款选择显示不同内容 -->
+                      <template v-else-if="group.title === '5. 金融服务' && item.label === '购房后融资'">
+                        <div v-if="editableResults[group.title]['按揭贷款'] === '不需要'" class="radio-options finance-option">
+                          <span>若全款购房，
+                          <el-radio-group v-model="editableResults[group.title][item.label]" @change="handleFinancingChange" :disabled="isAnalyzing">
+                            <el-radio label="是">是</el-radio>
+                            <el-radio label="否">否</el-radio>
+                          </el-radio-group>
+                          需要抵押融资</span>
+                        </div>
+                        <div v-else-if="editableResults[group.title]['按揭贷款'] === '需要'" class="finance-dash item-found">-</div>
+                        <div v-else class="finance-dash">请先选择按揭贷款选项</div>
+                      </template>
+                      
+                      <!-- 其他所有字段：使用输入框 -->
+                      <template v-else>
+                        <div class="editable-field" @mouseenter="showEditIcon[group.title + item.label] = true" @mouseleave="showEditIcon[group.title + item.label] = false">
+                          <span v-if="!isEditing[group.title + item.label]" class="field-text" @click="!isAnalyzing && startEditing(group.title, item.label)" :class="{ 'empty-value': editableResults[group.title][item.label] === '需求中未包含此信息', 'disabled': isAnalyzing }">
+                            {{ editableResults[group.title][item.label] }}
+                            <el-icon v-show="showEditIcon[group.title + item.label] && !isAnalyzing" class="edit-icon"><EditPen /></el-icon>
+                    </span>
+                          <el-input 
+                            v-else
+                            v-model="editableResults[group.title][item.label]" 
+                            :class="{ 'empty-value': editableResults[group.title][item.label] === '需求中未包含此信息' }"
+                            size="small"
+                            :placeholder="item.example"
+                            @blur="finishEditing(group.title, item.label)"
+                            @keyup.enter="finishEditing(group.title, item.label)"
+                            @input="handleInputChange(group.title, item.label)"
+                            ref="editInputRefs"
+                            :disabled="isAnalyzing"
+                          />
+                        </div>
+                      </template>
                     </span>
           </div>
         </div>
@@ -153,8 +199,12 @@
           
               <div class="example-section">
                 <div class="example-block">
-                  <h4 class="result-title">AI分析结果建议</h4>
-                  <div class="user-requirement-suggestion" v-html="generateRequirementSuggestion()">
+                  <h4 class="result-title">AI分析结果建议
+                    <span class="advice-hint">
+                      你可在上方直接修改AI分析结果，再提交生成建议报告
+                    </span>
+                  </h4>                  
+                  <div class="user-requirement-suggestion" ref="requirementSuggestionRef">
                   </div>
                 </div>
               </div>
@@ -170,13 +220,14 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { sendMessage } from '../api/chat'  // 添加导入sendMessage API
-import { User, CaretRight } from '@element-plus/icons-vue'  // 导入User和CaretRight图标
+import { User, CaretRight, EditPen } from '@element-plus/icons-vue'  // 导入User和CaretRight图标
 
 export default {
   name: 'PropertyAdvisorForm',
   components: {
     User, // 注册User图标组件
-    CaretRight // 注册CaretRight图标组件
+    CaretRight, // 注册CaretRight图标组件
+    EditPen // 注册EditPen图标组件
   },
   emits: ['submit'],
   
@@ -203,6 +254,42 @@ export default {
     // AI分析结果
     const analysisResult = ref([])
     
+    // 结果建议的DOM引用
+    const requirementSuggestionRef = ref(null)
+    
+    // 添加可编辑的分析结果数据结构
+    const editableResults = reactive({
+      '1. 核心需求': {
+        '预算范围': '',
+        '购房目的': '',
+        '意向区域': '',
+        '户型需求': ''
+      },
+      '2. 居住偏好': {
+        '面积区间': '',
+        '楼层要求': '',
+        '朝向要求': '',
+        '装修标准': ''
+      },
+      '3. 配套要求': {
+        '交通便利': '',
+        '教育资源': '',
+        '商圈覆盖': '',
+        '医疗条件': '',
+        '景观要求': ''
+      },
+      '4. 特殊关注': {
+        '产权性质': '',
+        '楼龄要求': '',
+        '交易周期': '',
+        '抗性因素': ''
+      },
+      '5. 金融服务': {
+        '按揭贷款': '', 
+        '购房后融资': ''
+      }
+    })
+    
     // 计算客户姓名的验证规则 - 只有分析结果后才是必填
     const customerNameRules = computed(() => {
       return [
@@ -212,7 +299,7 @@ export default {
     })
     
     // 辅助方法 - 获取分析结果中特定标签的值
-    const getItemValue = (groupTitle, itemLabel) => {
+    const originalGetItemValue = (groupTitle, itemLabel) => {
       if (!hasAnalysisResult.value) return ''
       
       // 将组标题映射到分析结果的类别 - 添加更多可能的映射关系
@@ -221,7 +308,7 @@ export default {
         '2. 居住偏好': ['居住偏好', '房源要求', '户型需求', '房屋属性', '居住要求', '房型偏好', '房源要求', '户型需求', '房屋条件'],
         '3. 配套要求': ['配套要求', '周边配套', '区位偏好', '区位要求', '配套设施', '地段要求', '附加需求', '区位偏好', '配套设施', '周边配套'],
         '4. 特殊关注': ['特殊关注', '附加需求', '特殊要求', '其他要求', '附加条件', '物业属性', '房源要求', '物业属性', '房屋条件'],
-        '5. 金融服务': ['金融服务', '按揭需求', '贷款需求', '金融需求', '贷款要求', '融资需求', '预算']
+        '5. 金融服务': ['金融服务', '金融需求', '贷款信息', '融资需求', '按揭信息', '贷款需求'] // 添加金融服务相关的映射
       }
       
       // 标签映射 - 匹配不同名称的相似字段
@@ -243,8 +330,13 @@ export default {
         '楼龄要求': ['楼龄要求', '楼龄', '房龄', '建筑年代', '房屋年龄', '楼龄限制'],
         '交易周期': ['交易周期', '交易时间', '交易要求', '交易限制'],
         '抗性因素': ['抗性因素', '避嫌设施', '避免区域', '规避设施', '禁忌因素'],
-        '按揭贷款': ['按揭贷款', '贷款方式', '按揭', '贷款', '贷款需求'],
-        '购房后融资': ['购房后融资', '融资', '后续融资', '抵押融资', '再融资']
+        '按揭贷款': ['按揭贷款', '按揭', '贷款', '贷款需求', '按揭需求', '是否需要贷款'],
+        '购房后融资': ['购房后融资', '抵押融资', '购房融资', '房产抵押', '抵押贷款', '是否需要抵押融资']
+      }
+      
+      // 打印全部分析结果，帮助调试
+      if (groupTitle === '5. 金融服务' && itemLabel === '按揭贷款') {
+        console.log('完整分析结果:', JSON.stringify(analysisResult.value));
       }
       
       // 获取匹配的类别列表
@@ -355,7 +447,8 @@ export default {
     const getItemClass = (groupTitle, itemLabel) => {
       if (!hasAnalysisResult.value) return ''
       
-      const value = getItemValue(groupTitle, itemLabel)
+      // 直接使用editableResults中的值来决定样式
+      const value = editableResults[groupTitle][itemLabel]
       return value && value !== '需求中未包含此信息' ? 'item-found' : 'item-not-found'
     }
     
@@ -419,20 +512,63 @@ export default {
         const weightLevel = weightMapping[groupTitle]
         
         group.items.forEach(item => {
-          const value = getItemValue(groupTitle, item.label)
-          const itemInfo = {
-            group: groupTitle,
-            label: item.label,
-            example: item.example,
-            weight: weightConfig[weightLevel][item.label] || 1,
-            weightLevel,
-            value: value
-          }
-          
-          if (value === '需求中未包含此信息') {
-            missingItems.push(itemInfo)
+          // 特殊处理金融服务
+          if (groupTitle === '5. 金融服务') {
+            if (item.label === '按揭贷款') {
+              const value = editableResults[groupTitle][item.label]
+              const itemInfo = {
+                group: groupTitle,
+                label: item.label,
+                example: item.example,
+                weight: weightConfig[weightLevel][item.label] || 1,
+                weightLevel,
+                value: value
+              }
+              
+              if (!value || value === '需求中未包含此信息') {
+                missingItems.push(itemInfo)
+              } else {
+                existingItems.push(itemInfo)
+              }
+            } 
+            else if (item.label === '购房后融资') {
+              // 只有当按揭贷款为"不需要"时才检查购房后融资
+              if (editableResults[groupTitle]['按揭贷款'] === '不需要') {
+                const value = editableResults[groupTitle][item.label]
+                const itemInfo = {
+                  group: groupTitle,
+                  label: item.label,
+                  example: item.example,
+                  weight: weightConfig[weightLevel][item.label] || 1,
+                  weightLevel,
+                  value: value
+                }
+                
+                if (!value || value === '需求中未包含此信息') {
+                  missingItems.push(itemInfo)
+                } else {
+                  existingItems.push(itemInfo)
+                }
+              }
+              // 如果按揭贷款未选择或为"需要"，购房后融资不计入统计
+            }
           } else {
-            existingItems.push(itemInfo)
+            // 其他非金融服务项目的处理保持不变
+            const value = editableResults[groupTitle][item.label]
+            const itemInfo = {
+              group: groupTitle,
+              label: item.label,
+              example: item.example,
+              weight: weightConfig[weightLevel][item.label] || 1,
+              weightLevel,
+              value: value
+            }
+            
+            if (value === '需求中未包含此信息') {
+              missingItems.push(itemInfo)
+            } else {
+              existingItems.push(itemInfo)
+            }
           }
         })
       })
@@ -473,18 +609,18 @@ export default {
       // 建议模板选择
       let suggestionTemplate = ''
       let detailSuggestions = []
-      let enhancementSuggestions = []
+      // let enhancementSuggestions = []
       
-      // 处理已有项但描述不够详细的情况
-      if (briefDescriptionItems.length > 0) {
-        // 取前3个权重最高的项提示完善
-        const topBriefItems = briefDescriptionItems.slice(0, 3)
-        enhancementSuggestions.push('以下信息可以更详细描述：')
+      // // 处理已有项但描述不够详细的情况
+      // if (briefDescriptionItems.length > 0) {
+      //   // 取前3个权重最高的项提示完善
+      //   const topBriefItems = briefDescriptionItems.slice(0, 3)
+      //   enhancementSuggestions.push('以下信息可以更详细描述：')
         
-        topBriefItems.forEach(item => {
-          enhancementSuggestions.push(`• ${item.label}：当前为"${item.value}"，建议具体到${item.example}`)
-        })
-      }
+      //   topBriefItems.forEach(item => {
+      //     enhancementSuggestions.push(`• ${item.label}：当前为"${item.value}"，建议具体到${item.example}`)
+      //   })
+      // }
       
       // T0级缺失项处理（最高优先级）
       if (missingStats.T0 > 0) {
@@ -577,13 +713,13 @@ export default {
         }
       })
       
-      // 处理增强建议部分
-      if (enhancementSuggestions.length > 0) {
-        htmlOutput += `<div class="enhancement-title">${enhancementSuggestions[0]}</div>`
-        enhancementSuggestions.slice(1).forEach(item => {
-          htmlOutput += `<div class="suggestion-item">${item}</div>`
-        })
-      }
+      // // 处理增强建议部分
+      // if (enhancementSuggestions.length > 0) {
+      //   htmlOutput += `<div class="enhancement-title">${enhancementSuggestions[0]}</div>`
+      //   enhancementSuggestions.slice(1).forEach(item => {
+      //     htmlOutput += `<div class="suggestion-item">${item}</div>`
+      //   })
+      // }
       
       return htmlOutput
     }
@@ -656,14 +792,77 @@ export default {
       }
     }
     
+    // 判断用户是否编辑过AI分析结果
+    const hasUserEdited = () => {
+      // 检查每个分类和字段
+      for (const groupTitle in editableResults) {
+        for (const itemLabel in editableResults[groupTitle]) {
+          // 获取当前编辑值和原始AI值
+          const currentValue = editableResults[groupTitle][itemLabel];
+          const originalValue = originalAIResults[groupTitle] && 
+                               originalAIResults[groupTitle][itemLabel] !== undefined ? 
+                               originalAIResults[groupTitle][itemLabel] : '';
+          
+          // 特殊情况处理：空字符串和"需求中未包含此信息"视为等价
+          if ((currentValue === '' && originalValue === '需求中未包含此信息') || 
+              (currentValue === '需求中未包含此信息' && originalValue === '')) {
+            continue; // 这种情况不视为编辑
+          }
+          
+          // 如果值不同，说明用户编辑过
+          if (currentValue !== originalValue) {
+            console.log('检测到用户编辑:', {
+              组别: groupTitle,
+              字段: itemLabel,
+              原始值: originalValue,
+              当前值: currentValue
+            });
+            return true;
+          }
+        }
+      }
+      
+      // 所有值都相同，用户未编辑
+      return false;
+    };
+    
     // 方法 - 分析需求
     const analyzeRequirements = async () => {
+      // 先检查用户是否编辑过AI分析结果
+      if (hasAnalysisResult.value && hasUserEdited()) {
+        console.log('检测到用户编辑过AI分析结果，显示确认对话框');
+        
+        // 如果用户编辑过，弹出确认框
+        try {
+          await ElMessageBox.confirm(
+            '重新分析将丢弃你之前的修改结果，请确认。',
+            '提示',
+            {
+              confirmButtonText: '继续分析',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }
+          )
+          // 用户确认继续，执行分析
+          console.log('用户确认继续分析');
+        } catch (error) {
+          // 用户取消，中止分析
+          console.log('用户取消分析');
+          return
+        }
+      } else if (hasAnalysisResult.value) {
+        console.log('用户未编辑AI分析结果，直接执行分析');
+      }
+      
       if (!formData.requirements || formData.requirements.trim().length < 30) {
         ElMessage.warning('需求描述内容过短，无法进行分析')
         return
       }
       
       try {
+        // 保存当前的editableResults
+        const previousResults = JSON.parse(JSON.stringify(editableResults))
+        
         isAnalyzing.value = true
         analysisStartTime.value = Date.now()
         currentAnalysisTime.value = 0
@@ -695,6 +894,12 @@ export default {
         // 检查响应是否包含错误
         if (response.error) {
           console.error('API返回错误:', response.error)
+          // 恢复之前的结果
+          Object.keys(previousResults).forEach(groupTitle => {
+            Object.keys(previousResults[groupTitle]).forEach(itemLabel => {
+              editableResults[groupTitle][itemLabel] = previousResults[groupTitle][itemLabel]
+            })
+          })
           throw new Error(response.message || '需求分析失败')
         }
         
@@ -773,13 +978,108 @@ export default {
         analysisTime.value = Math.round((Date.now() - analysisStartTime.value) / 100) / 10
         hasAnalysisResult.value = true
         
+        // 保存原始AI分析结果以便恢复
+        if (!shouldIgnoreResult.value) {
+          // 清空原始AI分析结果
+          Object.keys(originalAIResults).forEach(groupTitle => {
+            delete originalAIResults[groupTitle];
+          });
+        }
+        
+        // 初始化editableResults和原始AI分析结果
+        requirementGuide.forEach(group => {
+          const groupTitle = group.title
+          group.items.forEach(item => {
+            const value = originalGetItemValue(groupTitle, item.label)
+            
+            // 特殊字段处理
+            if (groupTitle === '5. 金融服务' && item.label === '按揭贷款') {
+              // 修复判断逻辑：先检查是否明确表示"不需要"，再判断是否需要
+              const isExplicitlyNotNeeded = value.includes('不需要') || 
+                                           value.includes('无需') || 
+                                           value.includes('全款') ||
+                                           value.includes('无按揭');
+              
+              const isExplicitlyNeeded = value.includes('需要按揭') || 
+                                        value.includes('需按揭') || 
+                                        (value.includes('贷款') && !value.includes('不') && !value.includes('无'));
+              
+              // 修改：如果明确表达了需要或不需要，则设置相应的值，否则保持为空或默认值
+              if (isExplicitlyNotNeeded) {
+                editableResults[groupTitle][item.label] = '不需要';
+              } else if (isExplicitlyNeeded) {
+                editableResults[groupTitle][item.label] = '需要';
+              } else if (value === '需求中未包含此信息' || !value.trim()) {
+                // 未明确提及时保持原值不变，这样不会误判为编辑
+                // 不要设置为空字符串，这会导致与原值"需求中未包含此信息"不同
+                // 如果是第一次设置，则保持为原值
+                if (originalAIResults[groupTitle] && originalAIResults[groupTitle][item.label] !== undefined) {
+                  // 不做改变，保持原值
+                } else {
+                  // 如果没有原始值，则设置为"需求中未包含此信息"
+                  editableResults[groupTitle][item.label] = '需求中未包含此信息';
+                }
+              }
+              
+              // 输出调试信息
+              console.log('按揭贷款值解析:', {
+                原始值: value,
+                明确不需要: isExplicitlyNotNeeded,
+                明确需要: isExplicitlyNeeded,
+                最终设置: editableResults[groupTitle][item.label]
+              });
+            }
+            // 购房后融资特殊处理
+            else if (groupTitle === '5. 金融服务' && item.label === '购房后融资') {
+              // 如果按揭贷款是"不需要"，则不自动设置值，让用户自己选择
+              if (editableResults[groupTitle]['按揭贷款'] === '不需要') {
+                // 只有在明确表示需要时才设置为"是"，明确不需要时才设置为"否"
+                if (value.toLowerCase().includes('是') || (value.includes('需要') && !value.includes('不需要'))) {
+                  editableResults[groupTitle][item.label] = '是';
+                } else if (value.toLowerCase().includes('否') || value.includes('不需要')) {
+                  editableResults[groupTitle][item.label] = '否';
+                } else if (value === '需求中未包含此信息' || !value.trim()) {
+                  // 未明确提及时保持原值不变
+                  if (originalAIResults[groupTitle] && originalAIResults[groupTitle][item.label] !== undefined) {
+                    // 不做改变，保持原值
+                  } else {
+                    // 如果没有原始值，则设置为"需求中未包含此信息"
+                    editableResults[groupTitle][item.label] = '需求中未包含此信息';
+                  }
+                }
+              }
+            }
+            else {
+              editableResults[groupTitle][item.label] = value
+            }
+            
+            // 保存为原始AI分析结果
+            if (!originalAIResults[groupTitle]) {
+              originalAIResults[groupTitle] = {};
+            }
+            originalAIResults[groupTitle][item.label] = value;
+          })
+        })
+        
         // 停止计时器
         clearInterval(timerInterval.value)
         timerInterval.value = null
         
         ElMessage.success('需求分析完成')
+        
+        // 生成并更新建议内容
+        nextTick(() => {
+          updateSuggestionContent();
+        });
+        
         } catch (parseError) {
           console.error('解析AI响应时出错:', parseError)
+          // 恢复之前的结果
+          Object.keys(previousResults).forEach(groupTitle => {
+            Object.keys(previousResults[groupTitle]).forEach(itemLabel => {
+              editableResults[groupTitle][itemLabel] = previousResults[groupTitle][itemLabel]
+            })
+          })
           throw new Error('解析分析结果时出错: ' + parseError.message)
         }
       } catch (error) {
@@ -906,8 +1206,14 @@ export default {
       // 使用表单验证
       propertyFormRef.value.validate((valid, fields) => {
         if (valid) {
-          // 验证通过，触发提交事件，传递表单数据给父组件
-          emit('submit', formData)
+          // 创建组合后的数据，包含原始表单数据和编辑后的分析结果
+          const combinedData = {
+            ...formData,
+            analysisResults: {...editableResults}
+          }
+          
+          // 触发提交事件，传递组合数据给父组件
+          emit('submit', combinedData)
         } else {
           // 验证失败，检查是否是客户姓名字段验证失败
           if (fields && fields.customerName) {
@@ -965,6 +1271,105 @@ export default {
       }
     }
     
+    // 处理按揭贷款选项变化
+    const handleMortgageChange = (value) => {
+      // 如果选择"不需要"，不再自动设置购房后融资的默认值
+      // 注释掉原代码，让用户自己选择
+      // if (value === '不需要' && editableResults['5. 金融服务']['购房后融资'] === '') {
+      //   editableResults['5. 金融服务']['购房后融资'] = '否'
+      // }
+      
+      // 选项变化后更新建议内容
+      nextTick(() => {
+        updateSuggestionContent();
+      });
+    }
+    
+    // 添加处理购房后融资选项变化的函数
+    const handleFinancingChange = () => {
+      // 购房后融资选项变化后更新建议内容
+      nextTick(() => {
+        updateSuggestionContent();
+      });
+    }
+    
+    // 编辑状态管理
+    const isEditing = reactive({});
+    const showEditIcon = reactive({});
+    const editInputRefs = ref([]);
+
+    // 添加一个对象存储原始AI分析结果
+    const originalAIResults = reactive({});
+    
+    // 新增方法：更新建议内容
+    const updateSuggestionContent = () => {
+      if (requirementSuggestionRef.value) {
+        requirementSuggestionRef.value.innerHTML = generateRequirementSuggestion();
+      }
+    };
+    
+    // 开始编辑
+    const startEditing = (groupTitle, itemLabel) => {
+      // 保存原始AI分析结果，仅在第一次编辑时保存
+      if (!originalAIResults[groupTitle]) {
+        originalAIResults[groupTitle] = {};
+      }
+      if (originalAIResults[groupTitle][itemLabel] === undefined) {
+        originalAIResults[groupTitle][itemLabel] = editableResults[groupTitle][itemLabel];
+      }
+      
+      isEditing[groupTitle + itemLabel] = true;
+      // 等待DOM更新
+      nextTick(() => {
+        // 聚焦输入框
+        const input = editInputRefs.value[editInputRefs.value.length - 1];
+        if (input) {        
+          // 先聚焦
+          input.focus();
+          
+          // 确保在UI更新后执行全选操作
+          setTimeout(() => {
+            // 全选输入框内的文本
+            input.select();
+          }, 0);
+        }
+      });
+    };
+
+    // 完成编辑
+    const finishEditing = (groupTitle, itemLabel) => {
+      // 获取用户输入的当前值，去除前后空格
+      const currentValue = editableResults[groupTitle][itemLabel].trim();
+      
+      // 如果用户清空了内容或输入的全是空格
+      if (!currentValue) {
+        // 恢复到AI原始分析结果
+        if (originalAIResults[groupTitle] && originalAIResults[groupTitle][itemLabel] !== undefined) {
+          editableResults[groupTitle][itemLabel] = originalAIResults[groupTitle][itemLabel];
+        } else {
+          // 作为后备，如果没有原始分析结果，则使用"需求中未包含此信息"
+          editableResults[groupTitle][itemLabel] = '需求中未包含此信息';
+        }
+      } else {
+        // 确保去除前后空格后的值被保存
+        editableResults[groupTitle][itemLabel] = currentValue;
+      }
+      
+      isEditing[groupTitle + itemLabel] = false;
+      
+      // 强制更新建议内容 - 仅在失焦或回车时触发
+      nextTick(() => {
+        updateSuggestionContent();
+      });
+    };
+
+    // 处理输入时的更新
+    const handleInputChange = (groupTitle, itemLabel) => {
+      // 输入过程中不做任何操作
+    };
+    
+
+    
     return {
       propertyFormRef,
       formData,
@@ -977,7 +1382,6 @@ export default {
       handleRequirementsInput,
       analyzeRequirements,
       resetForm,
-      getItemValue,
       getItemClass,
       currentAnalysisTime,
       analysisStartTime,
@@ -985,7 +1389,19 @@ export default {
       customerNameRules,
       copyExampleText,
       shouldIgnoreResult,
-      generateRequirementSuggestion
+      generateRequirementSuggestion,
+      editableResults,
+      handleMortgageChange,
+      handleFinancingChange,
+      isEditing,
+      showEditIcon,
+      startEditing,
+      finishEditing,
+      editInputRefs,
+      handleInputChange,
+      originalAIResults,
+      requirementSuggestionRef,
+      updateSuggestionContent
     }
   }
 }
@@ -1075,8 +1491,14 @@ export default {
   font-weight: normal;
 }
 
+.advice-hint {
+  font-size: 14px;
+  color: #909399;
+  margin-left: 4px;
+  font-weight: normal;
+}
 .panel-content {
-  padding: 0 20px 20px 20px; /* 调整内边距，顶部为0以避免与标题重叠 */
+  padding: 0 20px 15px 20px; /* 调整内边距，减小底部内边距 */
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #dcdfe6 #f5f7fa;
@@ -1172,6 +1594,8 @@ export default {
   line-height: 1.5;
   display: flex;
   align-items: baseline;
+  word-break: break-all; /* 添加此属性允许所有文本在任意位置换行 */
+  overflow-wrap: break-word; /* 确保长单词/字符串可以换行 */
 }
 
 .reference-item em {
@@ -1179,6 +1603,8 @@ export default {
   font-style: normal;
   margin-left: 0px;
   flex: 1;
+  word-break: break-all; /* 确保示例文本也能正确换行 */
+  overflow-wrap: break-word;
 }
 
 .analysis-header {
@@ -1409,7 +1835,7 @@ export default {
 
 .item-not-found {
   color: #f56c6c;
-  font-weight: 500;
+  /* font-weight: 500; */
 }
 
 .item-not-found em {
@@ -1451,7 +1877,7 @@ export default {
 }
 
 .user-requirement-suggestion .suggestion-main {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   font-weight: 500;
 }
 
@@ -1514,5 +1940,146 @@ export default {
   font-size: 12px;
   margin-left: 4px;
   opacity: 0.7;
+}
+
+/* 添加可编辑结果的样式 */
+.reference-item .el-input {
+  flex: 1;
+  width: 100%;
+  min-width: 120px;
+}
+
+/* 确保输入框内的文本也能正确换行 */
+.reference-item .el-input input {
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+
+/* 单选框选项样式 */
+.radio-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+}
+
+.radio-options .el-radio {
+  margin-right: 10px;
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+}
+
+.radio-options span {
+  font-size: 13px;
+  color: #606266;
+  white-space: nowrap;
+}
+
+/* 调整金融服务相关样式 */
+.finance-option {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.finance-dash {
+  font-weight: normal;
+  padding: 0 8px;
+}
+
+@media (max-width: 768px) {
+  .radio-options {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .radio-options span {
+    margin-bottom: 4px;
+  }
+}
+
+/* 可编辑字段样式 */
+.editable-field {
+  position: relative;
+  flex: 1;
+  min-width: 120px;
+}
+
+.field-text {
+  display: block;
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border: 1px solid transparent;
+  line-height: 1.3;
+  /* min-height: 32px; */
+  box-sizing: border-box;
+  word-break: break-all; /* 添加此属性允许所有文本（包括非汉字）在任意位置换行 */
+  overflow-wrap: break-word; /* 确保长单词/字符串可以换行 */
+}
+
+.field-text:hover {
+  background-color: #f8fafd;
+  border-color: #dcdfe6;
+}
+
+.edit-icon {
+  font-size: 14px;
+  color: #909399;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+/* 禁用状态的样式 */
+.field-text.disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* 添加"需求AI分析结果"专用样式 */
+.analysis-content .reference-grid {
+  gap: 5px 16px;
+}
+
+.analysis-content .reference-group h4 {
+  margin-bottom: px;
+}
+
+.analysis-content .reference-items {
+  gap: 0px;
+}
+
+.analysis-content .reference-item {
+  line-height: 2;
+  word-break: break-all; /* 确保分析结果中的文本换行 */
+  overflow-wrap: break-word;
+}
+
+/* 添加额外的换行规则，确保各种情况下都能正确换行 */
+.analysis-content .editable-field {
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+.analysis-content .example-section {
+  padding-top: 10px;
+}
+
+.analysis-content .example-block {
+  margin-top: 10px;
+}
+
+.analysis-content .example-block h4 {
+  margin-bottom: 8px;
+}
+
+.analysis-content .panel-content {
+  padding: 0 20px 15px 20px;
 }
 </style>
