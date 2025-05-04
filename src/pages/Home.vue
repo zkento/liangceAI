@@ -1,3 +1,4 @@
+<!-- 最后修改记录时间 -> 2025-04-29 10:30:00 -->
 <template>
   <div class="home">
     <div class="hero-section">
@@ -24,16 +25,60 @@
     </div>
 
     <div class="footer">
+      <div class="ai-chat-entry" @click="toggleChatPanel">
+        <el-icon><ChatLineRound /></el-icon>
+        <span>Chat with AI</span>
+      </div>
       <p>© 2025 良策网络 - 智能分析平台，保留所有权利.</p>
     </div>
+
+    <!-- 聊天组件 -->
+    <ChatWithAI 
+      v-model:visible="chatVisible" 
+      @send-message="handleSendMessage"
+    />
   </div>
 </template>
 
 <script>
-import { Document, OfficeBuilding, House, Money } from '@element-plus/icons-vue'
+import { Document, OfficeBuilding, House, Money, ChatLineRound } from '@element-plus/icons-vue'
+import ChatWithAI from '@/components/ChatWithAI.vue'
+import { ref } from 'vue'
+// 导入API函数
+import { sendMessage } from '@/api/chat'
 
 export default {
   name: 'Home',
+  components: {
+    Document,
+    OfficeBuilding,
+    House,
+    Money,
+    ChatLineRound,
+    ChatWithAI
+  },
+  setup() {
+    // 聊天面板显示状态
+    const chatVisible = ref(false)
+    
+    // 切换聊天面板
+    const toggleChatPanel = () => {
+      chatVisible.value = !chatVisible.value
+    }
+    
+    // 处理消息发送 - 注意这个函数已不再需要执行实际的API调用，
+    // 因为ChatWithAI组件已经内置了API调用功能
+    const handleSendMessage = (message) => {
+      console.log('收到用户消息:', message)
+      // 无需处理，ChatWithAI组件内部已经完成了API调用
+    }
+    
+    return {
+      chatVisible,
+      toggleChatPanel,
+      handleSendMessage
+    }
+  },
   data() {
     return {
       features: [
@@ -63,12 +108,6 @@ export default {
         }
       ]
     }
-  },
-  components: {
-    Document,
-    OfficeBuilding,
-    House,
-    Money
   },
   methods: {
     navigateTo(path) {
@@ -193,9 +232,52 @@ export default {
   color: #909399;
   font-size: 14px;
   padding-top: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 .footer p {
   margin: 0;
+}
+
+.ai-chat-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: white;
+  color: #1b68de;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.ai-chat-entry:hover {
+  background-color: #1b68de;
+  color: white;
+  border: 1px solid #1b68de;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.ai-chat-entry :deep(.el-icon) {
+  font-size: 16px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 </style> 
