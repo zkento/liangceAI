@@ -2,6 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <el-page-header @back="goBack">
+        <template #title>返回</template>
         <template #content>
           <span class="page-title">企业征信分析</span>
         </template>
@@ -9,18 +10,18 @@
     </div>
     
     <div class="page-content">
-      <AIChat chat-type="business-credit" />
+      <creditReportAnalyse chat-type="business-credit" />
     </div>
   </div>
 </template>
 
 <script>
-import AIChat from '../components/AIChat.vue'
+import creditReportAnalyse from '../components/creditReportAnalyse.vue'
 
 export default {
   name: 'BusinessCredit',
   components: {
-    AIChat
+    creditReportAnalyse
   },
   methods: {
     goBack() {

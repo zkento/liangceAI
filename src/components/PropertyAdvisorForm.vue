@@ -4,7 +4,7 @@
       <!-- 左侧输入区 -->
       <div class="input-panel">
         <div class="panel-header">
-          <h2 class="panel-title">客户购房需求</h2>
+          <h2 class="panel-title">填写客户购房需求</h2>
           </div>
         <div class="panel-content">
           <p class="description-hint">请参照右侧的需求描述要点输入客户的购房需求，要点覆盖得越全面越好。</p>
@@ -174,14 +174,14 @@
                       <!-- 其他所有字段：使用输入框 -->
                       <template v-else>
                         <div class="editable-field" @mouseenter="showEditIcon[group.title + item.label] = true" @mouseleave="showEditIcon[group.title + item.label] = false">
-                          <span v-if="!isEditing[group.title + item.label]" class="field-text" @click="!isAnalyzing && startEditing(group.title, item.label)" :class="{ 'empty-value': editableResults[group.title][item.label] === '需求中未包含此信息', 'disabled': isAnalyzing }">
+                          <span v-if="!isEditing[group.title + item.label]" class="field-text" @click="!isAnalyzing && startEditing(group.title, item.label)" :class="{ 'empty-value': editableResults[group.title][item.label] === '无此信息，建议补充', 'disabled': isAnalyzing }">
                             {{ editableResults[group.title][item.label] }}
                             <el-icon v-show="showEditIcon[group.title + item.label] && !isAnalyzing" class="edit-icon"><EditPen /></el-icon>
                     </span>
                           <el-input 
                             v-else
                             v-model="editableResults[group.title][item.label]" 
-                            :class="{ 'empty-value': editableResults[group.title][item.label] === '需求中未包含此信息' }"
+                            :class="{ 'empty-value': editableResults[group.title][item.label] === '无此信息，建议补充' }"
                             size="small"
                             :placeholder="item.example"
                             @blur="finishEditing(group.title, item.label)"
@@ -189,6 +189,8 @@
                             @input="handleInputChange(group.title, item.label)"
                             ref="editInputRefs"
                             :disabled="isAnalyzing"
+                            maxlength="50"
+                            show-word-limit
                           />
                         </div>
                       </template>
@@ -201,7 +203,7 @@
                 <div class="example-block">
                   <h4 class="result-title">AI分析结果建议
                     <span class="advice-hint">
-                      你可在上方直接修改AI分析结果，再提交生成建议报告
+                      你可在上方直接修改AI的分析结果，再让AI生成建议报告
                     </span>
                   </h4>                  
                   <div class="user-requirement-suggestion" ref="requirementSuggestionRef">
@@ -341,7 +343,7 @@ export default {
       
       // 获取匹配的类别列表
       const categoryNames = categoryMapping[groupTitle] || []
-      if (categoryNames.length === 0) return '需求中未包含此信息'
+      if (categoryNames.length === 0) return '无此信息，建议补充'
       
       // 在分析结果中查找对应的类别 - 使用多种可能的字段名和类别名称进行匹配
       let foundCategory = null
@@ -372,7 +374,7 @@ export default {
         }
       }
       
-      if (!foundCategory) return '需求中未包含此信息'
+      if (!foundCategory) return '无此信息，建议补充'
       
       // 根据不同的数据结构查找对应的值
       if (foundCategory.items && Array.isArray(foundCategory.items)) {
@@ -386,7 +388,14 @@ export default {
               item.label.toLowerCase().includes(matchLabel.toLowerCase()) || 
               matchLabel.toLowerCase().includes(item.label.toLowerCase())
           })
-          if (foundItem) return foundItem.value
+          if (foundItem) {
+            let value = foundItem.value;
+            // 确保值不超过50个字符
+            if (value && value.length > 50) {
+              value = value.substring(0, 50);
+            }
+            return value;
+          }
         }
       } 
       else if (foundCategory.details && typeof foundCategory.details === 'object') {
@@ -397,7 +406,12 @@ export default {
         for (const matchLabel of matchLabels) {
           if (matchLabel && foundCategory.details[matchLabel] !== undefined) {
             const value = foundCategory.details[matchLabel]
-            return Array.isArray(value) ? value.join('、') : String(value)
+            let result = Array.isArray(value) ? value.join('、') : String(value);
+            // 确保值不超过50个字符
+            if (result && result.length > 50) {
+              result = result.substring(0, 50);
+            }
+            return result;
           }
           
           // 尝试模糊匹配键名
@@ -409,7 +423,12 @@ export default {
             })
             if (matchingKey) {
               const value = foundCategory.details[matchingKey]
-              return Array.isArray(value) ? value.join('、') : String(value)
+              let result = Array.isArray(value) ? value.join('、') : String(value);
+              // 确保值不超过50个字符
+              if (result && result.length > 50) {
+                result = result.substring(0, 50);
+              }
+              return result;
             }
           }
         }
@@ -417,7 +436,10 @@ export default {
       else if (foundCategory.requirements && Array.isArray(foundCategory.requirements)) {
         // 需求列表格式：尝试从数组中找到与itemLabel相关的项
         const relevantRequirements = foundCategory.requirements.join('、')
-        if (relevantRequirements) return relevantRequirements
+        if (relevantRequirements) {
+          // 确保值不超过50个字符
+          return relevantRequirements.length > 50 ? relevantRequirements.substring(0, 50) : relevantRequirements;
+        }
       }
       else {
         // 其他键值对格式：直接检查category对象中是否有匹配的键
@@ -435,12 +457,17 @@ export default {
           })
           if (keys.length > 0) {
             const value = foundCategory[keys[0]]
-            return Array.isArray(value) ? value.join('、') : String(value)
+            let result = Array.isArray(value) ? value.join('、') : String(value);
+            // 确保值不超过50个字符
+            if (result && result.length > 50) {
+              result = result.substring(0, 50);
+            }
+            return result;
           }
         }
       }
       
-      return '需求中未包含此信息'
+      return '无此信息，建议补充'
     }
     
     // 辅助方法 - 获取项目的CSS类
@@ -449,7 +476,7 @@ export default {
       
       // 直接使用editableResults中的值来决定样式
       const value = editableResults[groupTitle][itemLabel]
-      return value && value !== '需求中未包含此信息' ? 'item-found' : 'item-not-found'
+      return value && value !== '无此信息，建议补充' ? 'item-found' : 'item-not-found'
     }
     
     // AI分析结果建议内容的生成算法
@@ -525,7 +552,7 @@ export default {
                 value: value
               }
               
-              if (!value || value === '需求中未包含此信息') {
+              if (!value || value === '无此信息，建议补充') {
                 missingItems.push(itemInfo)
               } else {
                 existingItems.push(itemInfo)
@@ -544,7 +571,7 @@ export default {
                   value: value
                 }
                 
-                if (!value || value === '需求中未包含此信息') {
+                if (!value || value === '无此信息，建议补充') {
                   missingItems.push(itemInfo)
                 } else {
                   existingItems.push(itemInfo)
@@ -564,7 +591,7 @@ export default {
               value: value
             }
             
-            if (value === '需求中未包含此信息') {
+            if (value === '无此信息，建议补充') {
               missingItems.push(itemInfo)
             } else {
               existingItems.push(itemInfo)
@@ -803,9 +830,9 @@ export default {
                                originalAIResults[groupTitle][itemLabel] !== undefined ? 
                                originalAIResults[groupTitle][itemLabel] : '';
           
-          // 特殊情况处理：空字符串和"需求中未包含此信息"视为等价
-          if ((currentValue === '' && originalValue === '需求中未包含此信息') || 
-              (currentValue === '需求中未包含此信息' && originalValue === '')) {
+          // 特殊情况处理：空字符串和"无此信息，建议补充"视为等价
+          if ((currentValue === '' && originalValue === '无此信息，建议补充') || 
+              (currentValue === '无此信息，建议补充' && originalValue === '')) {
             continue; // 这种情况不视为编辑
           }
           
@@ -1009,15 +1036,15 @@ export default {
                 editableResults[groupTitle][item.label] = '不需要';
               } else if (isExplicitlyNeeded) {
                 editableResults[groupTitle][item.label] = '需要';
-              } else if (value === '需求中未包含此信息' || !value.trim()) {
+              } else if (value === '无此信息，建议补充' || !value.trim()) {
                 // 未明确提及时保持原值不变，这样不会误判为编辑
-                // 不要设置为空字符串，这会导致与原值"需求中未包含此信息"不同
+                // 不要设置为空字符串，这会导致与原值"无此信息，建议补充"不同
                 // 如果是第一次设置，则保持为原值
                 if (originalAIResults[groupTitle] && originalAIResults[groupTitle][item.label] !== undefined) {
                   // 不做改变，保持原值
                 } else {
-                  // 如果没有原始值，则设置为"需求中未包含此信息"
-                  editableResults[groupTitle][item.label] = '需求中未包含此信息';
+                  // 如果没有原始值，则设置为"无此信息，建议补充"
+                  editableResults[groupTitle][item.label] = '无此信息，建议补充';
                 }
               }
               
@@ -1038,13 +1065,13 @@ export default {
                   editableResults[groupTitle][item.label] = '是';
                 } else if (value.toLowerCase().includes('否') || value.includes('不需要')) {
                   editableResults[groupTitle][item.label] = '否';
-                } else if (value === '需求中未包含此信息' || !value.trim()) {
+                } else if (value === '无此信息，建议补充' || !value.trim()) {
                   // 未明确提及时保持原值不变
                   if (originalAIResults[groupTitle] && originalAIResults[groupTitle][item.label] !== undefined) {
                     // 不做改变，保持原值
                   } else {
-                    // 如果没有原始值，则设置为"需求中未包含此信息"
-                    editableResults[groupTitle][item.label] = '需求中未包含此信息';
+                    // 如果没有原始值，则设置为"无此信息，建议补充"
+                    editableResults[groupTitle][item.label] = '无此信息，建议补充';
                   }
                 }
               }
@@ -1339,7 +1366,12 @@ export default {
     // 完成编辑
     const finishEditing = (groupTitle, itemLabel) => {
       // 获取用户输入的当前值，去除前后空格
-      const currentValue = editableResults[groupTitle][itemLabel].trim();
+      let currentValue = editableResults[groupTitle][itemLabel].trim();
+      
+      // 确保不超过50个字符
+      if (currentValue.length > 50) {
+        currentValue = currentValue.substring(0, 50);
+      }
       
       // 如果用户清空了内容或输入的全是空格
       if (!currentValue) {
@@ -1347,8 +1379,8 @@ export default {
         if (originalAIResults[groupTitle] && originalAIResults[groupTitle][itemLabel] !== undefined) {
           editableResults[groupTitle][itemLabel] = originalAIResults[groupTitle][itemLabel];
         } else {
-          // 作为后备，如果没有原始分析结果，则使用"需求中未包含此信息"
-          editableResults[groupTitle][itemLabel] = '需求中未包含此信息';
+          // 作为后备，如果没有原始分析结果，则使用"无此信息，建议补充"
+          editableResults[groupTitle][itemLabel] = '无此信息，建议补充';
         }
       } else {
         // 确保去除前后空格后的值被保存
@@ -1834,12 +1866,12 @@ export default {
 }
 
 .item-not-found {
-  color: #f56c6c;
+  color: rgb(184, 129.6, 48,0.8);
   /* font-weight: 500; */
 }
 
 .item-not-found em {
-  color: #f56c6c;
+  color: rgb(184, 129.6, 48,0.8);
 }
 
 .result-title {
@@ -1989,6 +2021,7 @@ export default {
 .finance-dash {
   font-weight: normal;
   padding: 0 8px;
+  color: rgb(184, 129.6, 48,0.8);
 }
 
 @media (max-width: 768px) {

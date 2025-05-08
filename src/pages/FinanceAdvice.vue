@@ -2,6 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <el-page-header @back="goBack">
+        <template #title>返回</template>
         <template #content>
           <span class="page-title">融资顾问报告</span>
         </template>

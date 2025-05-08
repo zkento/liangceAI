@@ -44,7 +44,7 @@
                :class="['message', message.role, {'error': hasError && index === messages.length - 1 && message.role === 'assistant'}]">
             <div class="message-avatar" v-if="message.role === 'assistant'">AI</div>
             <div class="message-content">
-              <div class="message-text" v-if="message.role === 'user'">{{ message.content }}</div>
+              <div class="message-text" v-if="message.role === 'user'" v-html="formatUserMessage(message.content)"></div>
               <div class="message-text markdown-content" v-else v-html="renderMarkdown(message.content)"></div>
             </div>
           </div>
@@ -69,9 +69,9 @@
               v-model="inputMessage"
               type="textarea"
               :rows="2"
-              placeholder="请输入你的对话内容..."
+              placeholder="请输入你的对话内容... (Enter发送，Shift+Enter换行)"
               resize="none"
-              @keydown.enter.prevent="sendMessage"
+              @keydown.enter="handleEnterKey"
               class="message-input"
               ref="inputRef"
             />
@@ -139,7 +139,7 @@ export default {
     const messages = ref([
       {
         role: 'assistant',
-        content: '您好！我是AI助手，有什么可以帮助您的吗？'
+        content: '我是良策AI助手，有什么可以帮到您的吗？'
       }
     ])
     
@@ -166,15 +166,15 @@ export default {
     // 面板位置 - 更新为左下角
     const panelPosition = reactive({
       x: 30, // 左侧间距
-      y: window.innerHeight - 680 // 底部间距，考虑窗口高度
+      y: window.innerHeight - 650 // 底部间距，考虑窗口高度
     })
     
     // 计算面板样式 - 更新宽高
     const panelStyle = reactive({
       left: panelPosition.x + 'px',
       top: panelPosition.y + 'px',
-      width: '450px',
-      height: '650px'
+      width: '420px',
+      height: '620px'
     })
     
     // 添加变量控制是否忽略返回的结果
@@ -224,7 +224,7 @@ export default {
       messages.value = [
         {
           role: 'assistant',
-          content: '您好！我是AI助手，有什么可以帮助您的吗？'
+          content: '我是良策AI助手，有什么可以帮到您的吗？'
         }
       ]
       
@@ -364,6 +364,22 @@ export default {
       }
     }
     
+    // 处理回车键事件
+    const handleEnterKey = (event) => {
+      // 如果按下Shift+Enter，允许换行
+      if (event.shiftKey) {
+        return
+      }
+      
+      // 如果按下Enter但没有Shift，阻止默认行为并发送消息
+      event.preventDefault()
+      
+      // 检查是否可以发送消息（输入框不为空且不在思考中）
+      if (inputMessage.value.trim() && !thinking.value) {
+        sendMessage()
+      }
+    }
+    
     // 渲染Markdown
     const md = new markdownit({
       linkify: true,
@@ -411,6 +427,19 @@ export default {
     
     const renderMarkdown = (text) => {
       return md.render(text)
+    }
+    
+    // 处理用户消息中的换行符
+    const formatUserMessage = (text) => {
+      if (!text) return ''
+      // 将换行符转换为<br>标签，同时进行HTML转义防止XSS
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .replace(/\n/g, '<br>')
     }
     
     // 关闭面板
@@ -476,7 +505,9 @@ export default {
       confirmReset,
       sendMessage,
       renderMarkdown,
-      close
+      close,
+      handleEnterKey,
+      formatUserMessage
     }
   }
 }
@@ -568,6 +599,26 @@ export default {
   flex-direction: column;
   gap: 8px;
   background-color: #f9f9fb;
+  scrollbar-width: thin; /* 添加Firefox滚动条细化支持 */
+}
+
+/* 添加聊天区域的细滚动条样式 */
+.chat-messages::-webkit-scrollbar {
+  width: 6px; /* 与HistoryPanel一致的宽度 */
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 2px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: #909399;
 }
 
 .message {
@@ -652,6 +703,18 @@ export default {
 .message-text {
   line-height: 1.5;
   font-size: 14px;
+}
+
+/* 保证用户消息中的换行正确显示 */
+.message.user .message-text {
+  white-space: normal;
+  word-break: break-word;
+}
+
+.message.user .message-text br {
+  display: block;
+  content: "";
+  margin-top: 4px;
 }
 
 .markdown-content :deep(p) {
@@ -768,10 +831,32 @@ export default {
   resize: none;
   line-height: 1.6;
   max-height: 120px;
+  font-size: 14px;
+  color: #303133;
+}
+
+.message-input :deep(.el-textarea__inner::placeholder) {
+  color: #9ca3af;
+  font-size: 13px;
+  opacity: 0.8;
 }
 
 .message-input :deep(.el-textarea__inner:focus) {
   box-shadow: none;
+}
+
+/* 优化输入框滚动条样式 */
+.message-input :deep(.el-textarea__inner::-webkit-scrollbar) {
+  width: 5px;
+}
+
+.message-input :deep(.el-textarea__inner::-webkit-scrollbar-thumb) {
+  background-color: rgba(144, 147, 153, 0.3);
+  border-radius: 4px;
+}
+
+.message-input :deep(.el-textarea__inner::-webkit-scrollbar-track) {
+  background: transparent;
 }
 
 .send-button {
