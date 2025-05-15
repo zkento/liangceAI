@@ -2708,7 +2708,7 @@ export default {
   padding: 0;
   border-bottom: 1px solid #eee;
   background-color: #f8f9fa;
-  height: 55px; /* 固定标题栏高度 */
+  height: 50px; /* 固定标题栏高度 */
   box-sizing: border-box;
   position: relative; /* 为loan-type-switch提供相对定位参考 */
   display: flex;

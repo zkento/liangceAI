@@ -27,9 +27,9 @@
       
       <!-- 步骤3: 匹配金融产品 -->
       <div v-if="(hasCreditReport && activeStep === 3) || (!hasCreditReport && activeStep === 2)" class="step-container">
-        <div class="product-matching-container">
+        <div class="Ai-thinking-container">
           <!-- 匹配产品的蒙层，当AI未开始返回思考过程的内容前显示 -->
-          <div v-if="matchingStatus === 'matching'" class="matching-overlay">
+          <div v-if="workingStatus === 'working'" class="working-overlay">
             <div class="overlay-content">
               <div class="animation-container">
                 <div class="loading-brain">
@@ -57,7 +57,7 @@
                     <div class="timer-icon">
                       <el-icon><Timer /></el-icon>
                     </div>
-                    已耗时 {{ matchingTimer }} 秒
+                    已耗时 {{ workingTimer }} 秒
                   </div>
                 </div>
               </div>
@@ -66,30 +66,31 @@
 
           
           <!-- AI思考过程内容容器，当思考模式开始后显示 -->
-          <div v-if="matchingStatus === 'thinking' || matchingStatus === 'generating'" class="thinking-container">
+          <div v-if="workingStatus === 'thinking' || workingStatus === 'generating'" class="thinking-container">
             <div class="panel-header">
               <h3>
+                <el-icon class="header-icon"><Cpu /></el-icon>
                 <span v-if="isThinking" class="thinking-status">AI正在深度思考中...</span>
-                <span v-else-if="matchingStatus === 'generating'" class="thinking-completed">AI思考已完成。</span>
+                <span v-else-if="workingStatus === 'generating'" class="thinking-completed">AI思考已完成。</span>
               </h3>
             </div>
             <div class="panel-content">
               <!-- 报告生成过渡提示，不遮挡思考内容，而是以悬浮提示形式展示 -->
-              <div v-if="matchingStatus === 'generating'" class="generating-overlay">
+              <div v-if="workingStatus === 'generating'" class="generating-overlay">
                 <div class="generating-content">
                   <div class="loading-spinner"></div>
                   <div class="generating-message">即将生成融资建议报告...</div>
                 </div>
               </div>
               
-              <div class="thinking-display" :class="{ 'dimmed': matchingStatus === 'generating' }">
+              <div class="thinking-display" :class="{ 'dimmed': workingStatus === 'generating' }">
                 <span v-html="displayedThinkingProcess"></span>
               </div>
             </div>
           </div>
           
           <!-- 这里是返回思考过程后的内容容器，当AI开始响应后会移除蒙层显示内容 -->
-          <div v-if="matchingStatus === 'complete'" class="product-matching-content">
+          <div v-if="workingStatus === 'complete'" class="product-working-content">
             <!-- 这里后面会添加内容 -->
           </div>
         </div>
@@ -144,7 +145,7 @@
                 </div>
                 <div class="panel-content">
                   <div class="thinking-content">
-                    <div v-if="aiThinkingProcess" class="match-thinking" v-html="matchThinkingContent"></div>
+                    <div v-if="aiThinkingProcess" class="work-thinking" v-html="workThinkingContent"></div>
                     <template v-for="(thinking, index) in consultationThinkingProcesses" :key="index">
                       <div class="thinking-separator" v-if="index > 0 || aiThinkingProcess">
                         <span class="separator-line"></span>
@@ -167,48 +168,62 @@
                     <el-icon class="header-icon"><ChatDotSquare /></el-icon>
                     继续向AI咨询
                     <span v-if="consultationThinkingTimer > 0" class="thinking-status">
-                      AI正在回复中{{consultationThinkingDots}}，{{consultationThinkingTimer}}秒
+                      AI正在回复中 {{consultationThinkingTimer}}秒
                     </span>
                     <span v-else-if="consultationResponseStatus" class="response-status">
                       {{consultationResponseStatus}} 耗时{{consultationResponseTime}}秒
                     </span>
                   </h3>
                 </div>
-                <div class="panel-content chat-messages">
+                
+                <!-- 聊天内容区域 -->
+                <div class="chat-messages" ref="messagesContainer">
                   <div v-for="(message, index) in consultationMessages" 
                        :key="index" 
                        :class="['message', message.role]">
+                    <div class="message-avatar" v-if="message.role === 'assistant'">AI</div>
                     <div class="message-content">
-                      <div v-if="message.role === 'assistant'" class="ai-avatar">AI</div>
-                      <div class="text" v-if="message.role === 'user'">{{ message.content }}</div>
-                      <div class="text markdown-content" v-else v-html="renderMarkdown(message.content)"></div>
+                      <div class="message-text" v-if="message.role === 'user'" v-html="formatUserMessage(message.content)"></div>
+                      <div class="message-text markdown-content" v-else v-html="renderMarkdown(message.content)"></div>
+                    </div>
+                  </div>
+                  
+                  <!-- AI回复思考中动画 -->
+                  <div v-if="consultationLoading" class="message assistant thinking">
+                    <div class="message-avatar">AI</div>
+                    <div class="message-content">
+                      <div class="thinking-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                <!-- 聊天输入框 -->
                 <div class="chat-input">
-                  <el-input
-                    v-model="consultationInput"
-                    type="textarea"
-                    :rows="2"
-                    :autosize="{ minRows: 2, maxRows: 3 }"
-                    placeholder="请输入您要咨询的内容...(Enter键发送，Shift+Enter键换行)"
-                    @keydown.enter.exact.prevent="sendConsultationMessage"
-                    @keydown.shift.enter.exact.prevent="handleShiftEnter"
-                    @input="adjustInputHeight"
-                    @focus="adjustInputHeight"
-                    @blur="adjustInputHeight"
-                    ref="chatInputRef"
-                  />
-                  <el-tooltip content="快捷键: Enter" placement="top" effect="dark">
+                  <div class="input-container">
+                    <el-input
+                      v-model="consultationInput"
+                      type="textarea"
+                      :rows="2"
+                      placeholder="请输入你要咨询的内容... (Enter发送，Shift+Enter换行)"
+                      resize="none"
+                      @keydown.enter="handleEnterKey"
+                      class="message-input"
+                      ref="inputRef"
+                    />
                     <el-button 
                       type="primary" 
-                      :loading="consultationLoading"
-                      :disabled="!consultationInput.trim()"
+                      circle
+                      :disabled="!consultationInput.trim() || consultationLoading" 
                       @click="sendConsultationMessage"
-                      style="min-width: 80px;">
-                      发送
+                      class="send-button"
+                    >
+                      <el-icon><Position /></el-icon>
                     </el-button>
-                  </el-tooltip>
+                  </div>
                 </div>
               </div>
             </div>
@@ -223,7 +238,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { Loading, Download, InfoFilled, Refresh, ArrowDown, Document, Cpu, ChatDotSquare, Timer } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { marked } from 'marked';
@@ -264,14 +279,14 @@ export default {
     const formData = ref(props.initialData || {});
     
     // 匹配产品的状态
-    const matchingStatus = ref('idle'); // idle, matching, thinking, generating, complete
+    const workingStatus = ref('idle'); // idle, working, thinking, generating, complete
     
     // 匹配计时器
-    const matchingTimer = ref(0);
-    let matchingTimerInterval = null;
+    const workingTimer = ref(0);
+    let workingTimerInterval = null;
     
     // 匹配结果
-    const matchingResult = ref(null);
+    const workingResult = ref(null);
     
     // AI匹配产品思考过程
     const aiThinkingProcess = ref('');
@@ -295,7 +310,8 @@ export default {
     const consultationThinkingProcesses = ref([]); // 存储多个思考过程的数组
     let consultationThinkingInterval = null;
     let mutationObserver = null; // 用于监听输入框高度变化
-    let autoHeightCheckInterval = null; // 用于定期检查高度变化
+    
+    
     
     // 分栏调整
     const horizontalSplit = ref(60);
@@ -311,7 +327,10 @@ export default {
     const totalSteps = computed(() => hasCreditReport.value ? 4 : 3);
     
     // 初始匹配产品的思考内容
-    const matchThinkingContent = ref('');
+    const workThinkingContent = ref('');
+    
+    // 消息容器引用
+    const messagesContainer = ref(null);
     
     // 渲染Markdown内容
     const renderMarkdown = (text) => {
@@ -330,19 +349,32 @@ export default {
       return cleanHtml;
     };
     
+    // 处理用户消息中的换行符
+    const formatUserMessage = (text) => {
+      if (!text) return '';
+      // 将换行符转换为<br>标签，同时进行HTML转义防止XSS
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .replace(/\n/g, '<br>');
+    }
+    
     // 开始匹配产品的计时器
-    const startMatchingTimer = () => {
-      matchingTimer.value = 0;
-      matchingTimerInterval = setInterval(() => {
-        matchingTimer.value++;
+    const startWorkingTimer = () => {
+      workingTimer.value = 0;
+      workingTimerInterval = setInterval(() => {
+        workingTimer.value++;
       }, 1000);
     };
     
     // 停止匹配产品的计时器
-    const stopMatchingTimer = () => {
-      if (matchingTimerInterval) {
-        clearInterval(matchingTimerInterval);
-        matchingTimerInterval = null;
+    const stopWorkingTimer = () => {
+      if (workingTimerInterval) {
+        clearInterval(workingTimerInterval);
+        workingTimerInterval = null;
       }
     };
     
@@ -379,98 +411,30 @@ export default {
       }
     };
     
-    // 调整输入框高度
-    const adjustInputHeight = () => {
-      try {
-        // 如果已经有等待执行的调整，不再重复安排
-        if (adjustHeightTimer) {
-          clearTimeout(adjustHeightTimer);
-        }
-        
-        // 使用requestAnimationFrame确保在浏览器下一次重绘之前调用函数，提高实时性
-        requestAnimationFrame(() => {
-          try {
-            const inputArea = document.querySelector('.chat-input');
-            const textarea = document.querySelector('.chat-input .el-textarea__inner');
-            const sendButton = document.querySelector('.chat-input .el-button');
-            
-            if (inputArea && textarea) {
-              // 计算输入区域应有的高度 = 文本区高度 + padding + border
-              const textareaHeight = textarea.scrollHeight;
-              // 文本区高度 + 上下padding(12px*2) + 区域内间距
-              let inputHeight = textareaHeight + 24 + 8; 
-              
-              // 限制最小和最大高度（对应2-3行文本）
-              inputHeight = Math.max(60, Math.min(90, inputHeight));
-              
-              // 设置输入区域高度
-              inputArea.style.height = `${inputHeight}px`;
-              
-              // 调整发送按钮高度，直接跟随文本区高度变化
-              if (sendButton) {
-                // 按钮高度与文本区保持一致，稍微减小一点以保持美观
-                // 同时限制最大高度，不超过输入框的最大高度
-                const maxButtonHeight = 64; // 输入框最大高度(90px) - 上下padding(12px*2) ≈ 66px
-                const buttonHeight = Math.min(maxButtonHeight, textareaHeight - 2);
-                sendButton.style.height = `${buttonHeight}px`;
-              }
-            }
-          } catch (e) {
-            console.warn('调整输入框高度渲染错误:', e);
-          }
-        });
-        
-        // 使用setTimeout提供一个小延迟，让连续的多次调用合并为一次
-        adjustHeightTimer = setTimeout(adjustInputHeightImmediate, 16); // 约1帧的时间
-      } catch (e) {
-        console.warn('调整输入框高度出错:', e);
+    // 添加 handleEnterKey 函数
+    const handleEnterKey = (event) => {
+      // 如果按下Shift+Enter，允许换行
+      if (event.shiftKey) {
+        return
       }
-    };
-    
-    // 立即调整高度的辅助方法，不使用requestAnimationFrame以避免冲突
-    const adjustInputHeightImmediate = () => {
-      const textarea = document.querySelector('.chat-input .el-textarea__inner');
-      const sendButton = document.querySelector('.chat-input .el-button');
       
-      if (textarea && sendButton) {
-        const textareaHeight = textarea.scrollHeight;
-        const oldButtonHeight = sendButton.style.height;
-        
-        // 限制最大按钮高度，与输入框最大高度保持一致
-        const maxButtonHeight = 64; // 输入框最大高度(90px) - 上下padding(12px*2) ≈ 66px
-        const buttonHeight = Math.min(maxButtonHeight, textareaHeight - 2);
-        
-        sendButton.style.height = `${buttonHeight}px`;
-        
-        // 输出高度变化信息到控制台，帮助调试
-        console.log(`调整按钮高度: 文本区高度=${textareaHeight}px, 按钮高度从${oldButtonHeight}变为${sendButton.style.height}，最大限制=${maxButtonHeight}px`);
+      // 如果按下Enter但没有Shift，阻止默认行为并发送消息
+      event.preventDefault()
+      
+      // 检查是否可以发送消息（输入框不为空且不在思考中）
+      if (consultationInput.value.trim() && !consultationLoading.value) {
+        sendConsultationMessage()
       }
-    };
-    
-    // 处理Shift+Enter键，用于换行
-    const handleShiftEnter = (e) => {
-      // Shift+Enter用于插入换行
-      const textarea = e.target;
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const value = textarea.value;
-      consultationInput.value = value.substring(0, start) + '\n' + value.substring(end);
-      // 下一个tick移动光标到换行符后
-      setTimeout(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + 1;
-        // 当插入换行时调整高度
-        adjustInputHeight();
-      }, 0);
-    };
+    }
     
     // 开始匹配产品
-    const startProductMatching = async () => {
+    const startAiWorking = async () => {
       try {
-        matchingStatus.value = 'matching';
-        startMatchingTimer();
+        workingStatus.value = 'working';
+        startWorkingTimer();
         
         // 构建用于匹配产品的消息
-        const productMatchingMessage = {
+        const AiWorkingMessage = {
           role: 'user',
           content: `我需要融资，具体需求如下：
           - 贷款类型: ${formData.value.loanType || '未指定'}
@@ -484,48 +448,58 @@ export default {
         
         // 添加征信报告信息（如果有）
         if (hasCreditReport.value) {
-          productMatchingMessage.content += `\n\n我有征信报告，报告显示我的信用情况良好。`;
+          AiWorkingMessage.content += `\n\n我有征信报告，报告显示我的信用情况良好。`;
         }
         
         // 设置固定等待时间为5秒后再模拟AI思考过程
         // 在实际接入AI时，移除此代码，使用真实的等待时间
         setTimeout(() => {
-          // 强制设置matchingTimer为5秒，模拟固定的等待时间
-          matchingTimer.value = 5;
+          // 强制设置workingTimer为5秒，模拟固定的等待时间
+          workingTimer.value = 5;
           
           // 模拟AI思考过程
           // 设置完整的AI思考过程数据
-          const fullThinkingProcess = `从客户描述中提取到的个人信息：
-- 客户姓名：${formData.value.name || '未提供'}
-- 业务地区：${formData.value.businessArea?.length >= 2 ? formData.value.businessArea.join('-') : '未提供'}
-- 联系方式：${formData.value.phone || '未提供'}
-- 婚姻状况：${formData.value.maritalStatus === 'married' ? '已婚' : 
-             formData.value.maritalStatus === 'single' ? '未婚' : 
-             formData.value.maritalStatus === 'divorced' ? '离异' : 
-             formData.value.maritalStatus === 'widowed' ? '丧偶' : '未提供'}
+          const fullThinkingProcess = `正在分析客户需求：
+"${formData.value.additionalNotes}"
 
-分析客户融资需求：
-1. 贷款类型：${formData.value.loanType === 'mortgage' ? '按揭贷款' : 
-    formData.value.loanType === 'secured' ? '抵押贷款' : 
-    formData.value.loanType === 'credit' ? '信用贷款' : '未指定'}
-2. 贷款金额：${formData.value.loanAmount ? formData.value.loanAmount + '万元' : '未指定'}
-3. 贷款期限：${formData.value.minLoanTerm}-${formData.value.maxLoanTerm || 0}月
-4. 利率要求：${formData.value.minInterestRate}-${formData.value.maxInterestRate || 0}%
-5. 还款方式偏好：${formData.value.repaymentMethod?.join(', ') || '未指定'}
+思考过程：
+嗯，客户需要融资2000万，用来维持日常经营，每月还款不超过2万。这看起来有点挑战性，因为金额大，还款压力小。首先，我得先搞清楚客户的实际情况。比如，他们是什么行业？经营状况如何？有没有抵押物或者担保？这些都会影响融资渠道的选择。
 
-根据业务地区【${formData.value.businessArea?.length >= 2 ? formData.value.businessArea.join('-') : '未指定'}】的市场情况，我需要考虑当地政策和经济环境：
-1. 当地平均房价水平和贷款政策
-2. 当地主要银行及其贷款产品特点
-3. 区域特殊政策（如有）
+首先，常规的银行贷款可能不太行，因为2000万的贷款，每月还款2万的话，利息可能都不够。假设年利率5%，一年的利息就要100万，分摊到每月就是8万多，远远超过客户的预算。所以银行贷款可能需要更长的还款期限或者更低的利率，但客户资质可能达不到。
 
-基于以上分析，我将为客户匹配以下类型的金融产品：
-1. 符合客户贷款类型需求的产品
-2. 满足客户贷款金额和期限要求的产品
-3. 利率范围符合客户预期的产品
-4. 支持客户偏好还款方式的产品
-5. 针对${formData.value.businessArea?.length >= 2 ? formData.value.businessArea[1] : '当地'}客户的特色金融产品
+然后考虑股权融资，客户愿意出让股权吗？如果企业有增长潜力，吸引投资者的话，可能可以融到资，但需要时间，而且客户可能不想失去控制权。不过股权融资不需要每月还款，可能符合客户的现金流需求。
 
-接下来，我将为客户推荐最适合的三款金融产品，并进行详细比较分析...`;
+政府补贴或低息贷款也是一个方向，特别是如果客户属于高新技术、绿色能源等扶持行业。这类贷款可能利息低，还款期限长，甚至有无息的可能。需要了解客户是否符合条件，以及申请流程和竞争情况。
+
+供应链融资可能适用，如果客户有稳定的上下游合作伙伴，可以利用应收账款或库存融资。比如保理或者存货抵押，这样可能减少现金流压力，但需要看客户的供应链情况是否支持。
+
+融资租赁的话，如果客户有固定资产需要购买，可以通过租赁方式分摊成本，但需要已有设备或计划购置新设备，可能不太适合日常经营资金。
+
+P2P或者民间借贷利率太高，每月还款压力大，风险也高，不太推荐，除非其他渠道都不行。
+
+还有发行债券，但需要企业资质较好，可能达不到要求，且利息可能还是高过客户的还款能力。
+
+另外，可以考虑组合不同的融资方式，比如一部分股权融资，一部分政府补贴贷款，再加上供应链融资，分散来源，降低还款压力。或者寻找长期低息的贷款产品，延长还款期限，比如十年期以上的贷款，这样每月还款额会降低。
+
+可能需要客户提供更多信息，比如企业规模、行业、财务状况、现有资产等，才能更准确地推荐合适的方案。同时，客户的信用评级、是否有抵押物也很关键。如果客户有房产或其他资产抵押，可能更容易获得低息贷款。
+
+还要注意，客户说"所有渠道都可以"，但有些渠道风险较高，比如民间借贷，可能会带来法律问题或更高的成本，需要权衡利弊。此外，融资成本除了利息，可能还有手续费、股权稀释等隐形成本，需要全面评估。
+
+最后，可能需要专业的财务顾问或金融机构来定制方案，根据客户的具体情况，综合各种融资工具，设计出既能满足资金需求，又符合还款能力的方案。
+
+我现在要解决的问题是：总贷款30万，年利率2.2%，期限5年，从2022年7月19日放款，到2027年8月还清。采用等额本息方式，每月还款5550元，2022年8月首次还款。现在需要计算到2025年3月20日为止，已还的本金和剩余未还的本金分别是多少。
+
+首先，我需要理清楚时间线。贷款是在2022年7月19日放款的，首次还款是在2022年8月，应该是每个月的某个固定日期还款，比如每月1日或者每月19日？不过问题中没有说明具体还款日，但一般可能在放款日的对应日，比如每月19日，或者可能每月1日。不过这里可能需要做一些假设，或者根据常规情况来处理。
+
+不过可能更简单的是，既然已经知道每月还款额是5550元，总期限是5年，也就是60个月。放款日期是2022年7月19日，到2027年8月还清，所以总共有60个月，最后一期可能在2027年8月还完。因此，还款周期是从2022年8月到2027年8月，共60个月。
+
+现在要计算到2025年3月20日为止，已经还了多少期，还剩多少期。然后根据等额本息的计算方法，计算已还本金和剩余本金。
+
+首先，确定从2022年8月到2025年3月之间有多少个月。2022年8月到2025年3月，这段时间是：
+
+从2022年8月到2023年7月是12个月，然后2023年8月到2024年7月又是12个月，2024年8月到2025年3月是8个月。所以总共有12+12+8=32个月？不过需要更准确的计算。
+
+好了，模拟思考的内容差不多就得了，够了，就这样吧。`;
 
           // 开始模拟AI思考过程逐字显示
           aiThinkingProcess.value = fullThinkingProcess; // 保存完整内容以便后续使用
@@ -534,7 +508,7 @@ export default {
           const startTime = Date.now(); // 记录开始时间
           
           // 切换状态到思考中
-          matchingStatus.value = 'thinking';
+          workingStatus.value = 'thinking';
           isThinking.value = true;
           
           // 移除光标闪烁代码，不再需要
@@ -655,8 +629,8 @@ export default {
         
       } catch (error) {
         console.error('匹配产品时出错:', error);
-        matchingStatus.value = 'error';
-        stopMatchingTimer();
+        workingStatus.value = 'error';
+        stopWorkingTimer();
       }
     };
     
@@ -700,13 +674,13 @@ export default {
       // 显示完整思考内容
       displayedThinkingProcess.value = aiThinkingProcess.value;
       // 保存初始匹配产品的思考内容
-      matchThinkingContent.value = aiThinkingProcess.value;
+      workThinkingContent.value = aiThinkingProcess.value;
       isThinking.value = false;
       
       // 延迟一会，让用户看到完整的思考过程
       setTimeout(() => {
         // 转换为生成报告状态，添加过渡效果
-        matchingStatus.value = 'generating';
+        workingStatus.value = 'generating';
         
         // 延迟约3秒后生成报告，提供良好的过渡体验
         setTimeout(() => {
@@ -808,14 +782,14 @@ export default {
 如需了解更多详情或有任何疑问，请随时咨询我们的客服人员。`;
       
       // 更新状态为完成
-      matchingStatus.value = 'complete';
-      stopMatchingTimer();
-      reportGenerationDuration.value = matchingTimer.value;
+      workingStatus.value = 'complete';
+      stopWorkingTimer();
+      reportGenerationDuration.value = workingTimer.value;
       
       // 添加初始系统消息到咨询消息列表
       consultationMessages.value.push({
-        role: 'system',
-        content: '您的融资建议报告已生成。关于本次融资需求，你可以继续向AI咨询以获取更多建议。'
+        role: 'assistant',
+        content: '我是良策AI助手，本次客户的融资建议报告已生成。您可以继续向我咨询以获取更多建议。'
       });
       
       // 进入下一步
@@ -878,7 +852,7 @@ export default {
         if ((hasCreditReport.value && activeStep.value === 3) || 
             (!hasCreditReport.value && activeStep.value === 2)) {
           // 匹配金融产品步骤
-          startProductMatching();
+          startAiWorking();
         }
       } else {
         // 所有步骤完成，通知父组件
@@ -893,75 +867,37 @@ export default {
     const sendConsultationMessage = async () => {
       if (!consultationInput.value.trim() || consultationLoading.value) return;
       
+      // 创建用户消息对象
       const userMessage = {
         role: 'user',
         content: consultationInput.value.trim()
       };
-      
       consultationMessages.value.push(userMessage);
       consultationInput.value = '';
       consultationLoading.value = true;
       
-      // 重置输入框高度
-      setTimeout(adjustInputHeight, 10);
+      // 滚动到底部
+      await nextTick();
+      if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+      }
       
       // 启动思考状态显示
       startConsultationThinking();
       
       try {
-        // 修改为显示思考过程
-        matchingStatus.value = 'thinking';
-        isThinking.value = true;
-        
-        // 创建一个模拟的AI思考过程内容
+        // 模拟AI思考过程
         const question = userMessage.content;
-        const thinkingProcessContent = `正在分析用户问题：
-"${question}"
-
+        const thinkingProcessContent = `用户的咨询内容："${question}"
 思考过程：
-1. 提取用户问题的关键信息
-   - 用户问询主题: ${question.includes('利率') ? '贷款利率' : 
-                  question.includes('贷款') ? '贷款产品' :
-                  question.includes('申请') ? '申请流程' :
-                  question.includes('流程') ? '贷款流程' :
-                  question.includes('还款') ? '还款方式' : '一般咨询'}
-   - 问题复杂度: ${question.length > 20 ? '较复杂' : '简单'}
-   - 情感倾向: 中性
+我现在需要帮用户生成一段模拟AI深度思考过程的文字和一段简短的回复。用户之前已经收到了一份正式的融资建议报告，现在他们继续咨询，要求生成模拟的AI思考过程和回复。用户特别指出，希望内容不要那么正式，要明确说明这是模拟生成的。
+好了，模拟思考的内容差不多就得了，够了，就这样吧。`;
 
-2. 检索相关知识库信息
-   - 检索关键词: ${question.split(' ').join(', ')}
-   - 匹配资料: ${
-     question.includes('利率') ? '贷款产品利率表, 客户分级利率标准' : 
-     question.includes('贷款') ? '信贷产品手册, 贷款类型对比表' :
-     question.includes('申请') ? '贷款申请材料清单, 审批流程文档' :
-     question.includes('流程') ? '贷款办理流程图, 业务办理时间表' :
-     question.includes('还款') ? '还款方式说明, 提前还款计算器' : '通用客户咨询指南'
-   }
-
-3. 形成回复策略
-   - 回复重点: ${
-     question.includes('利率') ? '不同产品的利率区间和影响因素' : 
-     question.includes('贷款') ? '适合客户的贷款产品类型和特点' :
-     question.includes('申请') ? '所需材料清单和申请注意事项' :
-     question.includes('流程') ? '贷款申请的主要环节和时间要求' :
-     question.includes('还款') ? '不同还款方式的优缺点和选择建议' : '提供通用的咨询指导'
-   }
-   - 推荐产品: ${
-     question.includes('利率') && formData.value.loanType === 'credit' ? '优质客户信用贷' :
-     question.includes('利率') && formData.value.loanType === 'secured' ? '房产抵押贷款' :
-     question.includes('贷款') && formData.value.loanAmount > 100 ? '小微企业经营贷' : '优质客户信用贷'
-   }
-
-4. 生成个性化回复
-   - 根据客户信息: ${formData.value.name || '未知客户'}, ${formData.value.loanAmount ? formData.value.loanAmount + '万元贷款需求' : '未指定贷款金额'}
-   - 优化回复语气: 专业、清晰、友好`;
-
-        // 将思考过程添加到数组中，但此时只是存储完整内容
+        // 将思考过程存储为完整内容以备后用
         const fullThinkingContent = thinkingProcessContent;
         
-        // 创建一个空的思考过程，用于逐字显示
-        const emptyThinkingContent = '';
-        consultationThinkingProcesses.value.push(emptyThinkingContent);
+        // 先添加一个空字符串到思考过程数组
+        consultationThinkingProcesses.value.push('');
         
         // 获取当前思考过程的索引
         const currentThinkingIndex = consultationThinkingProcesses.value.length - 1;
@@ -980,42 +916,22 @@ export default {
           consultationThinkingProcesses.value[currentThinkingIndex] = fullThinkingContent;
           
           // 生成回复内容
-          const responses = {
-            '利率': '贷款利率详情\n\n我们的产品利率根据市场情况和个人资质有所不同。目前优质客户信用贷的年化利率为3.8%，小微企业经营贷为4.5%，房产抵押贷款为3.0%。实际利率会根据您的具体情况可能有所调整。',
-            '贷款': '贷款产品介绍\n\n您可以根据自己的需求选择适合的贷款产品。我们提供的贷款产品包括信用贷款、抵押贷款和按揭贷款。每种产品有不同的额度、期限和利率，可以根据您的具体情况为您推荐合适的方案。',
-            '申请': '贷款申请材料\n\n申请贷款需要准备的材料通常包括：个人身份证明、收入证明、银行流水、征信报告等。具体材料清单会根据您选择的贷款产品有所不同，您可以参考融资报告中的"融资方案审批材料清单"部分。',
-            '流程': '贷款申请流程\n\n贷款申请流程一般包括：提交申请材料、银行审核、审批通过、签订合同、放款。整个流程通常需要1-2周时间，但根据不同产品和银行政策可能有所不同。',
-            '还款': '还款方式说明\n\n我们提供多种还款方式，包括等额本息、等额本金、先息后本等。您可以根据自己的资金规划选择合适的还款方式。建议选择最适合您现金流情况的方案，避免产生还款压力。'
-          };
+          const reply = `
+回复部分要简短，50字左右，同样要非正式，用轻松的语气，确认可行性，并鼓励用户进一步提问。让用户清楚这是模拟内容，保持轻松语气，覆盖所有关键点，同时确保信息准确无误。`;
           
-          // 检查问题是否包含特定关键词
-          let responseText = '';
-          for (const [keyword, response] of Object.entries(responses)) {
-            if (question.includes(keyword)) {
-              responseText = response;
-              break;
-            }
-          }
-          
-          // 如果没有匹配到关键词，使用默认回复
-          if (!responseText) {
-            responseText = '综合财务建议\n\n感谢您的咨询。针对您的问题，建议您参考融资顾问报告中的相关内容，或者联系我们的客服人员获取更详细的解答。如果您有具体的贷款需求，也可以提供更多信息，我们可以为您提供更精准的建议。';
-          }
-          
-          // 模拟AI回复
+          // 延迟一定时间后模拟AI回复
           setTimeout(() => {
-            const responseMessage = {
+            // 添加回复到消息列表
+            consultationMessages.value.push({
               role: 'assistant',
-              content: responseText
-            };
+              content: reply
+            });
             
-            consultationMessages.value.push(responseMessage);
+            // 更新状态
             consultationLoading.value = false;
             stopConsultationThinking('success');
-            isThinking.value = false;
             
-            // 滚动到底部
-            scrollToBottom();
+            // 自动滚动到底部通过watch实现，不需要在这里手动执行
           }, 1000);
         };
         
@@ -1095,24 +1011,27 @@ export default {
             completeConsultationThinking();
           }
         }, 30); // 基础显示间隔
-        
       } catch (error) {
-        console.error('发送咨询消息失败:', error);
-        stopConsultationThinking('error', '发送消息失败，请重试');
-        ElMessage.error('发送消息失败，请重试');
+        console.error('发送咨询消息出错:', error);
         consultationLoading.value = false;
-        isThinking.value = false;
+        stopConsultationThinking('error', '请求失败，请重试');
+        ElMessage.error('发送失败，请重试');
       }
     };
     
     // 滚动聊天消息到底部
-    const scrollToBottom = () => {
-      setTimeout(() => {
-        const chatMessages = document.querySelector('.chat-messages');
-        if (chatMessages) {
-          chatMessages.scrollTop = chatMessages.scrollHeight;
+    const scrollToBottom = (selector, forceScroll = true) => {
+      const element = document.querySelector(selector);
+      if (element) {
+        // 只有当内容接近底部或强制滚动时才滚动到底部
+        const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 30;
+        if (forceScroll || isNearBottom) {
+          // 使用requestAnimationFrame确保DOM已更新
+          requestAnimationFrame(() => {
+            element.scrollTop = element.scrollHeight;
+          });
         }
-      }, 0);
+      }
     };
     
     // 下载报告
@@ -1238,14 +1157,7 @@ export default {
       }
     };
     
-    // 垂直调整分隔线相关方法
-    const startResizeVertical = (e) => {
-      isResizingVertical.value = true;
-      document.addEventListener('mousemove', resizeVertical);
-      document.addEventListener('mouseup', stopResizeVertical);
-      e.preventDefault();
-    };
-    
+    // 垂直调整大小处理
     const resizeVertical = (e) => {
       if (!isResizingVertical.value) return;
       
@@ -1272,24 +1184,25 @@ export default {
         
         // 更新CSS变量
         document.documentElement.style.setProperty('--vertical-split', `${percentage}%`);
+        
+        // 防止滚动内容自动弹跳
+        // 延迟一会儿后刷新布局
+        setTimeout(() => {
+          // 触发一次布局刷新，但不强制滚动
+          scrollToBottom('.thinking-content', false);
+          scrollToBottom('.chat-messages', false);
+        }, 100);
       }, 10);
     };
     
+    // 停止垂直调整大小
     const stopResizeVertical = () => {
       isResizingVertical.value = false;
       document.removeEventListener('mousemove', resizeVertical);
       document.removeEventListener('mouseup', stopResizeVertical);
     };
     
-    // 窗口大小变化处理函数，移到钩子外部使其在组件范围内可访问
-    const resizeHandler = () => {
-      try {
-        cancelAnimationFrame(window._resizeRAF);
-        window._resizeRAF = requestAnimationFrame(adjustInputHeight);
-      } catch (e) {
-        console.warn('窗口resize处理错误:', e);
-      }
-    };
+
     
     // 初始化CSS变量
     onMounted(() => {
@@ -1299,16 +1212,6 @@ export default {
       document.documentElement.style.setProperty('--chat-input-width', '40%');
       // 设置初始的垂直分隔比例
       document.documentElement.style.setProperty('--vertical-split', '50%');
-      
-      // 监听窗口大小变化，重新调整输入框高度
-      window.addEventListener('resize', resizeHandler);
-      
-      // 确保输入框和按钮在初始状态下高度同步
-      // 使用多重保障机制确保初始同步
-      adjustInputHeight();
-      setTimeout(adjustInputHeight, 0);
-      setTimeout(adjustInputHeight, 100);
-      setTimeout(adjustInputHeight, 300);
       
       // 设置MutationObserver监听输入区域高度变化
       // 监听DOM变化的观察者
@@ -1327,11 +1230,7 @@ export default {
           
           const observer = new MutationObserver((mutations) => {
             try {
-              // 使用RAF防止过于频繁的调用
-              cancelAnimationFrame(window._adjustInputRAF);
-              window._adjustInputRAF = requestAnimationFrame(() => {
-                adjustInputHeight();
-              });
+              // 处理DOM变化
             } catch (e) {
               console.warn('MutationObserver回调错误:', e);
             }
@@ -1361,25 +1260,16 @@ export default {
       
       // 初始调用设置
       setupObservers();
-      // 调整输入框高度
-      adjustInputHeightImmediate();
-      
-      // 定期检查并调整按钮高度，确保与输入框同步
-      autoHeightCheckInterval = setInterval(() => {
-        adjustInputHeightImmediate();
-      }, 100);
+
     });
     
     // 清理计时器和事件监听
     onUnmounted(() => {
-      stopMatchingTimer();
+      stopWorkingTimer();
       stopThinkingProcess();
       if (consultationThinkingInterval) {
         clearInterval(consultationThinkingInterval);
       }
-      
-      // 移除窗口大小变化监听
-      window.removeEventListener('resize', resizeHandler);
       
       // 清理MutationObserver
       if (mutationObserver) {
@@ -1387,16 +1277,21 @@ export default {
         mutationObserver = null;
       }
       
-      // 清理自动高度检查定时器
-      if (autoHeightCheckInterval) {
-        clearInterval(autoHeightCheckInterval);
-        autoHeightCheckInterval = null;
-      }
+
+      
+      // 移除事件监听器
+      document.removeEventListener('mousemove', resizeHorizontal);
+      document.removeEventListener('mouseup', stopResizeHorizontal);
+      document.removeEventListener('mousemove', resizeVertical);
+      document.removeEventListener('mouseup', stopResizeVertical);
+      
+      document.documentElement.style.removeProperty('--vertical-split');
+      document.documentElement.style.removeProperty('--chat-input-width');
     });
     
     // 重新开始顾问流程
     const restartAdvisor = () => {
-      ElMessageBox.confirm('确定要开始新的融资顾问流程吗？', '提示', {
+      ElMessageBox.confirm('确定要开始新的融资顾问流程吗？', '操作提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
@@ -1407,7 +1302,7 @@ export default {
         reportContent.value = '';
         aiThinkingProcess.value = '';
         consultationMessages.value = [];
-        matchingStatus.value = 'idle';
+        workingStatus.value = 'idle';
         consultationInput.value = '';
         
         // 触发步骤变更
@@ -1422,13 +1317,31 @@ export default {
       });
     };
     
+    // 监听咨询消息变化，自动滚动到底部
+    watch(consultationMessages, () => {
+      nextTick(() => {
+        if (messagesContainer.value) {
+          messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+        }
+      });
+    }, { deep: true });
+    
+    // 开始垂直调整大小
+    const startResizeVertical = (e) => {
+      isResizingVertical.value = true;
+      document.addEventListener('mousemove', resizeVertical);
+      document.addEventListener('mouseup', stopResizeVertical);
+      // 记录初始位置
+      lastResizeTime = Date.now();
+    };
+    
     return {
       activeStep,
       hasCreditReport,
       formData,
-      matchingStatus,
-      matchingTimer,
-      matchingResult,
+      workingStatus,
+      workingTimer,
+      workingResult,
       reportContent,
       reportGenerationDuration,
       consultationMessages,
@@ -1440,21 +1353,21 @@ export default {
       consultationResponseTime,
       handleFormSubmit,
       renderMarkdown,
+      formatUserMessage,
       sendConsultationMessage,
-      handleShiftEnter,
       downloadReport,
       startResizeHorizontal,
       aiThinkingProcess,
       displayedThinkingProcess,
-      matchThinkingContent,
+      workThinkingContent,
       consultationThinkingProcesses,
       isThinking,
       verticalSplit,
       isResizingVertical,
       startResizeVertical,
       restartAdvisor,
-      adjustInputHeight,
-      adjustInputHeightImmediate
+      messagesContainer,
+      handleEnterKey
     };
   }
 };
@@ -1479,7 +1392,11 @@ export default {
 .finance-advisor-report {
   display: flex;
   flex-direction: column;
-  height: 100%; /* 使用百分比高度填充父容器 */
+  height: 100%;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  --horizontal-split: 55%;
 }
 
 .steps-header {
@@ -1489,44 +1406,24 @@ export default {
 
 .step-content {
   flex: 1;
-  overflow: hidden; /* 更改为hidden，防止外层滚动 */
+  overflow: hidden;
   padding: 0;
   position: relative;
 }
 
 .step-container {
   height: 100%;
-  overflow: auto; /* 保留auto，允许内容滚动 */
+  overflow: auto;
 }
 
-.placeholder-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #909399;
-  
-  .el-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-    animation: spin 2s linear infinite;
-  }
-  
-  p {
-    font-size: 16px;
-    text-align: center;
-    max-width: 400px;
-    line-height: 1.5;
-  }
-}
-
-.product-matching-container {
+/* AI思考容器 */
+.Ai-thinking-container {
   position: relative;
   height: 100%;
 }
 
-.matching-overlay {
+/* 等待加载遮罩 */
+.working-overlay {
   position: absolute;
   top: 0;
   left: 0;
@@ -1546,56 +1443,36 @@ export default {
   overflow: hidden;
 }
 
-.ai-wait-container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  padding: 0;
-}
-
-/* 主内容区域 */
-.ai-wait-content {
-  display: flex;
-  padding: 20px 30px 30px;
-}
-
-/* 左侧动画 */
-.wait-animation {
-  flex: 0 0 220px;
-  align-self: center;
-  margin-right: 40px;
-}
-
 .animation-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+
+.loading-brain {
+  margin-bottom: 0;
+}
+
+.loading-dots {
+  display: flex;
+  gap: 10px;
+  margin-top: -10px;
   
-  .loading-brain {
-    margin-bottom: 0; /* 移除底部外边距 */
-  }
-  
-  .loading-dots {
-    display: flex;
-    gap: 10px;
-    margin-top: -10px;
+  span {
+    width: 5px;
+    height: 5px;
+    background-color: #1b5dd3;
+    border-radius: 50%;
+    display: inline-block;
+    animation: dots-loader 1.4s infinite ease-in-out both;
     
-    span {
-      width: 5px;
-      height: 5px;
-      background-color: #1b5dd3;
-      border-radius: 50%;
-      display: inline-block;
-      animation: dots-loader 1.4s infinite ease-in-out both;
-      
-      &:nth-child(1) {
-        animation-delay: -0.32s;
-      }
-      
-      &:nth-child(2) {
-        animation-delay: -0.16s;
-      }
+    &:nth-child(1) {
+      animation-delay: -0.32s;
+    }
+    
+    &:nth-child(2) {
+      animation-delay: -0.16s;
     }
   }
 }
@@ -1604,14 +1481,14 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 20px; /* 设置顶部外边距为20px */
+  margin-top: 20px;
   
   .ai-timer {
     display: flex;
     align-items: center;
     color: #909399;
     font-size: 14px;
-    margin-right: 30px; /* 设置右侧外边距为30px */
+    margin-right: 30px;
     
     .timer-icon {
       margin-right: 2px;
@@ -1628,6 +1505,7 @@ export default {
   }
 }
 
+/* 大脑动画 */
 .brain-path {
   stroke-dasharray: 200;
   stroke-dashoffset: 200;
@@ -1647,61 +1525,564 @@ export default {
 .pulse-circle:nth-child(6) { animation-delay: 1.0s; }
 .pulse-circle:nth-child(7) { animation-delay: 1.2s; }
 
-.loading-dots {
+/* 思考容器 */
+.thinking-container {
   display: flex;
-  justify-content: center;
-  margin-top: 12px;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: #ffffff;
 }
 
-.loading-dots span {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin: 0 3px;
-  background-color: #1b5dd3;
-  border-radius: 50%;
-}
-
-.loading-dots span:nth-child(1) {
-  animation: dots 1.5s infinite 0s;
-}
-
-.loading-dots span:nth-child(2) {
-  animation: dots 1.5s infinite 0.3s;
-}
-
-.loading-dots span:nth-child(3) {
-  animation: dots 1.5s infinite 0.6s;
-}
-
-
-/* 底部区域 */
-.wait-footer {
-  padding: 14px 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.ai-timer {
-  display: flex;
-  align-items: center;
+.thinking-display {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-size: 14px;
+  line-height: 1.6;
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
   color: #606266;
-  font-size: 13px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-all;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  padding: 16px;
+  text-align: left;
+  box-sizing: border-box;
+  transition: opacity 0.3s ease;
+  
+  &.dimmed {
+    opacity: 0.5;
+  }
 }
 
-.timer-icon {
+/* 生成报告遮罩 */
+.generating-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.generating-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgb(0 0 0 / 50%);
+  padding: 20px 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.3s ease;
+  
+  .loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #c3c3c3;
+    border-top: 3px solid #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 12px;
+  }
+  
+  .generating-message {
+    font-size: 14px;
+    font-weight: 400;
+    color: #ffffff;
+    white-space: nowrap;
+  }
+}
+
+/* 报告布局 */
+.report-container {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.report-layout {
+  display: grid;
+  grid-template-columns: var(--horizontal-split, 55%) calc(100% - var(--horizontal-split, 55%));
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.report-left, .report-right {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 100%;
+}
+
+.report-left {
+  border-right: 1px solid #dcdfe6;
+}
+
+.report-right-top {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #dcdfe6;
+  height: var(--vertical-split, 50%);
+  max-height: var(--vertical-split, 50%);
+}
+
+.report-right-bottom {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - var(--vertical-split, 50%) - 6px);
+  max-height: calc(100% - var(--vertical-split, 50%) - 6px);
+  position: relative;
+}
+
+.report-right-bottom .panel-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: auto;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+}
+
+.report-right-top .panel-content,
+.report-right-bottom .panel-content,
+.report-left .panel-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+}
+
+.report-left .panel-content {
+  padding-right: 0;
+}
+
+/* 思考内容区 */
+.thinking-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-size: 14px;
+  line-height: 1.6;
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  color: #606266;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-all;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  padding: 16px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.report-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  line-height: 1.6;
+  width: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+/* 分隔线样式 */
+.resizer-vertical {
+  position: absolute;
+  left: auto; /* 移除左侧锚定 */
+  width: calc(100% - var(--horizontal-split, 55%)); /* 仅占据右侧区域宽度 */
+  right: 0; /* 从右侧锚定 */
+  height: 6px;
+  background-color: transparent;
+  cursor: row-resize;
+  z-index: 10;
+  top: var(--vertical-split, 50%);
+  transform: translateY(-3px);
+  
+  &:hover, 
+  &:active {
+    background-color: rgba(64, 158, 255, 0.2);
+  }
+}
+
+.resizer-horizontal {
+  position: absolute;
+  top: 0;
+  left: var(--horizontal-split, 55%);
+  width: 6px;
+  height: 100%;
+  background-color: transparent;
+  cursor: col-resize;
+  z-index: 10;
+  transform: translateX(-3px);
+}
+
+.resizer-horizontal:hover, .resizer-horizontal:active {
+  background-color: rgba(64, 158, 255, 0.2);
+}
+
+/* 分隔线样式 */
+.thinking-separator {
+  margin: 30px 0 20px 0;
+  display: flex;
+  align-items: center;
+}
+
+.separator-line {
+  flex: 1;
+  height: 3px;
+  background: radial-gradient(circle at 0 1px, #6595dd 30%, transparent 30%);
+  background-size: 5px 2px;
+  background-repeat: repeat-x;
+  opacity: 0.6;
+}
+
+.separator-text {
+  padding: 0 16px;
+  font-size: 14px;
+  color: #1b68de;
+  font-weight: 400;
+}
+
+/* 聊天区域样式 */
+.chat-messages {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: #fafafa;
+}
+
+.message {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 0 4px;
+  animation: message-fade-in 0.3s ease-out;
+}
+
+.message.user {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.message-content {
+  background-color: #fff;
+  padding: 10px 12px;
+  border-radius: 16px;
+  max-width: calc(100% - 50px);
+  word-break: break-word;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.2s ease;
+}
+
+.message.assistant .message-content {
+  border-top-left-radius: 1px;
+  margin-right: 40px;
+}
+
+.message.user .message-content {
+  background-color: #deebff;
+  color: #1b68de;
+  border-bottom-right-radius: 1px;
+  margin-left: 4px;
+}
+
+.message.error .message-content {
+  background-color: #ffebeb;
+  color: #e74c3c;
+  animation: error-pulse 1.5s ease-in-out;
+}
+
+.message-text {
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.message.user .message-text {
+  white-space: normal;
+  word-break: break-word;
+}
+
+.message.user .message-text br {
+  display: block;
+  content: "";
+  margin-top: 4px;
+}
+
+/* 思考指示器 */
+.thinking .thinking-indicator {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+}
+
+.thinking .thinking-indicator span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #a0a0a0;
+  animation: thinking 1.4s infinite ease-in-out both;
+}
+
+.thinking .thinking-indicator span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.thinking .thinking-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinking .thinking-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* 聊天输入区域 */
+.chat-input {
+  padding: 14px;
+  border-top: 1px solid #ebeef5;
+  background-color: #fff;
+  display: flex;
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+  background-color: #f2f3f5;
+  border-radius: 24px;
+  padding: 8px 8px 8px 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  width: 100%;
+}
+
+.message-input {
+  flex: 1;
+}
+
+.message-input :deep(.el-textarea__inner) {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  resize: none;
+  line-height: 1.6;
+  max-height: 120px;
+  font-size: 14px;
+  color: #303133;
+}
+
+.message-input :deep(.el-textarea__inner::placeholder) {
+  color: #9ca3af;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.message-input :deep(.el-textarea__inner:focus) {
+  box-shadow: none;
+}
+
+/* 优化输入框滚动条样式 */
+.message-input :deep(.el-textarea__inner::-webkit-scrollbar) {
+  width: 6px;
+}
+
+.message-input :deep(.el-textarea__inner::-webkit-scrollbar-thumb) {
+  background-color: rgba(144, 147, 153, 0.6);
+  border-radius: 4px;
+}
+
+.message-input :deep(.el-textarea__inner::-webkit-scrollbar-track) {
+  background: transparent;
+}
+
+.send-button {
   margin-left: 8px;
-  font-size: 22px;
-  color: #909399;
+  flex-shrink: 0;
 }
 
-.ai-tip {
-  color: #000000;
-  font-size: 13px;
+/* 面板样式 */
+.panel-header {
+  padding: 0 16px;
+  height: 50px;
+  border-bottom: 1px solid #ebeef5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f5f7fa;
+  z-index: 1;
+  
+  h3 {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: #303133;
+    
+    .header-icon {
+      margin-right: 6px;
+      font-size: 22px;
+      color: #1b5dd3;
+      vertical-align: middle;
+    }
+    
+    .thinking-status {
+      font-size: 14px;
+      color: #909399;
+      font-weight: normal;
+      margin-left: 8px;
+      display: inline-flex;
+      align-items: center;
+    }
+    
+    .thinking-status::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background-color: #1b5dd3;
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: pulse 1s infinite;
+    }
+    
+    .thinking-completed {
+      font-size: 14px;
+      color: #909399;
+      font-weight: normal;
+      margin-left: 8px;
+      display: inline-flex;
+      align-items: center;
+    }
+    
+    .thinking-completed::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background-color: #909399;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+  }
+  
+  .report-duration, .response-status {
+    font-size: 14px;
+    color: #909399;
+    font-weight: normal;
+    margin-left: 8px;
+  }
+  
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .action-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+    height: 30px;
+    font-size: 12px;
+    
+    .el-icon {
+      margin-right: 6px;
+    }
+  }
 }
 
-/* 动画效果 */
+.panel-content {
+  flex: 1;
+  box-sizing: border-box;
+  background-color: #fff;
+  height: calc(100% - 50px);
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Markdown内容样式 */
+.markdown-content :deep(p) {
+  margin: 0 0 8px;
+}
+
+.markdown-content :deep(pre) {
+  background-color: #f8f8f8;
+  padding: 8px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.markdown-content :deep(code) {
+  font-family: monospace;
+  background-color: #f0f0f0;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.report-right-bottom :deep(.markdown-content) {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-word;
+  box-sizing: border-box;
+  
+  table {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  
+  table th, table td {
+    padding: 4px 8px;
+    min-width: 50px;
+  }
+  
+  pre {
+    padding: 10px;
+    font-size: 13px;
+    margin-bottom: 10px;
+    max-width: 100%;
+  }
+  
+  ul, ol {
+    padding-left: 1.5em;
+    margin-top: 0;
+    margin-bottom: 10px;
+  }
+}
+
+/* 动画 */
 @keyframes brain-draw {
   0% {
     stroke-dashoffset: 200;
@@ -1738,321 +2119,13 @@ export default {
   }
 }
 
-.report-container {
-  position: relative;
-  height: 100%;
-  overflow: hidden; /* 更改为hidden，防止外层滚动 */
-}
-
-.report-layout {
-  display: grid;
-  grid-template-columns: var(--horizontal-split, 55%) calc(100% - var(--horizontal-split, 55%));
-  height: 100%;
-  position: relative;
-  overflow: hidden;
-}
-
-.report-left {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-right: 1px solid #dcdfe6;
-  max-height: 100%;
-}
-
-.report-right {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-  max-height: 100%;
-}
-
-.report-right-top {
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid #dcdfe6;
-  height: var(--vertical-split, 50%);
-  max-height: var(--vertical-split, 50%);
-}
-
-.report-right-bottom {
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  height: calc(100% - var(--vertical-split, 50%) - 6px);
-  max-height: calc(100% - var(--vertical-split, 50%) - 6px);
-  position: relative; /* 确保定位正确 */
-}
-
-.report-right-bottom .panel-content {
-  flex: 1; /* 使用flex:1自动填充剩余空间 */
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  height: auto; /* 移除固定高度计算，改用flex布局自动计算 */
-  overflow: hidden; /* 防止内部内容溢出 */
-  padding: 0; /* 移除内边距，由chat-messages控制 */
-  margin: 0;
-}
-
-.report-right-top .panel-content,
-.report-right-bottom .panel-content,
-.report-left .panel-content {
-  /* 确保滚动区域的正确位置和尺寸 */
-  overflow-y: auto;
-  overflow-x: hidden; /* 禁止所有panel-content的横向滚动 */
-  display: flex;
-  flex-direction: column;
-  max-width: 100%; /* 限制最大宽度 */
-  word-wrap: break-word; /* 确保长单词可以断行 */
-  word-break: break-all; /* 强制所有内容断行 */
-}
-
-.report-left .panel-content {
-  overflow-y: auto;
-  overflow-x: hidden; /* 再次确认禁止横向滚动 */
-  padding-right: 0; /* 移除右侧内边距，确保滚动条紧贴右侧 */
-}
-
-.thinking-content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden; /* 禁止横向滚动 */
-  font-size: 14px;
-  line-height: 1.6;
-  height: 100%;
-  width: 100%;
-  max-width: 100%; /* 限制最大宽度 */
-  color: #606266; /* 灰色文本 */
-  white-space: pre-wrap; /* 保留空格和换行 */
-  word-wrap: break-word; /* 确保长单词可以断行 */
-  word-break: break-all; /* 在任何字符间断行 */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  padding: 16px;
-  text-align: left;
-  box-sizing: border-box; /* 确保padding不会导致溢出 */
-}
-
-.report-content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden; /* 防止横向滚动 */
-  line-height: 1.6;
-  width: 100%;
-  padding: 0 12px; /* 添加左右内边距，增加内容与边缘的距离 */
-  box-sizing: border-box; /* 确保padding不影响总宽度 */
-}
-
-.resizer-vertical {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 6px;
-  background-color: transparent;
-  cursor: row-resize;
-  z-index: 10;
-  top: var(--vertical-split, 50%);
-  transform: translateY(-3px);
-}
-
-.resizer-vertical:hover, .resizer-vertical:active {
-  background-color: rgba(64, 158, 255, 0.2);
-}
-
-
-.panel-header {
-  padding: 0 16px;
-  height: 55px;
-  border-bottom: 1px solid #ebeef5;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background-color: #f5f7fa;
-  z-index: 1;
-  
-  .header-icon {
-    margin-right: 6px;
-    font-size: 22px;
-    color: #1b5dd3;
-    vertical-align: middle;
+@keyframes dots-loader {
+  0%, 80%, 100% { 
+    transform: scale(0);
   }
-  
-  .report-duration {
-    font-size: 14px;
-    color: #909399;
-    font-weight: normal;
-    margin-left: 8px;
+  40% { 
+    transform: scale(1.0);
   }
-  
-  .response-status {
-    font-size: 14px;
-    color: #909399;
-    font-weight: normal;
-    margin-left: 8px;
-  }
-  
-  h3 {
-    display: flex;
-    align-items: center;
-    margin: 0;
-    font-size: 16px;
-    font-weight: 500;
-    color: #303133;
-    
-    .thinking-status {
-      font-size: 14px;
-      color: #909399;
-      font-weight: normal;
-      margin-left: 8px;
-      display: inline-flex;
-      align-items: center;
-    }
-    
-    .thinking-status::before {
-      content: '';
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      background-color: #1b5dd3;
-      border-radius: 50%;
-      margin-right: 6px;
-      animation: pulse 1s infinite;
-    }
-    
-    /* 添加思考完成状态样式 */
-    .thinking-completed {
-      font-size: 14px;
-      color: #909399;
-      font-weight: normal;
-      margin-left: 8px;
-      display: inline-flex;
-      align-items: center;
-    }
-    
-    .thinking-completed::before {
-      content: '';
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      background-color: #909399;
-      border-radius: 50%;
-      margin-right: 6px;
-      /* 移除动画，保持静止 */
-    }
-  }
-}
-
-
-.panel-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 500;
-  color: #303133;
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 14px;
-  height: 30px;
-  font-size: 12px;
-  
-  .el-icon {
-    margin-right: 6px;
-  }
-}
-
-.panel-content {
-  flex: 1;
-  box-sizing: border-box;
-  background-color: #fff;
-  height: calc(100% - 50px); /* 减去header高度 */
-  width: 100%; /* 确保占满容器宽度 */
-  overflow-y: auto; /* 保持滚动功能 */
-}
-
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 16px;
-  padding-bottom: 16px; /* 正常内边距，不需要为输入框预留 */
-}
-
-.chat-input {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid #ebeef5;
-  background-color: #fff;
-  width: 100%;
-  box-sizing: border-box;
-  flex-shrink: 0; /* 防止被压缩 */
-  /* 移除绝对定位相关属性，使用flex布局 */
-  position: relative;
-  bottom: auto;
-  left: auto;
-  right: auto;
-  z-index: 2; /* 确保在内容上层但不需要太高 */
-  min-height: 60px; /* 默认最小高度，对应2行文本 */
-  max-height: 90px; /* 最大高度，对应3行文本 */
-  transition: height 0.2s ease; /* 平滑过渡高度变化 */
-}
-
-.chat-input .el-textarea {
-  flex: 1;
-  width: 100%;
-}
-
-/* 使输入区域内的textarea自适应 */
-.chat-input .el-textarea :deep(.el-textarea__inner) {
-  resize: none; /* 禁用手动调整大小 */
-  box-sizing: border-box;
-  min-height: 22px; /* 单行文本高度 */
-  line-height: 1.5;
-  transition: height 0.2s ease;
-}
-
-.chat-input .el-button {
-  align-self: center; /* 垂直居中对齐 */
-  margin: 0;
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-  min-height: calc(100% - 12px); /* 按钮高度接近容器高度 */
-  height: auto; 
-  box-sizing: border-box;
-}
-
-.resizer-horizontal {
-  position: absolute;
-  top: 0;
-  left: var(--horizontal-split, 55%);
-  width: 6px;
-  height: 100%;
-  background-color: transparent;
-  cursor: col-resize;
-  z-index: 10;
-  transform: translateX(-3px);
-}
-
-.resizer-horizontal:hover, .resizer-horizontal:active {
-  background-color: rgba(64, 158, 255, 0.2);
 }
 
 @keyframes spin {
@@ -2064,198 +2137,19 @@ export default {
   }
 }
 
-/* Markdown样式 */
-:deep(.markdown-content) {
-  overflow-x: hidden; /* 禁止markdown内容横向滚动 */
-  width: 100%;
-  max-width: 100%;
-  word-wrap: break-word; /* 确保长单词可断行 */
-  word-break: break-word; /* 使用break-word保持一定的可读性 */
-  padding: 10px 20px; /* 添加额外的内边距，提高可读性 */
-  box-sizing: border-box; /* 确保padding不会导致溢出 */
-  
-  h1, h2, h3, h4, h5, h6 {
-    margin-top: 16px;
-    margin-bottom: 8px;
-    font-weight: 600;
-    line-height: 1.25;
-  }
-  
-  h1 {
-    font-size: 1.5em;
-    border-bottom: 1px solid #eaecef;
-    padding-bottom: 0.3em;
-  }
-  
-  h2 {
-    font-size: 1.3em;
-    border-bottom: 1px solid #eaecef;
-    padding-bottom: 0.3em;
-  }
-  
-  h3 {
-    font-size: 1.2em;
-  }
-  
-  p {
-    margin-top: 0;
-    margin-bottom: 10px;
-  }
-  
-  ul, ol {
-    padding-left: 2em;
-    margin-top: 0;
-    margin-bottom: 16px;
-  }
-  
-  li {
-    margin-bottom: 4px;
-  }
-  
-  code {
-    padding: 0.2em 0.4em;
-    margin: 0;
-    font-size: 85%;
-    background-color: rgba(27, 31, 35, 0.05);
-    border-radius: 3px;
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-    word-break: break-all; /* 确保代码内容也能断行 */
-  }
-  
-  pre {
-    padding: 16px;
-    overflow-x: auto; /* 代码块保持横向滚动，但确保容器不溢出 */
-    max-width: 100%;
-    font-size: 85%;
-    line-height: 1.45;
-    background-color: #f6f8fa;
-    border-radius: 3px;
-    margin-top: 0;
-    margin-bottom: 16px;
-    white-space: pre-wrap; /* 允许代码块自动换行 */
-  }
-  
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    max-width: 100%; /* 限制表格最大宽度 */
-    margin-bottom: 16px;
-    display: block; /* 对于超宽的表格，确保能够自适应容器 */
-    overflow-x: auto; /* 允许表格在需要时横向滚动，但不影响外层容器 */
-  }
-  
-  table th, table td {
-    padding: 6px 13px;
-    border: 1px solid #dfe2e5;
-    min-width: 60px; /* 设置最小宽度防止内容过度挤压 */
-    word-break: break-word; /* 允许单元格内容换行 */
-  }
-  
-  table tr {
-    background-color: #fff;
-    border-top: 1px solid #c6cbd1;
-  }
-  
-  table tr:nth-child(2n) {
-    background-color: #f6f8fa;
-  }
-  
-  blockquote {
-    padding: 0 1em;
-    color: #6a737d;
-    border-left: 0.25em solid #dfe2e5;
-    margin: 0 0 16px 0;
-  }
+@keyframes message-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulse {
-  0% {
-    transform: scale(0.8);
-    opacity: 0.5;
+@keyframes thinking {
+  0%, 80%, 100% { 
+    transform: scale(0.6);
+    opacity: 0.6;
   }
-  50% {
-    transform: scale(1.2);
+  40% { 
+    transform: scale(1);
     opacity: 1;
-  }
-  100% {
-    transform: scale(0.8);
-    opacity: 0.5;
-  }
-}
-
-/* 恢复消息相关的样式 */
-.message {
-  margin-bottom: 16px;
-  max-width: 85%;
-}
-
-.thinking-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  background-color: #ffffff;
-}
-
-.thinking-display {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden; /* 禁止横向滚动 */
-  font-size: 14px;
-  line-height: 1.6;
-  height: 100%;
-  width: 100%;
-  max-width: 100%; /* 限制最大宽度 */
-  color: #606266; /* 灰色文本 */
-  white-space: pre-wrap; /* 保留空格和换行 */
-  word-wrap: break-word; /* 确保长单词可以断行 */
-  word-break: break-all; /* 在任何字符间断行 */
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  padding: 16px;
-  text-align: left;
-  box-sizing: border-box; /* 确保padding不会导致溢出 */
-  transition: opacity 0.3s ease;
-  
-  &.dimmed {
-    opacity: 0.5; /* 生成报告时轻微降低思考内容的显示强度 */
-  }
-}
-
-.generating-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 100;
-  pointer-events: none; /* 允许点击穿透 */
-}
-
-.generating-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: rgb(0 0 0 / 50%);
-  padding: 20px 30px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  animation: fadeIn 0.3s ease;
-  
-  .loading-spinner {
-    width: 36px;
-    height: 36px;
-    border: 3px solid #c3c3c3;
-    border-top: 3px solid #ffffff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 12px;
-  }
-  
-  .generating-message {
-    font-size: 14px;
-    font-weight: 400;
-    color: #ffffff;
-    white-space: nowrap;
   }
 }
 
@@ -2264,207 +2158,15 @@ export default {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.report-right-bottom :deep(.markdown-content) {
-  overflow-x: hidden; /* 禁止markdown内容横向滚动 */
-  width: 100%;
-  max-width: 100%;
-  word-wrap: break-word; /* 确保长单词可断行 */
-  word-break: break-word; /* 使用break-word保持一定的可读性 */
-  box-sizing: border-box; /* 确保padding不会导致溢出 */
-  
-  /* 表格样式微调 */
-  table {
-    font-size: 14px;
-    margin-bottom: 10px;
+@keyframes error-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4);
   }
-  
-  table th, table td {
-    padding: 4px 8px;
-    min-width: 50px;
+  70% {
+    box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
   }
-  
-  /* 代码块微调 */
-  pre {
-    padding: 10px;
-    font-size: 13px;
-    margin-bottom: 10px;
-    max-width: 100%;
+  100% {
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
   }
-  
-  /* 列表样式微调 */
-  ul, ol {
-    padding-left: 1.5em;
-    margin-top: 0;
-    margin-bottom: 10px;
-  }
-}
-
-/* 为聊天区域添加特定的样式调整，增强可读性和外观 */
-.report-right-bottom {
-  /* 布局结构 */
-  display: flex;
-  flex-direction: column;
-  
-  /* 聊天消息容器样式 */
-  .chat-messages {
-    flex: 1; /* 填充可用空间 */
-    overflow-y: auto; /* 确保可以垂直滚动 */
-    overflow-x: hidden; /* 禁止水平滚动 */
-    padding: 16px;
-    padding-bottom: 16px; /* 正常内边距，不需要为输入框预留 */
-    display: flex;
-    flex-direction: column;
-  }
-  
-  /* 输入区域样式 */
-  .chat-input {
-    flex-shrink: 0; /* 防止被压缩 */
-    border-top: 1px solid #ebeef5;
-    background-color: #fff;
-    display: flex;
-    flex-direction: row;
-    align-items: center; /* 确保垂直居中 */
-    gap: 8px;
-    padding: 12px 16px;
-    min-height: 60px; /* 默认最小高度 */
-    max-height: 90px; /* 最大高度限制，对应约3行文本 */
-    transition: height 0.2s ease; /* 平滑过渡高度变化 */
-    
-    /* 输入区域内的按钮样式 */
-    .el-button {
-      align-self: center; /* 确保在容器中垂直居中 */
-      margin: 0;
-      padding: 0 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      white-space: nowrap;
-      min-height: 36px; /* 最小高度 */
-      max-height: 64px; /* 最大高度限制，与调整逻辑中设置的一致 */
-      box-sizing: border-box;
-      transition: height 0.2s ease, opacity 0.2s ease; /* 平滑过渡高度变化 */
-    }
-  }
-  
-  /* 消息基础样式 */
-  .message {
-    margin-bottom: 16px;
-    max-width: 80%;
-    box-sizing: border-box;
-    
-    /* 用户消息样式 */
-    &.user {
-      align-self: flex-end;
-      margin-left: auto;
-      margin-right: 8px;
-      
-      .text {
-        background: #ecf5ff;
-        color: #303133;
-        white-space: pre-wrap;
-        overflow-x: hidden;
-        border-top-right-radius: 0;
-        text-align: left;
-      }
-    }
-    
-    /* AI助手消息样式 */
-    &.assistant {
-      align-self: flex-start;
-      margin-right: auto;
-      margin-left: 8px;
-      
-      .text {
-        background: #ffffff;
-        overflow-x: hidden;
-        border-top-left-radius: 0;
-        padding-top: 6px; /* 减少顶部内边距，使文本更接近头像顶部 */
-      }
-    }
-    
-    /* 系统消息样式 */
-    &.system {
-      align-self: center;
-      max-width: 90%;
-      // background-color: #f1f2f7;
-      // border-radius: 16px;
-      
-      .text {
-        background-color: transparent;
-        color: #909399;
-        text-align: center;
-        font-size: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 40px;
-      }
-    }
-  }
-  
-  /* 消息内容布局 */
-  .message-content {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    width: 100%;
-  }
-  
-  /* AI头像样式 */
-  .ai-avatar {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    background: #1b68de;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    flex-shrink: 0;
-    font-size: 12px;
-    align-self: flex-start; /* 确保头像顶部对齐 */
-    margin-top: 6px; /* 调整头像位置，使其与文本第一行对齐 */
-  }
-  
-  /* 文本样式 */
-  .text {
-    padding: 10px 12px;
-    border-radius: 6px;
-    line-height: 1.5;
-    word-break: break-word;
-    width: auto;
-    min-width: 50px;
-    max-width: 100%;
-    overflow-wrap: break-word;
-    box-sizing: border-box;
-  }
-}
-
-
-.thinking-separator {
-  margin: 30px 0 20px 0;
-  display: flex;
-  align-items: center;
-  // background-color: #f0f6ff;
-  // border-left: 4px solid #1b5dd3;
-  // border-radius: 4px;
-}
-
-.separator-line {
-  flex: 1;
-  height: 3px;
-  background: radial-gradient(circle at 0 1px, #6595dd 30%, transparent 30%);
-  background-size: 5px 2px; /* 控制圆点间距 */
-  background-repeat: repeat-x;
-  opacity: 0.6;
-}
-
-.separator-text {
-  padding: 0 16px;
-  font-size: 14px;
-  color: #1b68de;
-  font-weight: 400;
 }
 </style> 

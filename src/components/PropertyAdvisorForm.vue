@@ -36,6 +36,7 @@
                   placeholder="请输入客户姓名（必填，方便你查询结果）"
                   clearable
                   :disabled="isAnalyzing"
+                  @keydown.enter.prevent="handleNameEnter"
                 >
                   <template #prefix>
                     <el-icon><User /></el-icon>
@@ -863,7 +864,7 @@ export default {
         try {
           await ElMessageBox.confirm(
             '重新分析将丢弃你之前的修改结果，请确认。',
-            '提示',
+            '操作提示',
             {
               confirmButtonText: '继续分析',
               cancelButtonText: '取消',
@@ -1123,7 +1124,7 @@ export default {
     // 方法 - 重置表单
     const resetForm = () => {
       if (isAnalyzing.value) {
-        ElMessageBox.confirm('正在进行需求分析，确认要中止分析过程么？', '提示', {
+        ElMessageBox.confirm('正在进行需求分析，确认要中止分析过程么？', '操作提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
@@ -1147,7 +1148,7 @@ export default {
           // 用户取消了重置操作
         })
       } else if (hasAnalysisResult.value) {
-        ElMessageBox.confirm('确定放弃当前分析结果，开始新的需求分析么？', '提示', {
+        ElMessageBox.confirm('确定放弃当前分析结果，开始新的需求分析么？', '操作提示', {
           confirmButtonText: '确定',
           cancelButtonText: '取消',
           type: 'warning'
@@ -1166,7 +1167,7 @@ export default {
           // 用户取消了重置操作
         })
       } else {
-        ElMessageBox.confirm('确定要清空所有已填写的内容么？', '提示', {
+        ElMessageBox.confirm('确定要清空所有已填写的内容么？', '操作提示', {
           confirmButtonText: '确定',
           cancelButtonText: '取消',
           type: 'warning'
@@ -1400,7 +1401,17 @@ export default {
       // 输入过程中不做任何操作
     };
     
-
+    // 方法 - 处理客户姓名输入框按下Enter键
+    const handleNameEnter = () => {
+      // 处理按下Enter键时的操作
+      if (hasAnalysisResult.value) {
+        // 已有分析结果，提交生成建议报告
+        startMatchingHouses()
+      } else if (formData.requirements && formData.requirements.length >= 30 && !isAnalyzing.value) {
+        // 未有分析结果但需求已输入足够内容且不在分析中，提交分析需求
+        analyzeRequirements()
+      }
+    }
     
     return {
       propertyFormRef,
@@ -1433,14 +1444,15 @@ export default {
       handleInputChange,
       originalAIResults,
       requirementSuggestionRef,
-      updateSuggestionContent
+      updateSuggestionContent,
+      handleNameEnter
     }
   }
 }
 </script>
 
-<style>
-/* 移除scoped属性，确保样式能应用到v-html内容 */
+<style scoped>
+/* 添加scoped属性，隔离样式作用域 */
 
 .property-advisor-form {
   width: 100%;
@@ -1478,7 +1490,7 @@ export default {
   padding: 0;
   border-bottom: 1px solid #eee;
   background-color: #f8f9fa;
-  height: 55px;
+  height: 50px;
   box-sizing: border-box;
   position: relative;
   display: flex;

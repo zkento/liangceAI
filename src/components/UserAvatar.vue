@@ -8,36 +8,62 @@
       </div>
       <template #dropdown>
         <el-dropdown-menu>
-          <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+          <el-dropdown-item command="chat"><el-icon><ChatLineRound /></el-icon> Chat with AI</el-dropdown-item>
+          <el-dropdown-item command="logout" class="centered-item">退出登录</el-dropdown-item>
         </el-dropdown-menu>
       </template>
     </el-dropdown>
+    
+    <!-- 聊天组件 -->
+    <ChatWithAI 
+      v-model:visible="chatVisible" 
+      @send-message="handleSendMessage"
+    />
   </div>
 </template>
 
 <script>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useStore } from 'vuex'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown, ChatLineRound } from '@element-plus/icons-vue'
+import ChatWithAI from '@/components/ChatWithAI.vue'
 
 export default {
   name: 'UserAvatar',
   components: {
-    ArrowDown
+    ArrowDown,
+    ChatLineRound,
+    ChatWithAI
   },
   setup() {
     const store = useStore()
     const userInfo = computed(() => store.state.user.userInfo)
+    const chatVisible = ref(false)
 
     const handleCommand = (command) => {
       if (command === 'logout') {
         store.dispatch('user/logout')
+      } else if (command === 'chat') {
+        toggleChatPanel()
       }
+    }
+
+    const toggleChatPanel = () => {
+      chatVisible.value = !chatVisible.value
+    }
+    
+    // 处理消息发送
+    const handleSendMessage = (message) => {
+      console.log('收到用户消息:', message)
+      // 无需处理，ChatWithAI组件内部已经完成了API调用
     }
 
     return {
       userInfo,
-      handleCommand
+      chatVisible,
+      handleCommand,
+      toggleChatPanel,
+      handleSendMessage
     }
   }
 }
@@ -76,4 +102,8 @@ export default {
   margin-left: 0px;
 }
 
+/* 为退出登录项添加居中样式 */
+:deep(.centered-item) {
+  justify-content: center;
+}
 </style> 

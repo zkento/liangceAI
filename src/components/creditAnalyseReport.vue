@@ -1,61 +1,83 @@
 <template>
-  <div class="property-advisor-report">
+  <div class="credit-analyse-report">
     <!-- 处理步骤区域 - 只在第一步之后显示 -->
     <div class="steps-header" v-if="activeStep > 1">
       <el-steps :active="activeStep" finish-status="success" process-status="process" simple>
-        <el-step title="提交客户需求" />
+        <el-step title="上传征信文件" />
+        <el-step title="处理征信内容" />
         <el-step title="AI思考分析" />
-        <el-step title="购房建议报告" />
+        <el-step title="征信分析报告" />
       </el-steps>
     </div>
-    
+   
     <!-- 各步骤对应的内容区域 -->
     <div class="step-content">
-      <!-- 步骤1: 客户需求提交 -->
+      <!-- 步骤1: 表单提交 -->
       <div v-if="activeStep === 1" class="step-container">
-        <PropertyAdvisorForm @submit="handleFormSubmit" />
+        <creditAnalyseForm
+          :chatType="chatType"
+          @submit="handleFormSubmit"
+        />
       </div>
-      
-      <!-- 步骤2: AI思考分析，匹配房产 -->
+     
+      <!-- 步骤2: 提取文本内容 -->
       <div v-if="activeStep === 2" class="step-container">
-        <div class="Ai-thinking-container">
-          <!-- 匹配产品的蒙层，当AI未开始返回思考过程的内容前显示 -->
-          <div v-if="workingStatus === 'working'" class="working-overlay">
-            <div class="overlay-content">
-              <div class="animation-container">
-                <div class="loading-brain">
-                  <svg width="120" height="120" viewBox="0 0 100 100">
-                    <path class="brain-path" d="M25,50 Q35,30 50,30 Q65,30 75,50 T50,70 T25,50" stroke="#1b5dd3" fill="none" stroke-width="3" />
-                    <circle class="pulse-circle" cx="50" cy="50" r="3" fill="#1b5dd3" />
-                    <circle class="pulse-circle" cx="35" cy="40" r="2" fill="#1b5dd3" />
-                    <circle class="pulse-circle" cx="65" cy="40" r="2" fill="#1b5dd3" />
-                    <circle class="pulse-circle" cx="30" cy="50" r="2" fill="#1b5dd3" />
-                    <circle class="pulse-circle" cx="70" cy="50" r="2" fill="#1b5dd3" />
-                    <circle class="pulse-circle" cx="40" cy="60" r="2" fill="#1b5dd3" />
-                    <circle class="pulse-circle" cx="60" cy="60" r="2" fill="#1b5dd3" />
-                  </svg>
-                </div>
-                <div class="loading-dots">
-                  <span></span>
-                  <span></span>
-                  <span></span>
+        <div class="extraction-layout">
+          <!-- 左侧显示原文件 -->
+          <div class="original-file">
+            <div class="panel-header">
+              <h3>
+                <el-icon class="header-icon"><Document /></el-icon>
+                原始文件
+              </h3>
+              <span class="file-name">
+                {{ fileList?.length ? (fileList[0]?.name + (fileList.length > 1 ? '等' + fileList.length + '个文件' : '')) : '未知文件' }}
+              </span>
+            </div>
+            <div class="panel-content">
+              <div v-if="filePreviewUrl" class="file-preview">
+                <img v-if="isImageFile" :src="filePreviewUrl" alt="文件预览" />
+                <iframe v-else :src="filePreviewUrl" frameborder="0" style="overflow: hidden; width: 100%; height: 100%; display: block; border: none;"></iframe>
               </div>
-                <div class="wait-footer">
-                  <div class="ai-tip">
-                    正在等待AI响应，请稍等...
-                  </div>
-                  <div class="ai-timer">
-                    <div class="timer-icon">
-                      <el-icon><Timer /></el-icon>
-                    </div>
-                    已耗时 {{ workingTimer }} 秒
-                  </div>
-                </div>
+              <div v-else class="file-placeholder">
+                <el-icon><Document /></el-icon>
+                <p>文件加载中...</p>
               </div>
             </div>
           </div>
-            
-          
+         
+          <!-- 右侧显示提取的文字 -->
+          <div class="extracted-text">
+            <div class="panel-header">
+              <h3>
+                <el-icon class="header-icon"><Reading /></el-icon>
+                提取内容
+                <el-progress class="mini-progress" :percentage="extractionProgress" :stroke-width="4" />
+              </h3>              
+            </div>
+            <div class="panel-content">
+              <div v-if="extractedText" class="text-content" style="overflow-x: hidden; word-break: break-word;">
+                {{ extractedText }}
+              </div>
+              <div v-else class="text-placeholder">
+                <p>正在提取文字，请稍候...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 匹配产品的蒙层，当AI未开始返回思考过程的内容前显示 -->
+        <div v-if="workingStatus === 'working'" class="working-overlay">          
+          <div class="ai-tip">
+            <div class="loading-spinner"></div>
+            AI正在处理征信内容...已耗时 {{ workingTimer }} 秒
+          </div>
+        </div>
+      </div>
+
+      <!-- 步骤3: AI思考分析 -->
+      <div v-if="activeStep === 3" class="step-container">
+        <div class="Ai-thinking-container">          
           <!-- AI思考过程内容容器，当思考模式开始后显示 -->
           <div v-if="workingStatus === 'thinking' || workingStatus === 'generating'" class="thinking-container">
               <div class="panel-header">
@@ -70,7 +92,7 @@
               <div v-if="workingStatus === 'generating'" class="generating-overlay">
                 <div class="generating-content">
                   <div class="loading-spinner"></div>
-                  <div class="generating-message">即将生成购房建议报告...</div>
+                  <div class="generating-message">即将生成征信分析报告...</div>
                 </div>
               </div>
                   
@@ -81,9 +103,9 @@
           </div>
         </div>
       </div>
-                  
-      <!-- 步骤3: 生成房产报告 -->
-      <div v-if="activeStep === 3" class="step-container">
+     
+      <!-- 步骤4: 生成分析报告 -->
+      <div v-if="activeStep === 4" class="step-container">
         <div class="report-container">
           <div class="report-layout">
             <!-- 左侧AI分析结果 -->
@@ -91,9 +113,18 @@
               <div class="panel-header">
                 <h3>
                   <el-icon class="header-icon"><Document /></el-icon>
-                  购房建议报告 <span v-if="reportGenerationDuration > 0" class="report-duration">耗时{{reportGenerationDuration}}秒</span>
+                  征信分析报告 <span v-if="reportGenerationDuration > 0" class="report-duration">耗时{{reportGenerationDuration}}秒</span>
                 </h3>
                 <div class="header-actions">
+                  <el-button 
+                    v-show="reportContent" 
+                    type="primary"                     
+                    size="small"
+                    @click="viewCreditFile"
+                    class="action-button"
+                  >
+                    <el-icon><Files /></el-icon>查看征信文件
+                  </el-button>
                   <el-button 
                     v-show="reportContent" 
                     type="primary" 
@@ -218,7 +249,7 @@
             <div class="resizer-horizontal" @mousedown="startResizeHorizontal"></div>
           </div>
         </div>
-      </div>
+      </div>      
     </div>
   </div>
 </template>
@@ -228,55 +259,59 @@ import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted } from
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import PropertyAdvisorForm from './PropertyAdvisorForm.vue'
 import { 
   Cpu, 
-  Loading, 
-  InfoFilled, 
-  Refresh, 
-  ArrowDown, 
   Document, 
+  Reading, 
   Download,
   House, 
   ChatDotSquare, 
-  ArrowUp,
   Timer,
-  Position
+  Upload,
+  Check,
+  ChatLineRound,
+  Position,
+  Files
 } from '@element-plus/icons-vue'
-import { sendMessage } from '../api/chat'
-import propertyAdvicePrompt from '../config/prompts/property-advice.js'
+import { extractTextFromPDF } from '../api/pdfParseX'
+import creditAnalyseForm from './creditAnalyseForm.vue'
 
 export default {
-  name: 'PropertyAdvisorReport',
+  name: 'creditAnalyseReport',
   components: {
-    PropertyAdvisorForm,
-    Loading,
-    Download,
-    InfoFilled,
-    Refresh,
-    ArrowDown,
     Document,
+    Reading,
+    creditAnalyseForm,
     Cpu,
-    ChatDotSquare,
-    ArrowUp,
+    Download,
     House,
+    ChatDotSquare,
     Timer,
-    Position
+    Upload,
+    Check,
+    ChatLineRound,
+    Position,
+    Files
   },
   props: {
-    initialData: {
-      type: Object,
-      default: () => ({})
+    chatType: {
+      type: String,
+      required: true
     }
   },
-  emits: ['step-change', 'report-complete'],
-  setup(props, { emit }) {
-    // 当前活动步骤
+  setup(props) {
+    // 当前步骤状态（1表示表单填写, 2表示提取内容）
     const activeStep = ref(1)
-    
-    // 用户提交的表单数据
-    const formData = ref(props.initialData || {})
-    
+    // 存储表单数据
+    const formData = ref(null)
+   
+    // 分析步骤状态
+    const extractionProgress = ref(0)
+    const extractedText = ref('')
+    const filePreviewUrl = ref(null)
+    const isImageFile = ref(false)
+    const fileList = ref([])
+
     // 匹配房产的状态
     const workingStatus = ref('idle') // idle, working, thinking, generating, complete
     
@@ -284,13 +319,7 @@ export default {
     const workingTimer = ref(1)
     let workingTimerInterval = null
     
-    // 匹配结果
-    const workingResult = ref(null)
-    
-    // 匹配的房产列表
-    const workingProperties = ref([])
-    
-    // AI匹配房产思考过程
+    // AI匹配思考过程
     const aiThinkingProcess = ref('')
     const displayedThinkingProcess = ref('') // 用于逐字显示的思考过程
     const isThinking = ref(false) // AI是否正在思考
@@ -306,11 +335,12 @@ export default {
     const consultationInput = ref('')
     const consultationLoading = ref(false)
     const consultationThinkingTimer = ref(0)
-    const consultationThinkingDots = ref('')
     const consultationResponseStatus = ref('')
     const consultationResponseTime = ref(0)
     const consultationThinkingProcesses = ref([]) // 存储多个思考过程的数组
     let consultationThinkingInterval = null
+    let mutationObserver = null // 用于监听输入框高度变化
+    let autoHeightCheckInterval = null // 用于定期检查高度变化
     
     // 分栏调整
     const horizontalSplit = ref(60)
@@ -322,9 +352,247 @@ export default {
     const verticalSplit = ref(50)
     const isResizingVertical = ref(false)
     
-    // 初始匹配房产的思考内容
+    // 初始匹配思考内容
     const workThinkingContent = ref('')
     
+    // 渲染Markdown内容
+    const renderMarkdown = (text) => {
+      if (!text) return '';
+      
+      marked.setOptions({
+        breaks: true,
+        gfm: true,
+        headerIds: false,
+        mangle: false
+      });
+      
+      const rawHtml = marked(text);
+      const cleanHtml = DOMPurify.sanitize(rawHtml);
+      
+      return cleanHtml;
+    }
+    
+    // 处理用户消息中的换行符
+    const formatUserMessage = (text) => {
+      if (!text) return '';
+      // 将换行符转换为<br>标签，同时进行HTML转义防止XSS
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .replace(/\n/g, '<br>');
+    }
+    
+    // 处理表单提交
+    const handleFormSubmit = (data) => {
+      // 验证数据
+      if (!data) {
+        console.error('接收到的表单数据为空');
+        ElMessage.error('上传失败，请重试');
+        return;
+      }
+     
+      if (!data.file) {
+        console.error('表单数据中没有文件');
+        ElMessage.error('没有找到上传的文件，请重试');
+        return;
+      }
+     
+      // 保存表单数据
+      formData.value = data;
+     
+      // 如果上传的是PDF文件，且客户姓名为空或未知客户，则自动使用PDF文件名作为客户姓名
+      if (data.file.type === 'application/pdf') {
+        // 获取文件名（去除.pdf后缀）
+        const fileName = data.file.name.replace(/\.pdf$/i, '');
+       
+        // 如果客户姓名为空或为默认值，则使用文件名
+        if (!data.customerName || data.customerName === '未知客户') {
+          console.log('从PDF文件名提取客户姓名:', fileName);
+          formData.value.customerName = fileName;
+        }
+      }
+     
+      // 进入内容提取步骤（第2步）
+      activeStep.value = 2;
+     
+      // 初始化文件信息
+      fileList.value = data.fileList || [];
+      createFilePreview(data.file);
+     
+      // 启动分析流程
+      startAnalysis();
+     
+      console.log('开始分析流程，当前步骤:', activeStep.value);
+    }
+   
+    // 模拟分析过程
+    const startAnalysis = () => {
+      // 确保处于第2步（提取内容）
+      activeStep.value = 2;
+     
+      // 提取PDF文本内容（前面表单部分已确保所有提交的文件都是PDF格式）
+      if (formData.value && formData.value.file) {
+        console.log('开始提取PDF内容');
+        extractPDFContent(formData.value.file);
+      } else {
+        console.error('缺少文件数据，无法开始分析');
+        ElMessage.error('缺少文件数据，无法开始分析');
+      }
+    }
+   
+    // 提取PDF内容的真实实现
+    const extractPDFContent = async (pdfFile) => {
+      try {
+        // 初始化提取状态
+        extractedText.value = '正在提取PDF内容...';
+       
+        // 创建文件预览
+        createFilePreview(pdfFile);
+       
+        console.log('开始提取PDF内容');
+       
+        // 定义简化的进度回调函数，直接显示API返回的进度
+        const updateProgress = (progress) => {
+          extractionProgress.value = progress;
+          console.log(`上传进度: ${progress}%`);
+        };
+       
+        // 调用真实的API提取PDF内容
+        const result = await extractTextFromPDF(pdfFile, updateProgress);
+       
+        // 检查提取结果
+        if (result.success) {
+          // 提取成功，显示提取的文本
+          extractedText.value = result.text;
+          extractionProgress.value = 100;
+ 
+          const actualCharCount = result.text.length;
+          console.log('实际文本长度:', actualCharCount);
+          
+          // 判断文本字符数量，如果过少则可能不是有效的征信报告
+          if (actualCharCount < 50) {            
+            // 弹窗提示用户
+            ElMessageBox.confirm(
+              '上传文件不是有效的征信报告，请检查后重试。',
+              '无效的征信报告',
+              {
+                confirmButtonText: '重试',
+                cancelButtonText: '返回上传',
+                type: 'warning'
+              }
+            ).then(() => {
+              // 用户选择重试，保持在当前步骤
+              extractedText.value = '请重新上传有效的征信报告...';
+              extractPDFContent(pdfFile);
+            }).catch(() => {
+              // 用户选择返回上传，重置分析状态
+              resetAnalysis();
+            });
+            
+            return;
+          }
+         
+          // 确保UI先更新完提取出的文本内容
+          await nextTick();
+          
+          // 开始匹配计时器并显示匹配蒙层
+          workingStatus.value = 'working';
+          startWorkingTimer();
+          
+          // PDF提取完成后模拟等待AI服务器响应时间3秒，之后进入AI思考分析步骤（第3步）
+          // 在实际接入AI时，移除此代码，使用真实的等待时间
+          setTimeout(() => {
+            // 进入下一步
+            nextStep();
+          }, 3000);
+          
+        } else {
+          // 提取失败
+          console.error('PDF内容提取失败:', result.error);
+          extractedText.value = `提取失败: ${result.error}`;
+          // 保持进度为最后的值，而不是重置为0，避免进度条跳变
+          ElMessage.error('PDF内容提取失败: ' + result.error);
+         
+          // 允许重试
+          retryExtraction();
+        }
+      } catch (error) {
+        console.error('提取PDF内容时出错:', error);
+        ElMessage.error('提取PDF内容失败，请重试');
+       
+        // 在提取失败时，回到上一步并允许重新选择文件
+        retryExtraction();
+      }
+    };
+   
+    // 重置分析，返回表单步骤
+    const resetAnalysis = () => {
+      // 重置步骤状态
+      activeStep.value = 1;
+     
+      // 重置表单数据
+      formData.value = null;
+     
+      // 重置分析状态
+      extractionProgress.value = 0;
+      extractedText.value = '';
+      filePreviewUrl.value = null;
+      isImageFile.value = false;
+     
+      // 重置文件列表
+      fileList.value = [];
+     
+      console.log('已重置所有状态，当前步骤:', activeStep.value);
+    }
+   
+    // 创建文件预览URL
+    const createFilePreview = (file) => {
+      if (!file) return;
+     
+      // 如果已有预览URL，先释放
+      if (filePreviewUrl.value && filePreviewUrl.value.startsWith('blob:')) {
+        URL.revokeObjectURL(filePreviewUrl.value);
+      }
+     
+      // 检查文件类型
+      isImageFile.value = file.type.startsWith('image/');
+     
+      // 创建新的预览URL
+      filePreviewUrl.value = URL.createObjectURL(file);
+     
+      console.log('创建了文件预览:', file.name, file.type);
+    };
+   
+    // 重试提取过程
+    const retryExtraction = () => {
+      // 询问用户是否要重试
+      ElMessageBox.confirm(
+        '提取PDF内容失败，是否要重新尝试？',
+        '操作提示',
+        {
+          confirmButtonText: '重试',
+          cancelButtonText: '返回上传',
+          type: 'warning'
+        }
+      ).then(() => {
+        // 用户选择重试，重新启动提取过程
+        if (formData.value && formData.value.file) {
+          // 重置提取文本，但保留进度
+          extractedText.value = '正在重新提取PDF内容...';
+          extractPDFContent(formData.value.file);
+        } else {
+          ElMessage.error('没有找到文件，请重新上传');
+          resetAnalysis();
+        }
+      }).catch(() => {
+        // 用户选择返回上传，重置分析状态
+        resetAnalysis();
+      });
+    };
+   
     // 开始匹配计时器
     const startWorkingTimer = () => {
       workingTimer.value = 1;
@@ -350,228 +618,54 @@ export default {
       
       isThinking.value = false;
     };
-    
-    // 渲染Markdown内容
-    const renderMarkdown = (text) => {
-      if (!text) return '';
-      
-      marked.setOptions({
-        breaks: true,
-        gfm: true,
-        headerIds: false,
-        mangle: false
-      });
-      
-      const rawHtml = marked(text);
-        const cleanHtml = DOMPurify.sanitize(rawHtml);
-      
-        return cleanHtml;
-    }
-    
-    // 辅助函数 - 获取购房目的文本
-    const getPurposeText = (purpose) => {
-      const purposeMap = {
-        'self': '自住',
-        'investment': '投资',
-        'upgrade': '改善',
-        'retirement': '养老',
-        'education': '子女教育'
-      }
-      return purpose ? purposeMap[purpose] : '未提供'
-    }
-    
-    // 辅助函数 - 获取区域文本
-    const getAreasText = (areas) => {
-      if (!areas || areas.length === 0) return '未提供'
-      
-      const areaMap = {
-        'downtown': '市中心',
-        'east': '城东',
-        'west': '城西',
-        'south': '城南',
-        'north': '城北',
-        'suburb': '郊区'
-      }
-      
-      return areas.map(area => areaMap[area] || area).join('、')
-    }
-    
-    // 辅助函数 - 获取户型文本
-    const getHouseTypeText = (type) => {
-      const typeMap = {
-        '1': '一室',
-        '2': '两室',
-        '3': '三室',
-        '4': '四室',
-        '5+': '五室及以上'
-      }
-      return type ? typeMap[type] : '未提供'
-    }
-    
-    // 辅助函数 - 获取装修文本
-    const getDecorationText = (decoration) => {
-      const decorationMap = {
-        'undecorated': '毛坯',
-        'basic': '简装',
-        'deluxe': '精装',
-        'luxury': '豪装'
-      }
-      return decoration ? decorationMap[decoration] : '未提供'
-    }
-    
-    // 辅助函数 - 获取面积范围文本
-    const getAreaRangeText = () => {
-      if (formData.value.minArea && formData.value.maxArea) {
-        return `${formData.value.minArea}-${formData.value.maxArea}㎡`
-      } else if (formData.value.minArea) {
-        return `${formData.value.minArea}㎡以上`
-      } else if (formData.value.maxArea) {
-        return `${formData.value.maxArea}㎡以下`
-      } else {
-        return '未提供'
-      }
-    }
-    
-    // 辅助函数 - 获取楼层偏好文本
-    const getFloorText = (floor) => {
-      const floorMap = {
-        'low': '低楼层',
-        'middle': '中楼层',
-        'high': '高楼层',
-        'penthouse': '顶楼带露台',
-        'any': '无特殊要求'
-      }
-      return floor ? floorMap[floor] : '未提供'
-    }
-    
-    // 辅助函数 - 获取朝向文本
-    const getOrientationText = (orientations) => {
-      if (!orientations || orientations.length === 0) return '未提供'
-      
-      const orientationMap = {
-        'south': '坐北朝南',
-        'east': '东向',
-        'west': '西向',
-        'north': '北向',
-        'southeast': '东南',
-        'southwest': '西南',
-        'northeast': '东北',
-        'northwest': '西北'
-      }
-      
-      return orientations.map(o => orientationMap[o] || o).join('、')
-    }
-    
-    // 辅助函数 - 获取配套设施文本
-    const getFacilitiesText = (facilities) => {
-      if (!facilities || facilities.length === 0) return '未提供'
-      
-      const facilityMap = {
-        'education': '教育配套',
-        'hospital': '医疗设施',
-        'shopping': '商业购物',
-        'transportation': '交通便利',
-        'park': '公园绿地',
-        'community': '社区环境'
-      }
-      
-      return facilities.map(f => facilityMap[f] || f).join('、')
-    }
-    
-    // 获取关键词文本
-    const getKeywordsText = (keywords) => {
-      if (!keywords || !keywords.length) return '无';
-      
-      if (typeof keywords[0] === 'string') {
-        return keywords.join('、');
-      } else if (typeof keywords[0] === 'object' && keywords[0].value) {
-        return keywords.map(k => k.value).join('、');
-      }
-      
-      return '无';
-    };
-    
-    // 处理表单提交
-    const handleFormSubmit = (data) => {
-      // 更新表单数据
-      formData.value = data;
-      
-      // 确保aiKeywords是可用的格式
-      if (data.aiKeywords && Array.isArray(data.aiKeywords)) {
-        // 检查关键词格式并处理
-        if (data.aiKeywords.length > 0 && typeof data.aiKeywords[0] === 'object') {
-          // 已经是对象格式，确保每个对象有value属性
-          console.log('关键词是对象格式:', data.aiKeywords[0]);
-        } else {
-          // 是简单字符串数组，转换为对象格式
-          console.log('关键词是字符串格式，转换为对象格式');
-          formData.value.aiKeywords = data.aiKeywords.map((keyword, index) => ({
-            key: `keyword_${index}`,
-            value: keyword,
-            type: 'black'
-          }));
-        }
-      }
-      
-      // 移动到下一步
-      nextStep();
-      
-      // 通知父组件步骤已变化
-      emit('step-change', { step: activeStep.value, data: formData.value });
-    };
-    
-    // 开始匹配房产
+
+    // 开始征信分析
     const startAiWorking = async () => {
       try {
-        workingStatus.value = 'working';
-        startWorkingTimer();
-        
+        // 使用已经在步骤2中设置的workingStatus，不再重新设置
         // 构建用于匹配房产的消息
         const AiWorkingMessage = {
           role: 'user',
-          content: `我需要购买房产，具体需求如下：
-          - 购房目的: ${formData.value.purpose || '未指定'}
-          - 总预算: ${formData.value.totalBudget ? formData.value.totalBudget + '万元' : '未指定'}
-          - 首付比例: ${formData.value.downPaymentRatio || 0}%
-          - 区域偏好: ${Array.isArray(formData.value.preferredAreas) ? formData.value.preferredAreas.join('、') : '未指定'}
-          - 户型要求: ${formData.value.houseType || '未指定'}
-          - 面积需求: ${formData.value.minArea || 0}-${formData.value.maxArea || 0}平方米
-          - 装修要求: ${formData.value.decorationRequirement || '未指定'}
-          - 其他要求: ${formData.value.additionalNotes || '无'}
-          - 关键词: ${getKeywordsText(formData.value.aiKeywords)}`
+          content: `我需要分析征信报告，具体内容如下：
+          - 客户姓名: ${formData.value.customerName || '未知客户'}
+          - 征信内容: ${extractedText.value.substring(0, 1000)}... (内容较长)`
         };
         
-        // 设置固定等待时间为5秒后再模拟AI思考过程
-        // 在实际接入AI时，移除此代码，使用真实的等待时间
-      setTimeout(() => {
-          // 强制设置workingTimer为5秒，模拟固定的等待时间
-          workingTimer.value = 5;
-          
-          // 模拟AI思考过程
-          // 设置完整的AI思考过程数据
-          const fullThinkingProcess = `正在分析客户需求：
-"${formData.value.requirements}"
+        // 模拟AI思考过程
+        // 设置完整的AI思考过程数据
+        const fullThinkingProcess = `正在分析征信报告...
 
 思考过程：
-好的，我现在需要帮用户处理一份关于广州天河区置业的建议报告。用户预算600万左右，需求按学区40%、自住刚需30%、改善20%、投资10%来分配。首先，我得仔细分析用户提供的网页搜索结果，结合之前的对话历史和当前的数据来制定报告。
+嗯，用户给了一个PDF文件，看起来是个人信用报告。我需要仔细分析里面的内容，然后给出专业的建议。首先，我要理解各个表格和数据的含义。
 
-首先看市场行情分析。根据搜索结果，天河区2024年的房价整体呈下跌趋势，尤其是二手房，8月均价约62798元/㎡，环比下跌3.07%，同比下跌16.16%。新房价格也在波动，但部分区域如金融城和智慧城有潜力。政策方面，搜索结果提到广州放宽了限购政策，120㎡以上不限购，首付比例和利率下调，这对用户可能有利，尤其是改善型需求。
+首先，看到有准贷记卡的信息，不过合计显示51，可能是指账户数量或者其他指标。接下来是非循环贷账户的信息汇总，账户数是6，授信总额236,644，余额214,750，最近6个月平均应还款2,987。这说明用户有较多的非循环贷款，且余额较高，需要关注其还款能力。
 
-接下来是客户需求拆解。用户的核心矛盾在于学区需求占比最高，同时要兼顾刚需和改善，还要考虑一定的投资价值。解决方案需要优先选择教育资源好的区域，同时考虑交通、商业配套，以及未来的增值潜力。
+然后是循环贷账户的信息，管理机构数2，账户数也是2，授信总额176,000，余额20,940，最近6个月平均应还款3,239。循环贷款的余额相对较低，但授信额度较高，可能意味着用户有较高的信用额度但使用较少，需要注意是否有过度授信的风险。
 
-房源推荐部分，需要筛选出符合预算且学区好的小区。搜索结果提到了多个楼盘，比如华润天河润府、珠江花城、骏景花园、天河壹品等。华润天河润府有省一级小学，价格在4.5万/㎡左右，总价适合；珠江花城有双学区，价格较低；骏景花园虽然楼龄较老，但配套成熟；天河壹品属于单位人才住宅，价格更优惠但交易有限制。需要比较这些楼盘的优缺点，确保学区、价格、配套都符合用户需求。
+接下来是贷记卡账户信息，发卡机构数3，账户数6，授信总额82,000，单家最高授信额47,000，已用额度53,878，最近6个月平均使用额度13,701。这说明用户的信用卡使用率较高（已用额度占授信总额的约65.7%），可能影响信用评分，建议降低使用率到30%以下。
 
-交易金融方案方面，根据政策，首套首付15%，利率3.85%，可以推荐工商银行。另外，全款后抵押贷款可能节省利息，但需考虑资金压力。装修贷款和担保赎楼也是可行选项。
+查询记录显示最近1个月内有1次贷款审批查询，最近2年内有53次贷后管理查询和11次担保资格审查。频繁的查询记录可能会影响信用评分，尤其是贷后管理查询较多，需要确认是否存在频繁的信用检查。
 
-装修方案需要针对每个推荐小区提出改造建议，比如华润天河润府的隔音改造，珠江花城的收纳优化等。
+在非循环贷账户的详细信息中，账户1是个人住房商业贷款，余额183,013，剩余还款期数287，每月应还款923，当前无逾期。账户2是其他个人消费贷款，余额16,183，剩余还款期数10，每月应还款1,724，同样无逾期。账户3的开立日期是2025.01.03，金额3,000，显示正常。这些贷款均按时还款，信用记录良好。
 
-最后是免责条款，需注明数据来源和政策风险。
+循环贷账户1余额6,731，剩余3期，每月应还款2,276；账户2余额14,209，剩余10期，每月应还款1,445，均无逾期。用户在这些循环贷款中表现良好，按时还款。
 
-现在需要整合这些信息，确保每个部分都有数据支持，并正确引用来源编号。注意用户强调每次推荐3-4套房源，所以需要精选最合适的三个，可能排除天河壹品因为交易限制，但价格优势明显，需权衡。同时，市场动态和竞品对比要准确，比如华润对比珠江花城的教育和价格优势。
+贷记卡账户显示有6个账户，已用额度53,878，最近6个月平均使用额度13,701，需要注意信用卡的使用率较高，可能影响信用评分。
 
-检查是否有遗漏的关键点，比如不利因素，像华润周边界面待升级，骏景楼龄老，珠江花城配套不完善等，都需要在缺陷警示中提及。确保金融方案的计算准确，比如首付和月供示例。
+职业信息显示用户在职，但工作单位频繁变更，可能影响稳定性评估。居住信息有多个地址，但均在广州市，可能是同一地址的不同表述。
 
-最后，确保整个报告结构清晰，符合用户要求的格式，每个部分都有对应的外部资料引用，比如政策部分引用，房价走势引用，房源信息引用等。可能需要调整推荐的优先级，把学区最突出的小区放在前面，兼顾刚需和改善，最后考虑投资潜力。
+异议信息提示显示没有正在处理的异议，信用报告内容无争议。
+
+查询记录中，贷后管理查询次数较多（53次），可能反映出金融机构对用户的信用状况进行频繁监控，需确认是否存在异常。
+
+综合分析，用户的信用状况总体良好，所有贷款和信用卡账户均按时还款，无逾期记录。但需要注意以下几点：
+
+信用卡使用率较高，建议降低使用率至30%以下，以提升信用评分。
+频繁的贷后管理查询可能对信用评分有负面影响，建议减少不必要的信用查询。
+尽管当前无逾期，但较高的贷款余额和信用卡额度使用需关注还款能力，确保未来持续按时还款。
+工作单位和居住地址的频繁变更可能影响信用评估的稳定性，建议保持稳定的职业和居住信息。
+建议用户继续保持良好的还款习惯，合理规划财务，避免过度依赖信用产品，同时关注信用报告中的查询记录，减少不必要的信用检查。
+
 好了，模拟思考的内容差不多就得了，够了，就这样吧。`;
 
           // 开始模拟AI思考过程逐字显示
@@ -610,7 +704,7 @@ export default {
               } else if (thinkingIndex > targetIndex + 10) {
                 // 如果超前太多，则减速或暂停
                 clearInterval(thinkingInterval);
-        setTimeout(() => {
+                setTimeout(() => {
                   // 一段时间后再继续
                   thinkingInterval = setInterval(() => {
                     // 继续逐字显示的代码会在这里重新启动
@@ -648,7 +742,7 @@ export default {
                   scrollToBottom('.thinking-display');
                   
                   // 继续逐字显示
-      thinkingInterval = setInterval(() => {
+                  thinkingInterval = setInterval(() => {
                     // 重新检查当前时间和进度
                     const currentElapsedTime = (Date.now() - startTime) / 1000;
                     const currentTargetIndex = Math.floor(currentElapsedTime * charsPerSecond);
@@ -669,7 +763,7 @@ export default {
                       
                       // 自动滚动到底部
                       scrollToBottom('.thinking-display');
-        } else {
+                    } else {
                       // 处理完成
                       finishThinking(startTime);
                     }
@@ -684,15 +778,13 @@ export default {
               finishThinking(startTime);
             }
           }, 40); // 基础显示间隔
-        }, 5000); // 5秒后开始显示思考过程
-        
       } catch (error) {
-        console.error('匹配房产时出错:', error);
+        console.error('征信分析时出错:', error);
         workingStatus.value = 'error';
         stopWorkingTimer();
       }
     };
-    
+   
     // 定义结束显示的函数
     const finishThinking = (startTime) => {
       // 计算已经过的时间
@@ -721,46 +813,9 @@ export default {
       
       // 显示完整思考内容
       displayedThinkingProcess.value = aiThinkingProcess.value;
-      // 保存初始匹配房产的思考内容
+      // 保存初始匹配思考内容
       workThinkingContent.value = aiThinkingProcess.value;
       isThinking.value = false;
-      
-      // 模拟匹配的房产数据
-      workingProperties.value = [
-        {
-          id: 1,
-          name: '翡翠天际',
-          price: Math.floor(formData.value.totalBudget * 0.95),
-          area: Math.floor((formData.value.minArea + formData.value.maxArea) / 2),
-          type: '三室两厅两卫',
-          address: '城东新区 水岸路128号',
-          imageUrl: 'https://img.zcool.cn/community/01b0c658579dd4a8012060c82e47e7.jpg',
-          tags: ['南北通透', '学区房', '地铁附近', '精装修'],
-          workScore: 5
-        },
-        {
-          id: 2,
-          name: '绿城花园',
-          price: Math.floor(formData.value.totalBudget * 0.9),
-          area: Math.floor((formData.value.minArea + formData.value.maxArea) / 2 * 0.9),
-          type: '三室一厅一卫',
-          address: '城西区 园林大道56号',
-          imageUrl: 'https://img.zcool.cn/community/011e8c58579dd3a8012060c81e8da0.jpg',
-          tags: ['环境优美', '性价比高', '绿化率高', '简装'],
-          workScore: 4
-        },
-        {
-          id: 3,
-          name: '华润万象城',
-          price: Math.floor(formData.value.totalBudget * 1.05),
-          area: Math.floor((formData.value.minArea + formData.value.maxArea) / 2 * 1.1),
-          type: '四室两厅两卫',
-          address: '城中心 商业大道88号',
-          imageUrl: 'https://img.zcool.cn/community/0152de58579dd7a8012060c8c7222b.jpg',
-          tags: ['商业中心', '地铁上盖', '豪装', '名校学区'],
-          workScore: 4.5
-        }
-      ];
       
       // 延迟一会，让用户看到完整的思考过程
       setTimeout(() => {
@@ -769,7 +824,7 @@ export default {
         
         // 延迟约3秒后生成报告，提供良好的过渡体验
         setTimeout(() => {
-          // 生成房产报告
+          // 生成征信分析报告
           generateReport();
         }, 3000);
       }, 1000);
@@ -786,154 +841,153 @@ export default {
         second: '2-digit'
       }).replace(/\//g, '-');
       
-      reportContent.value = `# 买家顾问购房建议报告
+      reportContent.value = `# 个人征信分析报告
 
 编制日期：${currentDate}
 
-## 一、客户需求与背景
+## 一、个人基本信息
 
-**客户姓名**：${formData.value.name || '未提供'}
-**联系电话**：${formData.value.phone || '未提供'}
-**购房目的**：${formData.value.purpose === 'investment' ? '投资' : 
-              formData.value.purpose === 'self_use' ? '自住' : 
-              formData.value.purpose === 'both' ? '自住+投资' : '未指定'}
-**购房预算**：${formData.value.totalBudget || 0}万元
-**首付比例**：${formData.value.downPaymentRatio || 0}%
-**户型需求**：${formData.value.houseType === '1' ? '一室' : 
-              formData.value.houseType === '2' ? '两室' : 
-              formData.value.houseType === '3' ? '三室' : 
-              formData.value.houseType === '4+' ? '四室及以上' : '未指定'}
-**面积需求**：${formData.value.minArea || 0}-${formData.value.maxArea || 0}平方米
-**区域偏好**：${Array.isArray(formData.value.preferredAreas) ? formData.value.preferredAreas.join('、') : '未指定'}
-**装修需求**：${formData.value.decorationRequirement === 'rough' ? '毛坯房' : 
-              formData.value.decorationRequirement === 'simple' ? '简装' : 
-              formData.value.decorationRequirement === 'refined' ? '精装' : 
-              formData.value.decorationRequirement === 'luxury' ? '豪装' : '未指定'}
-**其他需求**：${formData.value.additionalNotes || '无'}
+**姓名**：${formData.value.customerName || '未知客户'}
+**报告类型**：个人征信报告
+**报告期限**：截至 ${currentDate}
+**报告用途**：${formData.value.purpose || '购房贷款审批参考'}
 
-## 二、市场分析
+## 二、征信数据分析
 
-### 宏观市场环境
+### 信用评分与风险等级
 
-当前房地产市场整体呈现稳中有升态势，政策面趋于宽松，市场流动性充裕。近期央行降息降准，进一步降低了购房成本，有利于提振市场信心。区域市场分化明显，一线城市及强二线城市房价稳中有升，三四线城市仍以去库存为主。
+- **信用评分**：良好
+- **风险等级**：低风险
+- **总体情况**：征信状况健康，无重大不良记录
 
-### 目标区域市场分析
+### 贷款情况概述
 
-客户偏好的${Array.isArray(formData.value.preferredAreas) ? formData.value.preferredAreas.join('、') : ''}区域市场特点：
+- **现有贷款**：1笔住房贷款
+- **贷款总额**：约45万元
+- **剩余金额**：约32万元
+- **贷款期限**：20年（已还款5年）
+- **月供金额**：约5,000元
+- **还款状态**：正常还款中，无逾期
 
-- **价格走势**：近一年来，该区域房价上涨约3-5%，高于全市平均水平
-- **供需关系**：新增供应有限，需求稳定，供需关系健康
-- **未来规划**：区域内规划有2条地铁线路，预计3年内开通；同时规划有2所学校、1家三甲医院
-- **投资前景**：整体看好，预计未来3-5年内仍有10-15%的增值空间
+### 信用卡使用情况
 
-## 三、推荐房源详情
+- **持有信用卡**：3张
+- **总授信额度**：15万元
+- **已使用额度**：3.2万元（使用率21.3%）
+- **近6个月平均使用率**：25%
+- **近6个月最高使用率**：35%
+- **当前状态**：正常使用，无逾期
 
-经过综合筛选和评估，以下是最符合客户需求的三套房源：
+### 其他相关负债
 
-### 房源1：翡翠天际 - 三室两厅
+- **个人消费贷款**：无
+- **汽车贷款**：无
+- **互联网小额贷款**：无
+- **助学贷款**：无
 
-- **售价**：${Math.floor(formData.value.totalBudget * 0.95)}万元（略低于预算）
-- **单价**：${Math.floor((formData.value.totalBudget * 0.95 * 10000) / ((formData.value.minArea + formData.value.maxArea) / 2))}元/平方米
-- **面积**：${Math.floor((formData.value.minArea + formData.value.maxArea) / 2)}平方米
-- **户型**：三室两厅两卫
-- **楼层**：18层/33层
-- **朝向**：南北通透
-- **装修**：精装修
-- **小区**：2018年建成，物业费2.5元/平/月
-- **配套**：小区内有游泳池、健身房、儿童乐园
-- **交通**：距离地铁2号线仅500米
-- **教育**：学区房，对口市重点小学和初中
-- **优势**：南北通透，采光极佳，精装修拎包入住
-- **不足**：距离主干道较近，可能有轻微噪音
-- **匹配度**：★★★★★（95%）
+### 征信查询记录
 
-### 房源2：绿城花园 - 三室一厅
+- **近1个月查询次数**：1次（本人查询）
+- **近3个月查询次数**：3次（银行查询2次，本人查询1次）
+- **近6个月查询次数**：4次（银行查询3次，本人查询1次）
+- **查询目的**：主要为贷款审批，属正常查询范围
 
-- **售价**：${Math.floor(formData.value.totalBudget * 0.9)}万元（低于预算）
-- **单价**：${Math.floor((formData.value.totalBudget * 0.9 * 10000) / ((formData.value.minArea + formData.value.maxArea) / 2 * 0.9))}元/平方米
-- **面积**：${Math.floor((formData.value.minArea + formData.value.maxArea) / 2 * 0.9)}平方米
-- **户型**：三室一厅一卫
-- **楼层**：12层/28层
-- **朝向**：东南
-- **装修**：简装
-- **小区**：2015年建成，物业费1.8元/平/月
-- **配套**：小区环境优美，绿化率高达40%
-- **交通**：距离公交站200米，地铁站1.5公里
-- **教育**：对口区重点小学
-- **优势**：价格合理，小区环境优美，安静舒适
-- **不足**：距离地铁站较远，装修简单需要改造
-- **匹配度**：★★★★☆（85%）
+## 三、风险评估
 
-### 房源3：华润万象城 - 四室两厅
+### 还款能力分析
 
-- **售价**：${Math.floor(formData.value.totalBudget * 1.05)}万元（略高于预算）
-- **单价**：${Math.floor((formData.value.totalBudget * 1.05 * 10000) / ((formData.value.minArea + formData.value.maxArea) / 2 * 1.1))}元/平方米
-- **面积**：${Math.floor((formData.value.minArea + formData.value.maxArea) / 2 * 1.1)}平方米
-- **户型**：四室两厅两卫
-- **楼层**：22层/35层
-- **朝向**：南北通透
-- **装修**：豪装
-- **小区**：2020年建成，物业费3.0元/平/月
-- **配套**：商业综合体，购物中心就在楼下
-- **交通**：地铁上盖，交通极其便利
-- **教育**：对口市重点小学和省重点中学
-- **优势**：地段极佳，配套设施一流，户型方正
-- **不足**：价格略高于预算，人流量大
-- **匹配度**：★★★★☆（90%）
+- **月收入估算**：约20,000元
+- **月债务支出**：约5,000元
+- **债务收入比**：约25%
+- **评估结果**：债务收入比处于合理范围（低于40%），还款能力良好
 
-## 四、财务分析
+### 信用历史评估
 
-### 购房成本分析
+- **信用历史长度**：8年
+- **历史逾期情况**：无明显逾期记录
+- **评估结果**：信用历史稳定，为良好信用等级
 
-以首选房源"翡翠天际"为例：
+### 特殊记录分析
 
-- **房款总价**：${Math.floor(formData.value.totalBudget * 0.95)}万元
-- **首付金额**：${Math.floor(formData.value.totalBudget * 0.95 * (formData.value.downPaymentRatio || 30) / 100)}万元
-- **贷款金额**：${Math.floor(formData.value.totalBudget * 0.95 * (100 - (formData.value.downPaymentRatio || 30)) / 100)}万元
-- **贷款年限**：30年
-- **月供金额**：约${Math.floor(formData.value.totalBudget * 0.95 * (100 - (formData.value.downPaymentRatio || 30)) / 100 * 10000 * 0.0049 / 12)}元（按LPR 3.65%计算）
+- **司法记录**：无
+- **行政处罚**：无
+- **执行记录**：无
+- **不良信用记录**：无
+- **评估结果**：无任何特殊不良记录，信用状况良好
 
-### 额外费用估算
+## 四、贷款申请可行性分析
 
-- **契税**：${Math.floor(formData.value.totalBudget * 0.95 * 0.015)}万元（首套1.5%）
-- **增值税及附加**：免税（满两年）
-- **个人所得税**：免税（满五唯一）
-- **评估费**：约0.5万元
-- **公证费**：约0.3万元
-- **登记费**：约0.2万元
-- **合计**：约${Math.floor(formData.value.totalBudget * 0.95 * 0.015 + 1)}万元
+### 购房贷款申请评估
 
-## 五、购房建议
+- **贷款申请类型**：个人住房贷款
+- **申请可行性**：高
+- **建议贷款额度**：约100-150万元
+- **建议贷款期限**：25-30年
+- **预计月供**：约5,500-8,500元（基于当前利率）
 
-### 最终推荐
+### 可能影响申请的因素
 
-综合考虑客户需求、市场环境和房源特点，我们的推荐排序如下：
+- **正面因素**：
+  - 信用历史良好，无逾期记录
+  - 现有贷款按时还款，信用卡使用正常
+  - 债务收入比合理，还款能力充足
+  - 无不良征信记录，各项指标健康
 
-1. **翡翠天际**：最符合客户预算和需求，性价比最高，推荐优先考察
-2. **华润万象城**：配套和地段优势明显，虽价格略高但增值潜力大
-3. **绿城花园**：价格优势明显，但需权衡交通便利性和后期装修成本
+- **需要关注的因素**：
+  - 近期征信查询次数较多，可能略微降低授信评分
+  - 现有住房贷款尚未结清，会影响总债务水平评估
 
-### 购房时机
+## 五、优化建议
 
-当前市场处于政策红利期，利率处于历史低位，建议客户抓住时机尽快入市。特别是客户关注的区域未来有多项利好规划，越早购入越能享受区域发展带来的增值。
+1. **短期建议（1-3个月）**
+   - 近期避免再次申请其他贷款或新办信用卡
+   - 维持信用卡低使用率（建议控制在30%以下）
+   - 确保所有账单按时足额还款
+   - 减少非必要的征信查询
 
-### 购房流程指导
+2. **中期建议（3-6个月）**
+   - 稳定当前收入和就业状况
+   - 避免频繁变换工作或收入来源
+   - 保持良好的还款记录
+   - 适当增加信用卡使用多样性，但控制总体负债水平
 
-1. **实地看房**：建议预约中介或销售顾问，亲自查看房源实际情况
-2. **核实信息**：查验房产证、土地证等权属证件，确认无产权纠纷
-3. **出价谈判**：合理出价，可预留5-8%的议价空间
-4. **贷款申请**：提前准备资料，与多家银行比较贷款条件
-5. **签订合同**：仔细审核合同条款，特别是付款方式、违约责任等
-6. **过户交易**：按约定时间办理过户手续，缴纳相关税费
-7. **收房验房**：专业验房，检查房屋质量，办理物业交接
+3. **长期建议（6个月以上）**
+   - 建立多元化的信用记录（适当增加不同类型的贷款经历）
+   - 维持长期稳定的还款历史
+   - 适时提高收入水平，改善债务收入比
+   - 建立完善的个人资产负债结构
 
-## 六、风险提示
+## 六、贷款申请策略
 
-1. **政策风险**：密切关注国家和地方房地产政策变化
-2. **市场风险**：房价短期可能有波动，建议以中长期持有为主
-3. **资金风险**：合理规划财务，确保月供不超过家庭月收入的40%
-4. **选址风险**：注意周边规划，避免选择临近未来可能有噪音、污染的区域
-5. **购房合同风险**：签约前必须仔细审核合同条款，必要时咨询专业律师
+### 最佳申请时机
+
+基于当前征信状况，建议在1-2个月后申请住房贷款，以便：
+- 使近期征信查询记录自然减少
+- 进一步降低信用卡使用率
+- 持续积累良好的还款记录
+
+### 贷款申请准备
+
+申请贷款时建议准备的材料：
+1. 个人身份证件、户口本
+2. 近6个月银行流水（体现稳定收入）
+3. 工作收入证明（至少6个月以上）
+4. 现有房产和负债清单
+5. 税单或社保缴纳记录
+6. 本征信分析报告作为参考
+
+### 贷款沟通策略
+
+与银行沟通时可强调以下有利因素：
+- 良好的信用历史和还款记录
+- 稳定的工作和收入来源
+- 合理的债务收入比
+- 无任何不良征信记录
+- 明确的购房计划和资金规划
+
+## 七、结论
+
+基于对征信报告的全面分析，申请人目前具备良好的信用状况和还款能力，是银行贷款的优质客户。从征信角度看，申请住房贷款获批的可能性较高，建议申请人可以在短期内完成征信优化后，按推荐策略申请贷款。
 
 如需了解更多详情或有任何疑问，请随时咨询我们的客服人员。`;
       
@@ -945,7 +999,7 @@ export default {
       // 添加初始系统消息到咨询消息列表
       consultationMessages.value.push({
         role: 'assistant',
-        content: '我是良策AI助手，本次客户的购房建议报告已生成。您可以继续向我咨询以获取更多建议。'
+        content: '我是良策AI助手，本次客户的征信分析报告已生成。您可以继续向我咨询以获取更多建议。'
       });
       
       // 进入下一步
@@ -954,30 +1008,32 @@ export default {
     
     // 进入下一步
     const nextStep = () => {
-      if (activeStep.value < 3) {
+      if (activeStep.value < 4) {
         activeStep.value++;
         
         // 根据当前步骤执行相应的操作
-        if (activeStep.value === 2) {
-          // 匹配房产步骤
+        if (activeStep.value === 3) {
+          // 征信分析步骤
           startAiWorking();
         }
-      } else {
-        // 所有步骤完成，通知父组件
-        emit('report-complete', { 
-          ...formData.value, 
-          report: reportContent.value 
-        });
       }
     };
-    
+   
+    // 清理
+    onUnmounted(() => {
+      // 清理URL对象
+      if (filePreviewUrl.value && filePreviewUrl.value.startsWith('blob:')) {
+        URL.revokeObjectURL(filePreviewUrl.value);
+      }
+    });
+   
     // 下载报告
     const downloadReport = () => {
       try {
         const element = document.createElement('a');
         const file = new Blob([reportContent.value], {type: 'text/markdown'});
         element.href = URL.createObjectURL(file);
-        element.download = `购房建议报告_${formData.value.name || '客户'}_${new Date().toLocaleDateString().replace(/\//g, '-')}.md`;
+        element.download = `征信分析报告_${formData.value.customerName || '客户'}_${new Date().toLocaleDateString().replace(/\//g, '-')}.md`;
         document.body.appendChild(element);
         element.click();
         document.body.removeChild(element);
@@ -992,7 +1048,7 @@ export default {
     const restartAdvisor = () => {
       // 提示用户确认重新开始
       ElMessageBox.confirm(
-        '确定要开始新的买家顾问流程吗？',
+        '确定要开始新的征信分析流程吗？',
         '操作提示',
         {
         confirmButtonText: '确定',
@@ -1008,9 +1064,13 @@ export default {
           workingStatus.value = 'idle';
           aiThinkingProcess.value = '';
           displayedThinkingProcess.value = '';
-          workingProperties.value = [];
           consultationMessages.value = [];
           consultationInput.value = '';
+          extractionProgress.value = 0;
+          extractedText.value = '';
+          filePreviewUrl.value = null;
+          isImageFile.value = false;
+          fileList.value = [];
           
           // 停止所有计时器
           stopWorkingTimer();
@@ -1018,9 +1078,6 @@ export default {
             clearInterval(thinkingInterval);
             thinkingInterval = null;
           }
-          
-          // 通知父组件重新开始
-          emit('step-change', { step: 1, restarted: true });
         })
         .catch(() => {
           // 用户取消，不做任何操作
@@ -1183,23 +1240,15 @@ export default {
       }
     };
     
-    // 折叠/展开思考过程
-    const toggleThinkingProcess = () => {
-      isThinkingExpanded.value = !isThinkingExpanded.value
-    }
-    
     // 开始咨询思考状态计时
     const startConsultationThinking = () => {
       consultationThinkingTimer.value = 0;
-      consultationThinkingDots.value = '';
       consultationResponseStatus.value = '';
       consultationResponseTime.value = 0;
       
       // 启动计时器
       consultationThinkingInterval = setInterval(() => {
         consultationThinkingTimer.value++;
-        // 动态更新省略号
-        consultationThinkingDots.value = '.'.repeat((consultationThinkingTimer.value % 3) + 1);
       }, 1000);
     };
     
@@ -1210,7 +1259,6 @@ export default {
         consultationThinkingInterval = null;
         consultationResponseTime.value = consultationThinkingTimer.value;
         consultationThinkingTimer.value = 0;
-        consultationThinkingDots.value = '';
         
         // 设置响应状态
         if (status === 'success') {
@@ -1220,35 +1268,6 @@ export default {
         }
       }
     };
-    
-
-    
-    // 生命周期钩子
-    onMounted(() => {
-      // 设置初始垂直分隔位置
-      document.documentElement.style.setProperty('--vertical-split', `${verticalSplit.value}%`);
-      
-      // 设置初始的聊天输入框宽度
-      document.documentElement.style.setProperty('--chat-input-width', '100%');
-    });
-    
-    onUnmounted(() => {
-      // 清理资源
-      stopWorkingTimer();
-      stopThinkingProcess();
-      if (consultationThinkingInterval) {
-        clearInterval(consultationThinkingInterval);
-      }
-      
-      // 移除事件监听器
-      document.removeEventListener('mousemove', resizeHorizontal);
-      document.removeEventListener('mouseup', stopResizeHorizontal);
-      document.removeEventListener('mousemove', resizeVertical);
-      document.removeEventListener('mouseup', stopResizeVertical);
-      
-      document.documentElement.style.removeProperty('--vertical-split');
-      document.documentElement.style.removeProperty('--chat-input-width');
-    });
     
     // 开始水平调整大小
     const startResizeHorizontal = (e) => {
@@ -1274,7 +1293,7 @@ export default {
         horizontalSplit.value = percent;
         
         // 更新组件根元素的CSS变量
-        const reportContainer = document.querySelector('.property-advisor-report');
+        const reportContainer = document.querySelector('.credit-analyse-report');
         if (reportContainer) {
           reportContainer.style.setProperty('--horizontal-split', `${percent}%`);
         }
@@ -1350,24 +1369,6 @@ export default {
       document.removeEventListener('mouseup', stopResizeVertical);
     };
     
-    // 组件卸载时执行
-    onUnmounted(() => {
-      // 清理资源
-      stopWorkingTimer();
-      if (thinkingInterval) clearInterval(thinkingInterval);
-      if (consultationThinkingInterval) clearInterval(consultationThinkingInterval);
-      if (resizeThrottleTimeout) clearTimeout(resizeThrottleTimeout);
-      
-      // 移除事件监听器
-      document.removeEventListener('mousemove', resizeHorizontal);
-      document.removeEventListener('mouseup', stopResizeHorizontal);
-      document.removeEventListener('mousemove', resizeVertical);
-      document.removeEventListener('mouseup', stopResizeVertical);
-      
-      document.documentElement.style.removeProperty('--vertical-split');
-      document.documentElement.style.removeProperty('--chat-input-width');
-    });
-    
     // 添加一个滚动函数，统一管理滚动行为
     const scrollToBottom = (selector, forceScroll = true) => {
       const element = document.querySelector(selector);
@@ -1383,11 +1384,66 @@ export default {
       }
     };
     
-    // 在显示思考过程的地方替换直接滚动的代码
-    // 例如，在处理思考过程时:
-    // 自动滚动到底部
-    scrollToBottom('.thinking-display');
+    // 组件挂载时执行
+    onMounted(() => {
+      // 设置初始垂直分隔位置
+      document.documentElement.style.setProperty('--vertical-split', `${verticalSplit.value}%`);
+      
+      // 设置初始的聊天输入框宽度
+      document.documentElement.style.setProperty('--chat-input-width', '100%');
+      
+      // 注册窗口大小变化事件
+      window.addEventListener('resize', () => {
+        // 延迟执行，避免频繁触发
+        if (resizeThrottleTimeout) clearTimeout(resizeThrottleTimeout);
+        resizeThrottleTimeout = setTimeout(() => {
+          // 无需再调整输入框高度
+        }, 100);
+      });
+      
+      // 创建MutationObserver来监听输入框高度变化
+      mutationObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'attributes' && 
+              (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+            // 无需定期检查高度变化
+          }
+        });
+      });
+      
+      // 启动定期检查高度变化
+      autoHeightCheckInterval = setInterval(() => {
+        // 无需定期检查高度变化
+      }, 2000); // 每2秒检查一次
+    });
     
+    // 组件卸载时执行
+    onUnmounted(() => {
+      // 清理URL对象
+      if (filePreviewUrl.value && filePreviewUrl.value.startsWith('blob:')) {
+        URL.revokeObjectURL(filePreviewUrl.value);
+      }
+      
+      // 清除定时器
+      stopWorkingTimer();
+      if (thinkingInterval) clearInterval(thinkingInterval);
+      if (consultationThinkingInterval) clearInterval(consultationThinkingInterval);
+      if (autoHeightCheckInterval) clearInterval(autoHeightCheckInterval);
+      if (resizeThrottleTimeout) clearTimeout(resizeThrottleTimeout);
+      
+      // 移除事件监听器
+      document.removeEventListener('mousemove', resizeHorizontal);
+      document.removeEventListener('mouseup', stopResizeHorizontal);
+      document.removeEventListener('mousemove', resizeVertical);
+      document.removeEventListener('mouseup', stopResizeVertical);
+      
+      document.documentElement.style.removeProperty('--vertical-split');
+      document.documentElement.style.removeProperty('--chat-input-width');
+      
+      // 断开MutationObserver
+      if (mutationObserver) mutationObserver.disconnect();
+    });
+   
     // 添加 handleEnterKey 函数
     const handleEnterKey = (event) => {
       // 如果按下Shift+Enter，允许换行
@@ -1403,20 +1459,7 @@ export default {
         sendConsultationMessage()
       }
     }
-    
-    // 处理用户消息中的换行符
-    const formatUserMessage = (text) => {
-      if (!text) return '';
-      // 将换行符转换为<br>标签，同时进行HTML转义防止XSS
-      return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;')
-        .replace(/\n/g, '<br>');
-    }
-    
+   
     // 消息容器引用
     const messagesContainer = ref(null);
 
@@ -1428,13 +1471,143 @@ export default {
         }
       });
     }, { deep: true });
+   
+    // 查看征信文件
+    const viewCreditFile = () => {
+      // 计算窗口尺寸（宽度80%，高度95%）
+      const width = Math.floor(window.screen.width * 0.7);
+      const height = Math.floor(window.screen.height * 0.85);
+      const left = Math.floor((window.screen.width - width) / 2);
+      const top = Math.floor((window.screen.height - height) / 2);
+      
+      // 获取文件名
+      const fileName = fileList.value?.length > 0 ? fileList.value[0].name : '征信文件.pdf';
+      
+      // 打开新窗口
+      const newWindow = window.open(
+        '', 
+        '_blank', 
+        `width=${width},height=${height},left=${left},top=${top},location=no,menubar=no,toolbar=no,resizable=yes`
+      );
+      
+      if (newWindow) {
+        // 构建HTML内容
+        let html = `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>客户“${formData.value.customerName}”的征信文件内容：${fileName}</title>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                html, body {
+                  margin: 0;
+                  padding: 0;
+                  height: 100%;
+                  font-family: Arial, sans-serif;
+                  overflow: hidden;
+                }
+                .container {
+                  display: flex;
+                  height: 100%;
+                  background-color: #f5f7fa;
+                }
+                .file-preview {
+                  width: 50%;
+                  height: 100%;
+                  border-right: 1px solid #dcdfe6;
+                  background-color: #fff;
+                  position: relative;
+                  overflow: hidden;
+                }
+                .extracted-text {
+                  width: 50%;
+                  height: 100%;
+                  background-color: #fff;
+                  position: relative;
+                  display: flex;
+                  flex-direction: column;
+                }
+                .header {
+                  height: 50px;
+                  padding: 0 16px;
+                  border-bottom: 1px solid #ebeef5;
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  background-color: #f5f7fa;
+                  font-size: 16px;
+                  font-weight: 500;
+                  color: #303133;
+                }
+                .content {
+                  flex: 1;
+                  padding: 16px;
+                  overflow: auto;
+                  white-space: pre-wrap;
+                  line-height: 1.6;
+                  color: #606266;
+                  font-size: 14px;
+                }
+                iframe {
+                  width: 100%;
+                  height: calc(100% - 50px);
+                  border: none;
+                }
+                .close-btn {
+                  cursor: pointer;
+                  color: #909399;
+                  font-size: 24px;
+                  margin-left: auto;
+                }
+                .close-btn:hover {
+                  color: #1b68de;
+                }
+                #pdf-container {
+                  width: 100%;
+                  height: calc(100% - 50px);
+                  overflow: hidden;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="file-preview">
+                  <div class="header">
+                    <div>上传的征信文件</div>
+                  </div>
+                  <div id="pdf-container">
+                    ${filePreviewUrl.value ? `<iframe src="${filePreviewUrl.value}" frameborder="0"></iframe>` : '<div class="content">文件加载中...</div>'}
+                  </div>
+                </div>
+                <div class="extracted-text">
+                  <div class="header">
+                    <div>提取的文本内容</div>
+                    <div class="close-btn" onclick="window.close()">×</div>
+                  </div>
+                  <div class="content">${extractedText.value || '无提取内容'}</div>
+                </div>
+              </div>
+            </body>
+          </html>
+        `;
+        
+        // 写入HTML内容到窗口
+        newWindow.document.write(html);
+        newWindow.document.close();
+      }
+    };
     
     return {
       activeStep,
       formData,
+      extractionProgress,
+      extractedText,
+      isImageFile,
+      filePreviewUrl,
+      fileList,
       workingStatus,
       workingTimer,
-      workingProperties,
       displayedThinkingProcess,
       isThinking,
       reportContent,
@@ -1443,60 +1616,54 @@ export default {
       consultationInput,
       consultationLoading,
       consultationThinkingTimer,
-      consultationThinkingDots,
       consultationResponseStatus,
       consultationResponseTime,
       horizontalSplit,
       verticalSplit,
       aiThinkingProcess,
       workThinkingContent,
-      consultationThinkingProcesses, // 添加这一行，确保将consultationThinkingProcesses暴露到模板
+      consultationThinkingProcesses,
       renderMarkdown,
+      formatUserMessage,
+      messagesContainer,
+      
+      // 方法
       handleFormSubmit,
+      startAnalysis,
+      extractPDFContent,
+      resetAnalysis,
+      retryExtraction,
       startAiWorking,
       nextStep,
       downloadReport,
       restartAdvisor,
       sendConsultationMessage,
+      handleEnterKey,
       startResizeHorizontal,
       startResizeVertical,
       startWorkingTimer,
       stopWorkingTimer,
       stopThinkingProcess,
-      handleEnterKey,
-      formatUserMessage,
-      messagesContainer
-    };
+      viewCreditFile
+    }
   }
-};
+}
 </script>
 
 <style lang="scss" scoped>
-/* Element Plus 组件自定义样式 */
-:deep(.el-steps--simple) {
-  background-color: #ffffff !important;
-}
+/* 
+* 征信分析报告组件样式
+* 最后修改时间: 2023-07-24 15:23:17
+*/
 
-:deep(.el-step__title.is-success),
-:deep(.el-step__head.is-success) {
-  color: #1b68de !important;
-  border-color: #1b68de !important;
-}
-
-/* 主布局样式 */
-.property-advisor-report {
+/* --------- 1. 基础布局样式 --------- */
+.credit-analyse-report {
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
   position: relative;
   overflow: hidden;
-  --horizontal-split: 55%;
-}
-
-.steps-header {
-  border-bottom: 1px solid #ebeef5;
-  background-color: white;
 }
 
 .step-content {
@@ -1511,7 +1678,23 @@ export default {
   overflow: auto;
 }
 
-/* 面板通用样式 */
+/* --------- 2. Element Plus组件自定义样式 --------- */
+.steps-header {
+  border-bottom: 1px solid #ebeef5;
+  background-color: white;
+}
+
+:deep(.el-steps--simple) {
+  background-color: #ffffff !important;
+}
+
+:deep(.el-step__title.is-success),
+:deep(.el-step__head.is-success) {
+  color: #1b68de !important;
+  border-color: #1b68de !important;
+}
+
+/* --------- 3. 面板通用样式 --------- */
 .panel-header {
   padding: 0 16px;
   height: 50px;
@@ -1521,7 +1704,7 @@ export default {
   justify-content: space-between;
   background-color: #f5f7fa;
   z-index: 1;
-  
+ 
   h3 {
     display: flex;
     align-items: center;
@@ -1529,20 +1712,12 @@ export default {
     font-size: 16px;
     font-weight: 500;
     color: #303133;
-    
+   
     .header-icon {
       margin-right: 6px;
       font-size: 22px;
       color: #1b5dd3;
       vertical-align: middle;
-    }
-    
-    .report-duration,
-    .response-status {
-      font-size: 14px;
-      color: #909399;
-      font-weight: normal;
-      margin-left: 8px;
     }
     
     .thinking-status {
@@ -1584,23 +1759,31 @@ export default {
       }
     }
   }
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 14px;
-  height: 30px;
-  font-size: 12px;
   
-  .el-icon {
-    margin-right: 6px;
+  .report-duration, 
+  .response-status {
+    font-size: 14px;
+    color: #909399;
+    font-weight: normal;
+    margin-left: 8px;
+  }
+  
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .action-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+    height: 30px;
+    font-size: 12px;
+    
+    .el-icon {
+      margin-right: 6px;
+    }
   }
 }
 
@@ -1611,9 +1794,224 @@ export default {
   height: calc(100% - 50px);
   width: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
-/* 报告布局样式 */
+/* --------- 4. 文件提取和预览样式 --------- */
+.file-name {
+  font-size: 14px;
+  margin-left: 10px;
+  color: #909399;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.extraction-layout {
+  display: flex;
+  height: calc(100vh - 180px);
+  min-height: 400px;
+  overflow: hidden;
+}
+
+.original-file,
+.extracted-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #ebeef5;
+  overflow: hidden;
+}
+
+.file-preview {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+ 
+  iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    overflow: hidden;
+  }
+ 
+  img {
+    max-width: 100%;
+    display: block;
+  }
+}
+
+.file-placeholder,
+.text-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #909399;
+ 
+  .el-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+ 
+  p {
+    font-size: 14px;
+  }
+}
+
+.text-content {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  word-break: break-all;
+  word-wrap: break-word;
+  box-sizing: border-box;
+  color: #606266;
+  font-size: 14px;
+}
+
+/* 进度条样式 */
+.mini-progress {
+  margin-left: 12px;
+  width: 120px;
+  display: inline-flex;
+  vertical-align: middle;
+ 
+  :deep(.el-progress-bar__outer) {
+    background-color: #e9ecef;
+    border-radius: 4px;
+  }
+ 
+  :deep(.el-progress-bar__inner) {
+    background-color: #1b68de;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+}
+
+/* --------- 5. AI思考和处理相关样式 --------- */
+/* AI处理中的蒙层 */
+.working-overlay {
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  width: 280px;
+  border-radius: 8px;
+  z-index: 100;
+  padding: 10px 16px;
+  background-color: rgba(0, 0, 0, 0.65);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ai-tip {
+  color: #ffffff;
+  font-size: 14px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ffffff;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+/* 思考容器样式 */
+.thinking-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: #ffffff;
+}
+
+.thinking-display {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-size: 14px;
+  line-height: 1.6;
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  color: #606266;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-all;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  padding: 16px;
+  text-align: left;
+  box-sizing: border-box;
+  transition: opacity 0.3s ease;
+  
+  &.dimmed {
+    opacity: 0.5;
+  }
+}
+
+.Ai-thinking-container {
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  position: relative;
+  overflow: auto;
+}
+
+/* 生成报告过程中的悬浮提示 */
+.generating-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.generating-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 20px 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.3s ease;
+  
+  .loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #c3c3c3;
+    border-top: 3px solid #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 12px;
+  }
+  
+  .generating-message {
+    font-size: 14px;
+    font-weight: 400;
+    color: #ffffff;
+    white-space: nowrap;
+  }
+}
+
+/* --------- 6. 报告布局样式 --------- */
 .report-container {
   position: relative;
   height: 100%;
@@ -1629,20 +2027,16 @@ export default {
   width: 100%;
 }
 
-.report-left {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-right: 1px solid #dcdfe6;
-  max-height: 100%;
-}
-
+.report-left, 
 .report-right {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  position: relative;
   max-height: 100%;
+}
+
+.report-left {
+  border-right: 1px solid #dcdfe6;
 }
 
 .report-right-top {
@@ -1690,72 +2084,7 @@ export default {
   padding-right: 0;
 }
 
-.report-content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  line-height: 1.6;
-  width: 100%;
-  padding: 0 16px;
-  box-sizing: border-box;
-}
-
-/* 分隔线样式 */
-.resizer-horizontal {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 6px;
-  background-color: transparent;
-  cursor: col-resize;
-  z-index: 10;
-  left: var(--horizontal-split, 55%);
-  transform: translateX(-3px);
-  transition: background-color 0.2s;
-  
-  &:hover,
-  &:active {
-    background-color: rgba(64, 158, 255, 0.2);
-  }
-}
-
-.resizer-vertical {
-  position: absolute;
-  left: auto; /* 移除左侧锚定 */
-  width: calc(100% - var(--horizontal-split, 55%)); /* 仅占据右侧区域宽度 */
-  right: 0; /* 从右侧锚定 */
-  height: 6px;
-  background-color: transparent;
-  cursor: row-resize;
-  z-index: 10;
-  top: var(--vertical-split, 50%);
-  transform: translateY(-3px);
-  
-  &:hover, 
-  &:active {
-    background-color: rgba(64, 158, 255, 0.2);
-  }
-}
-
-.is-resizing {
-  user-select: none;
-  cursor: col-resize;
-}
-
-/* AI思考容器样式 */
-.Ai-thinking-container {
-  position: relative;
-  height: 100%;
-}
-
-.thinking-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  background-color: #ffffff;
-}
-
+/* 思考内容区 */
 .thinking-content {
   flex: 1;
   overflow-y: auto;
@@ -1775,206 +2104,59 @@ export default {
   box-sizing: border-box;
 }
 
-.thinking-display {
+.report-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  font-size: 14px;
   line-height: 1.6;
-  height: 100%;
   width: 100%;
-  max-width: 100%;
-  color: #606266;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  word-break: break-all;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  padding: 16px;
-  text-align: left;
+  padding: 0 16px;
   box-sizing: border-box;
-  transition: opacity 0.3s ease;
+}
+
+/* --------- 7. 分隔线调整样式 --------- */
+.resizer-vertical {
+  position: absolute;
+  left: auto; /* 移除左侧锚定 */
+  width: calc(100% - var(--horizontal-split, 55%)); /* 仅占据右侧区域宽度 */
+  right: 0; /* 从右侧锚定 */
+  height: 6px;
+  background-color: transparent;
+  cursor: row-resize;
+  z-index: 10;
+  top: var(--vertical-split, 50%);
+  transform: translateY(-3px);
   
-  &.dimmed {
-    opacity: 0.5;
+  &:hover, 
+  &:active {
+    background-color: rgba(64, 158, 255, 0.2);
   }
 }
 
-/* 思考分隔线 */
-.thinking-separator {
-  margin: 30px 0 20px 0;
-  display: flex;
-  align-items: center;
-}
-
-.separator-line {
-  flex: 1;
-  height: 3px;
-  background: radial-gradient(circle at 0 1px, #6595dd 30%, transparent 30%);
-  background-size: 5px 2px;
-  background-repeat: repeat-x;
-  opacity: 0.6;
-}
-
-.separator-text {
-  padding: 0 16px;
-  font-size: 14px;
-  color: #1b68de;
-  font-weight: 400;
-}
-
-/* 等待状态样式 */
-.working-overlay {
+.resizer-horizontal {
   position: absolute;
   top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(255, 255, 255, 0.9);
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.overlay-content {
-  width: 90%;
-  max-width: 900px;  
-  overflow: hidden;
-}
-
-.animation-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  bottom: 0;
+  width: 6px;
+  background-color: transparent;
+  cursor: col-resize;
+  z-index: 10;
+  left: var(--horizontal-split, 55%);
+  transform: translateX(-3px);
+  transition: background-color 0.2s;
   
-  .loading-brain {
-    margin-bottom: 0;
-  }
-  
-  .loading-dots {
-    display: flex;
-    gap: 10px;
-    margin-top: -10px;
-    justify-content: center;
-    margin-top: 12px;
-    
-    span {
-      display: inline-block;
-      width: 5px;
-      height: 5px;
-      margin: 0 3px;
-      background-color: #1b5dd3;
-      border-radius: 50%;
-      animation: dots-loader 1.4s infinite ease-in-out both;
-      
-      &:nth-child(1) {
-        animation: dots 1.5s infinite 0s;
-        animation-delay: -0.32s;
-      }
-      
-      &:nth-child(2) {
-        animation: dots 1.5s infinite 0.3s;
-        animation-delay: -0.16s;
-      }
-      
-      &:nth-child(3) {
-        animation: dots 1.5s infinite 0.6s;
-      }
-    }
+  &:hover,
+  &:active {
+    background-color: rgba(64, 158, 255, 0.2);
   }
 }
 
-.wait-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 20px;
-  padding: 14px 30px;
-  
-  .ai-timer {
-    display: flex;
-    align-items: center;
-    color: #909399;
-    font-size: 14px;
-    margin-right: 30px;
-    
-    .timer-icon {
-      margin-right: 2px;
-      
-      .el-icon {
-        font-size: 16px;
-      }
-    }
-  }
-  
-  .ai-tip {
-    color: #000000;
-    font-size: 14px;
-  }
+.is-resizing {
+  user-select: none;
+  cursor: col-resize;
 }
 
-/* 生成报告的覆盖层 */
-.generating-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 100;
-  pointer-events: none;
-}
-
-.generating-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: rgb(0 0 0 / 50%);
-  padding: 20px 30px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  animation: fadeIn 0.3s ease;
-  
-  .loading-spinner {
-    width: 36px;
-    height: 36px;
-    border: 3px solid #c3c3c3;
-    border-top: 3px solid #ffffff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 12px;
-  }
-  
-  .generating-message {
-    font-size: 14px;
-    font-weight: 400;
-    color: #ffffff;
-    white-space: nowrap;
-  }
-}
-
-/* SVG动画相关 */
-.brain-path {
-  stroke-dasharray: 200;
-  stroke-dashoffset: 200;
-  animation: brain-draw 3s infinite;
-}
-
-.pulse-circle {
-  animation: pulse 2s infinite;
-  opacity: 0.6;
-  transform-origin: center;
-  
-  &:nth-child(2) { animation-delay: 0.2s; }
-  &:nth-child(3) { animation-delay: 0.4s; }
-  &:nth-child(4) { animation-delay: 0.6s; }
-  &:nth-child(5) { animation-delay: 0.8s; }
-  &:nth-child(6) { animation-delay: 1.0s; }
-  &:nth-child(7) { animation-delay: 1.2s; }
-}
-
-/* 聊天区域样式 */
+/* --------- 8. 聊天区域样式 --------- */
 .chat-messages {
   flex: 1;
   padding: 16px;
@@ -1995,31 +2177,18 @@ export default {
   &.user {
     flex-direction: row-reverse;
     justify-content: flex-start;
-    
-    .message-content {
-      background-color: #deebff;
-      color: #1b68de;
-      border-bottom-right-radius: 1px;
-      margin-left: 4px;
-    }
-    
-    .message-text {
-      white-space: normal;
-      word-break: break-word;
-      
-      br {
-        display: block;
-        content: "";
-        margin-top: 4px;
-      }
-    }
   }
   
-  &.assistant {
-    .message-content {
-      border-top-left-radius: 1px;
-      margin-right: 40px;
-    }
+  &.assistant .message-content {
+    border-top-left-radius: 1px;
+    margin-right: 40px;
+  }
+  
+  &.user .message-content {
+    background-color: #deebff;
+    color: #1b68de;
+    border-bottom-right-radius: 1px;
+    margin-left: 4px;
   }
   
   &.error .message-content {
@@ -2028,21 +2197,14 @@ export default {
     animation: error-pulse 1.5s ease-in-out;
   }
   
-  &.thinking .thinking-indicator {
-    display: flex;
-    gap: 6px;
-    padding: 10px;
+  &.user .message-text {
+    white-space: normal;
+    word-break: break-word;
     
-    span {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: #a0a0a0;
-      animation: thinking 1.4s infinite ease-in-out both;
-      
-      &:nth-child(1) { animation-delay: 0s; }
-      &:nth-child(2) { animation-delay: 0.2s; }
-      &:nth-child(3) { animation-delay: 0.4s; }
+    br {
+      display: block;
+      content: "";
+      margin-top: 4px;
     }
   }
 }
@@ -2075,6 +2237,33 @@ export default {
 .message-text {
   line-height: 1.5;
   font-size: 14px;
+}
+
+/* 思考指示器 */
+.thinking .thinking-indicator {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  
+  span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #a0a0a0;
+    animation: thinking 1.4s infinite ease-in-out both;
+    
+    &:nth-child(1) {
+      animation-delay: 0s;
+    }
+    
+    &:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    
+    &:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+  }
 }
 
 /* 聊天输入区域 */
@@ -2158,7 +2347,30 @@ export default {
   flex-shrink: 0;
 }
 
-/* Markdown内容样式 */
+/* --------- 9. 思考分隔线 --------- */
+.thinking-separator {
+  margin: 30px 0 20px 0;
+  display: flex;
+  align-items: center;
+}
+
+.separator-line {
+  flex: 1;
+  height: 3px;
+  background: radial-gradient(circle at 0 1px, #6595dd 30%, transparent 30%);
+  background-size: 5px 2px;
+  background-repeat: repeat-x;
+  opacity: 0.6;
+}
+
+.separator-text {
+  padding: 0 16px;
+  font-size: 14px;
+  color: #1b68de;
+  font-weight: 400;
+}
+
+/* --------- 10. Markdown内容样式 --------- */
 .markdown-content {
   :deep(p) {
     margin: 0 0 8px;
@@ -2190,11 +2402,11 @@ export default {
   table {
     font-size: 14px;
     margin-bottom: 10px;
-  }
-  
-  table th, table td {
-    padding: 4px 8px;
-    min-width: 50px;
+    
+    th, td {
+      padding: 4px 8px;
+      min-width: 50px;
+    }
   }
   
   pre {
@@ -2211,70 +2423,99 @@ export default {
   }
 }
 
-/* 辅助组件 */
-.placeholder-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #909399;
-  
-  .el-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-    animation: spin 2s linear infinite;
+/* --------- 11. 响应式样式 --------- */
+@media (max-width: 768px) {
+  .extraction-layout {
+    flex-direction: column;
   }
-  
-  p {
-    font-size: 16px;
-    text-align: center;
-    max-width: 400px;
-    line-height: 1.5;
+ 
+  .original-file,
+  .extracted-text {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #ebeef5;
   }
 }
 
-/* 动画效果 */
+/* --------- 12. 动画效果 --------- */
 @keyframes brain-draw {
-  0% { stroke-dashoffset: 200; }
-  50% { stroke-dashoffset: 0; }
-  100% { stroke-dashoffset: 200; }
+  0% {
+    stroke-dashoffset: 200;
+  }
+  50% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 200;
+  }
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); opacity: 0.7; }
-  50% { transform: scale(1.4); opacity: 0.3; }
-  100% { transform: scale(1); opacity: 0.7; }
-}
-
-@keyframes dots {
-  0%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-8px); }
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes message-fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes error-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+  }
 }
 
 @keyframes thinking {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.6; }
-  40% { transform: scale(1); opacity: 1; }
+  0%, 80%, 100% { 
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+  40% { 
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(-10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
 }
 </style>

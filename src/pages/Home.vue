@@ -25,10 +25,12 @@
     </div>
 
     <div class="footer">
+      <!-- 暂时停用底部Chat with AI入口
       <div class="ai-chat-entry" @click="toggleChatPanel">
         <el-icon><ChatLineRound /></el-icon>
         <span>Chat with AI</span>
       </div>
+      -->
       <p>© 2025 良策网络 - 智能分析平台，保留所有权利.</p>
     </div>
 

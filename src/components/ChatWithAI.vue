@@ -49,7 +49,7 @@
             </div>
           </div>
           
-          <!-- 加载中动画 -->
+          <!-- AI回复思考中动画 -->
           <div v-if="thinking" class="message assistant thinking">
             <div class="message-avatar">AI</div>
             <div class="message-content">
@@ -598,7 +598,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background-color: #f9f9fb;
+  background-color: #fafafa;
   scrollbar-width: thin; /* 添加Firefox滚动条细化支持 */
 }
 
@@ -737,13 +737,13 @@ export default {
 
 .thinking .thinking-indicator {
   display: flex;
-  gap: 4px;
-  padding: 10px 0;
+  gap: 6px;
+  padding: 10px;
 }
 
 .thinking .thinking-indicator span {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background-color: #a0a0a0;
   animation: thinking 1.4s infinite ease-in-out both;
