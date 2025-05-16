@@ -12,9 +12,33 @@
           <!-- 文件类型选择器 -->
           <div class="file-type-selector">
             <div class="file-type-cards">
+              <!-- PDF文件类型卡片 -->
+              <el-tooltip
+                v-if="fileList.length > 0 && fileUploadType !== 'pdf'"
+                content="若要上传PDF文件，请先清除已上传的图片"
+                placement="top"
+                :show-after="100"
+                effect="dark"
+              >
+                <div 
+                  class="file-type-card" 
+                  :class="{'active': fileUploadType === 'pdf', 'disabled': fileList.length > 0}"
+                  @click="fileList.length === 0 && (fileUploadType = 'pdf')"
+                >
+                  <div class="file-type-icon">
+                    <el-icon><Document /></el-icon>
+                  </div>
+                  <div class="file-type-info">
+                    <div class="file-type-name">PDF文件</div>
+                    <div class="file-type-desc">上传征信报告原版或扫描版文件<span class="file-type-desc-tip">（建议）</span></div>
+                  </div>
+                </div>
+              </el-tooltip>
+              
               <div 
+                v-else
                 class="file-type-card" 
-                :class="{'active': fileUploadType === 'pdf', 'disabled': fileList.length > 0}"
+                :class="{'active': fileUploadType === 'pdf', 'disabled': fileList.length > 0 && fileUploadType !== 'pdf'}"
                 @click="fileList.length === 0 && (fileUploadType = 'pdf')"
               >
                 <div class="file-type-icon">
@@ -25,9 +49,34 @@
                   <div class="file-type-desc">上传征信报告原版或扫描版文件<span class="file-type-desc-tip">（建议）</span></div>
                 </div>
               </div>
+              
+              <!-- 图片文件类型卡片 -->
+              <el-tooltip
+                v-if="fileList.length > 0 && fileUploadType !== 'images'"
+                content="若要上传图片文件，请先清除已上传的PDF"
+                placement="top"
+                :show-after="100"
+                effect="dark"
+              >
+                <div 
+                  class="file-type-card" 
+                  :class="{'active': fileUploadType === 'images', 'disabled': fileList.length > 0}"
+                  @click="fileList.length === 0 && (fileUploadType = 'images')"
+                >
+                  <div class="file-type-icon">
+                    <el-icon><Picture /></el-icon>
+                  </div>
+                  <div class="file-type-info">
+                    <div class="file-type-name">图片文件</div>
+                    <div class="file-type-desc">上传征信报告的拍照图片文件</div>
+                  </div>
+                </div>
+              </el-tooltip>
+              
               <div 
+                v-else
                 class="file-type-card" 
-                :class="{'active': fileUploadType === 'images', 'disabled': fileList.length > 0}"
+                :class="{'active': fileUploadType === 'images', 'disabled': fileList.length > 0 && fileUploadType !== 'images'}"
                 @click="fileList.length === 0 && (fileUploadType = 'images')"
               >
                 <div class="file-type-icon">

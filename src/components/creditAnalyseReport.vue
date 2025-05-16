@@ -473,7 +473,7 @@ export default {
           console.log('实际文本长度:', actualCharCount);
           
           // 判断文本字符数量，如果过少则可能不是有效的征信报告
-          if (actualCharCount < 50) {            
+          if (actualCharCount < 500) {            
             // 弹窗提示用户
             ElMessageBox.confirm(
               '上传文件不是有效的征信报告，请检查后重试。',
