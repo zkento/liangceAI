@@ -1,7 +1,7 @@
 <template>
   <div class="app">
     <el-container>
-      <el-header>
+      <el-header v-if="!isLoanCalculator">
         <div class="header-content">
           <div class="left-section">
             <router-link to="/" class="logo-container">
@@ -19,22 +19,23 @@
           </div>
         </div>
       </el-header>
-      <el-main>
+      <el-main :class="{ 'loan-calculator-main': isLoanCalculator }">
         <router-view></router-view>
       </el-main>
     </el-container>
     
     <!-- 历史记录弹层 -->
-    <HistoryPanel />
+    <HistoryPanel v-if="!isLoanCalculator" />
   </div>
 </template>
 
 <script>
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import { useStore } from 'vuex'
 import UserAvatar from '@/components/UserAvatar.vue'
 import HistoryButton from '@/components/HistoryButton.vue'
 import HistoryPanel from '@/components/HistoryPanel.vue'
+import { useRoute } from 'vue-router'
 
 export default {
   name: 'App',
@@ -45,11 +46,21 @@ export default {
   },
   setup() {
     const store = useStore()
+    const route = useRoute()
+    
+    // 判断当前路由是否为贷款计算器
+    const isLoanCalculator = computed(() => {
+      return route.path === '/loan-calculator'
+    })
     
     onMounted(() => {
       store.dispatch('user/initUserInfo')
       store.dispatch('history/fetchHistoryList')
     })
+    
+    return {
+      isLoanCalculator
+    }
   }
 }
 </script>
@@ -129,6 +140,12 @@ export default {
 .el-main {
   padding: 0;
   background-color: #f5f7fa;
+}
+
+.loan-calculator-main {
+  padding: 0;
+  background-color: #f5f7fa;
+  height: 100vh;
 }
 
 body {

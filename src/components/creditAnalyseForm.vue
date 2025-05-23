@@ -224,7 +224,7 @@
               :disabled="fileList.length === 0"
             >
               <el-icon v-if="!processingImages"><CaretRight /></el-icon>
-              <span v-if="!processingImages">开始分析</span>
+              <span v-if="!processingImages">让AI生成征信分析报告</span>
               <span v-else>图片处理中...{{ processingProgress }}%</span>
             </el-button>
           </div>
@@ -235,7 +235,7 @@
       <div class="content-panel">
         <div class="reference-content">
           <div class="panel-header">
-            <h3 class="panel-title">使用说明</h3>
+            <h2 class="panel-title">使用说明</h2>
           </div>
           <div class="panel-content">
             <div class="reference-grid">
@@ -1290,7 +1290,7 @@ export default {
 
 .reference-item::before {
   content: "•"; /* 使用圆点作为项目符号 */
-  color: #606266; /* 使用主题蓝色 */
+  color: #606266; 
   font-size: 18px; /* 稍微调大项目符号 */
   margin-right: 6px; /* 添加项目符号与文本之间的间距 */
   line-height: 1; /* 确保垂直对齐 */

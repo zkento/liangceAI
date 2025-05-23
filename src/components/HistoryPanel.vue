@@ -230,6 +230,8 @@
               :table-layout="'fixed'"
               :cell-style="{ 'color': '#606266', 'font-size': '13px' }"
               :row-style="{ height: '35px' }"
+              ref="tableRef"
+              @resize-end="handleTableResize"
             >
               <el-table-column prop="type" label="AI任务类型" min-width="130" :fixed="tableNeedsScroll ? 'left' : null" show-overflow-tooltip/>
               <el-table-column prop="customerName" label="客户姓名" min-width="155" show-overflow-tooltip/>
@@ -617,6 +619,18 @@ import { useStore } from 'vuex'
 import { List, Grid, Close, Refresh } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 
+// 添加一个简单的防抖函数
+const debounce = (fn, delay) => {
+  let timer = null
+  return function(...args) {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      fn.apply(this, args)
+      timer = null
+    }, delay)
+  }
+}
+
 export default {
   name: 'HistoryPanel',
   components: {
@@ -768,10 +782,20 @@ export default {
     const handleSearch = async () => {
       try {
         tableDataLoading.value = true;
-        currentPage.value = 1; // 搜索后重置为第一页
         
-        // 模拟与服务器通信的延迟
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // 使用nextTick和setTimeout将状态更新分离，避免快速连续的DOM更新
+        await nextTick();
+        
+        // 延迟重置页码，避免与加载状态同时触发多次DOM更新
+        setTimeout(() => {
+          currentPage.value = 1; // 搜索后重置为第一页
+        }, 10);
+        
+        // 使用较长的延迟模拟网络请求，同时给浏览器足够时间完成DOM更新
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 主请求延迟，避免与页面状态切换冲突
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         // 模拟服务器端搜索逻辑
         // 在实际应用中，这里会使用store.dispatch来调用API获取数据
@@ -791,7 +815,10 @@ export default {
         });
         console.error('搜索历史任务失败:', error);
       } finally {
-        tableDataLoading.value = false;
+        // 使用setTimeout延迟关闭加载状态，避免与其他DOM更新冲突
+        setTimeout(() => {
+          tableDataLoading.value = false;
+        }, 100);
       }
     }
     
@@ -995,6 +1022,9 @@ export default {
       // 添加点击外部区域的监听
       document.addEventListener('click', handleOutsideClick)
       
+      // 添加错误监听
+      window.addEventListener('error', handleWindowError, true);
+      
       // 初始计算表格宽度和检查屏幕宽度
       nextTick(() => {
         calculateTableWidth()
@@ -1015,6 +1045,7 @@ export default {
       window.removeEventListener('resize', calculateTableWidth)
       window.removeEventListener('resize', checkScreenWidth)
       document.removeEventListener('click', handleOutsideClick)
+      window.removeEventListener('error', handleWindowError, true);
       
       // 清除实时计时器
       stopRealtimeTimer()
@@ -1023,72 +1054,108 @@ export default {
       processingTimeCache.value.clear()
       totalTimeCache.value.clear()
     })
-
+    
     // 计算列表视图的理想宽度
-    const calculateTableWidth = () => {
+    const calculateTableWidth = debounce(() => {
       if (!isTableView.value) return
       
-      const windowWidth = window.innerWidth
-      
-      // 实现自适应宽度计算
-      // 所有列最小宽度总和，确保横向滚动条出现时有足够宽度
-      const baseWidth = 60 // 表格边框和内边距
-      const leftFixedColWidth = 130 // AI任务类型固定列
-      const rightFixedColWidth = 90 // 操作固定列
-      const padding = 50 // 预留空间，防止过于拥挤
-      
-      // 各列宽度按照新的规格调整
-      const fileColWidth = 190 // 文件名列宽度
-      const customerNameWidth = 155 // 客户姓名列宽度 (从140调整为155)
-      const submitTimeWidth = 155 // 提交任务时间 (从140调整为155)
-      const queuePositionWidth = 95 // 队列位置 (从90调整为95)
-      const expectedStartTimeWidth = 155 // 预计开始时间 (从140调整为155)
-      const actualStartTimeWidth = 155 // 实际开始时间 (从140调整为155)
-      const endTimeWidth = 155 // 结束时间 (从140调整为155)
-      const statusColWidth = 90 // 任务结果
-      const processingTimeWidth = 80 // 处理耗时
-      const totalTimeWidth = 80 // 全部耗时
-      
-      // 计算所有列的最小宽度总和
-      const allColumnsMinWidth = 
-        leftFixedColWidth + // AI任务类型
-        customerNameWidth + // 客户姓名
-        fileColWidth + // 上传的文件
-        submitTimeWidth + // 提交任务时间
-        queuePositionWidth + // 队列位置
-        expectedStartTimeWidth + // 预计开始时间
-        actualStartTimeWidth + // 实际开始时间
-        endTimeWidth + // 结束时间
-        statusColWidth + // 任务结果
-        processingTimeWidth + // 处理耗时
-        totalTimeWidth + // 全部耗时
-        rightFixedColWidth; // 操作列
-      
-      // 计算内容需要的最小宽度，确保所有列至少能显示其最小宽度
-      const contentBasedWidth = baseWidth + allColumnsMinWidth + padding;
-      
-      // 计算最终宽度
-      // 1. 如果窗口宽度足够显示所有列的最小宽度，使用85%窗口宽度
-      // 2. 如果窗口宽度不足，使用所有列最小宽度总和，触发横向滚动条
-      let finalWidth;
-      
-      if (windowWidth * 0.85 >= contentBasedWidth) {
-        // 窗口宽度足够，使用85%窗口宽度
-        finalWidth = windowWidth * 0.85;
-        tableNeedsScroll.value = false; // 不需要滚动条
-      } else {
-        // 窗口宽度不足，使用所有列最小宽度总和，确保显示横向滚动条
-        finalWidth = contentBasedWidth;
-        tableNeedsScroll.value = true; // 需要滚动条
+      try {
+        const windowWidth = window.innerWidth
+        
+        // 实现自适应宽度计算
+        // 所有列最小宽度总和，确保横向滚动条出现时有足够宽度
+        const baseWidth = 60 // 表格边框和内边距
+        const leftFixedColWidth = 130 // AI任务类型固定列
+        const rightFixedColWidth = 90 // 操作固定列
+        const padding = 50 // 预留空间，防止过于拥挤
+        
+        // 各列宽度按照新的规格调整
+        const fileColWidth = 190 // 文件名列宽度
+        const customerNameWidth = 155 // 客户姓名列宽度 (从140调整为155)
+        const submitTimeWidth = 155 // 提交任务时间 (从140调整为155)
+        const queuePositionWidth = 95 // 队列位置 (从90调整为95)
+        const expectedStartTimeWidth = 155 // 预计开始时间 (从140调整为155)
+        const actualStartTimeWidth = 155 // 实际开始时间 (从140调整为155)
+        const endTimeWidth = 155 // 结束时间 (从140调整为155)
+        const statusColWidth = 90 // 任务结果
+        const processingTimeWidth = 80 // 处理耗时
+        const totalTimeWidth = 80 // 全部耗时
+        
+        // 计算所有列的最小宽度总和
+        const allColumnsMinWidth = 
+          leftFixedColWidth + // AI任务类型
+          customerNameWidth + // 客户姓名
+          fileColWidth + // 上传的文件
+          submitTimeWidth + // 提交任务时间
+          queuePositionWidth + // 队列位置
+          expectedStartTimeWidth + // 预计开始时间
+          actualStartTimeWidth + // 实际开始时间
+          endTimeWidth + // 结束时间
+          statusColWidth + // 任务结果
+          processingTimeWidth + // 处理耗时
+          totalTimeWidth + // 全部耗时
+          rightFixedColWidth; // 操作列
+        
+        // 计算内容需要的最小宽度，确保所有列至少能显示其最小宽度
+        const contentBasedWidth = baseWidth + allColumnsMinWidth + padding;
+        
+        // 计算最终宽度
+        // 1. 如果窗口宽度足够显示所有列的最小宽度，使用85%窗口宽度
+        // 2. 如果窗口宽度不足，使用所有列最小宽度总和，触发横向滚动条
+        let finalWidth;
+        
+        if (windowWidth * 0.85 >= contentBasedWidth) {
+          // 窗口宽度足够，使用85%窗口宽度
+          finalWidth = windowWidth * 0.85;
+          tableNeedsScroll.value = false; // 不需要滚动条
+        } else {
+          // 窗口宽度不足，使用所有列最小宽度总和，确保显示横向滚动条
+          finalWidth = contentBasedWidth;
+          tableNeedsScroll.value = true; // 需要滚动条
+        }
+        
+        // 考虑屏幕限制，不超过95%屏幕宽度
+        const maxAllowedWidth = windowWidth * 0.95;
+        finalWidth = Math.min(finalWidth, maxAllowedWidth);
+        
+        // 设置最终宽度
+        tableViewWidth.value = `${finalWidth}px`;
+        
+        // 指示需要延迟更新表格布局
+        nextTick(() => {
+          if (tableRef.value) {
+            // 在DOM更新后再处理表格布局
+            setTimeout(() => {
+              handleTableResize();
+            }, 50);
+          }
+        });
+      } catch (error) {
+        console.error('计算表格宽度出错:', error);
       }
-      
-      // 考虑屏幕限制，不超过95%屏幕宽度
-      const maxAllowedWidth = windowWidth * 0.95;
-      finalWidth = Math.min(finalWidth, maxAllowedWidth);
-      
-      // 设置最终宽度
-      tableViewWidth.value = `${finalWidth}px`;
-    }
+    }, 100); // 100ms防抖
+    
+    // 监听窗口错误
+    const handleWindowError = (event) => {
+      if (event.message && event.message.includes('ResizeObserver')) {
+        event.preventDefault(); // 阻止错误冒泡
+        resizeObserverError.value = true;
+        
+        // 尝试修复ResizeObserver循环错误
+        if (tableRef.value && tableRef.value.$el) {
+          // 强制断开ResizeObserver循环
+          setTimeout(() => {
+            if (tableRef.value && tableRef.value.$el) {
+              // 强制重新计算表格布局
+              const el = tableRef.value.$el;
+              el.style.display = 'none';
+              void el.offsetHeight; // 强制重绘
+              el.style.display = '';
+            }
+          }, 0);
+        }
+      }
+    };
     
     // 监听面板可见性变化
     watch(panelVisible, (newVisible) => {
@@ -1292,10 +1359,10 @@ export default {
     // 查看结果
     const viewResult = (history) => {
       // 计算窗口尺寸（宽度95%，高度95%）
-      const width = Math.floor(window.screen.width * 0.95);
-      const height = Math.floor(window.screen.height * 0.95);
-      const left = Math.floor((window.screen.width - width) / 2);
-      const top = Math.floor((window.screen.height - height) / 2);
+      const width = Math.floor(window.innerWidth * 0.95);
+      const height = Math.floor(window.innerHeight * 0.95);
+      const left = Math.floor((window.innerWidth - width) / 2);
+      const top = Math.floor((window.innerHeight - height) / 2);
       
       // 打开新窗口
       const newWindow = window.open(
@@ -1545,10 +1612,10 @@ export default {
       const fileName = file.name || file;
       
       // 计算窗口尺寸（宽度80%，高度95%）
-      const width = Math.floor(window.screen.width * 0.8);
-      const height = Math.floor(window.screen.height * 0.95);
-      const left = Math.floor((window.screen.width - width) / 2);
-      const top = Math.floor((window.screen.height - height) / 2);
+      const width = Math.floor(window.innerWidth * 0.8);
+      const height = Math.floor(window.innerHeight * 0.95);
+      const left = Math.floor((window.innerWidth - width) / 2);
+      const top = Math.floor((window.innerHeight - height) / 2);
       
       // 构建文件URL（实际应用中应该使用真实的文件路径）
       const fileUrl = `/api/files/${encodeURIComponent(fileName)}`;
@@ -1712,6 +1779,26 @@ export default {
       }
     };
     
+    const tableRef = ref(null) // 表格引用
+    
+    // 处理表格重新调整大小完成事件
+    const handleTableResize = () => {
+      // 确保表格容器在调整大小后有正确的布局
+      if (tableRef.value) {
+        // 使用微任务延迟，避免ResizeObserver冲突
+        setTimeout(() => {
+          if (tableRef.value?.$el) {
+            // 触发重新布局
+            tableRef.value.$el.style.display = 'none'
+            void tableRef.value.$el.offsetHeight // 强制重绘
+            tableRef.value.$el.style.display = ''
+          }
+        }, 0)
+      }
+    }
+    
+    const resizeObserverError = ref(false) // 是否出现过ResizeObserver错误
+    
     return {
       panelVisible,
       historyList,
@@ -1763,7 +1850,10 @@ export default {
       handleScroll,
       // 刷新功能
       refreshHistoryList,
-      tableDataLoading
+      tableDataLoading,
+      tableRef,
+      handleTableResize,
+      resizeObserverError
     }
   }
 }
@@ -2508,6 +2598,8 @@ h3 {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  isolation: isolate; /* 创建新的层叠上下文 */
+  contain: layout; /* 优化渲染性能 */
 }
 
 /* 自定义加载层 */
@@ -2565,4 +2657,21 @@ h3 {
     transform: rotate(360deg);
   }
 }
+
+/* 修正表格重绘问题 */
+:deep(.el-table__inner-wrapper) {
+  contain: paint; /* 独立绘制层 */
+}
+
+/* 优化表格渲染性能 */
+:deep(.el-table) {
+  contain: layout style paint; /* 优化渲染性能 */
+  will-change: transform; /* 提示浏览器元素将发生变化 */
+}
+
+/* 强制取消表格边框样式 */
+/* :deep(.el-table) {
+  --el-table-border-color: transparent !important;
+  --el-table-border: none !important;
+} */
 </style>

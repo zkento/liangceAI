@@ -5,7 +5,7 @@
       <div class="input-panel">
         <div class="panel-header">
           <h2 class="panel-title">填写客户购房需求</h2>
-          </div>
+        </div>
         <div class="panel-content">
           <p class="description-hint">请参照右侧的需求描述要点输入客户的购房需求，要点覆盖得越全面越好。</p>
           
@@ -19,7 +19,7 @@
                 type="textarea"
                 :rows="12"
                 :autosize="{ minRows: 12, maxRows: 21 }"
-                placeholder="请输入不少于30个字的客户购房需求"
+                placeholder="请用不少于30个字详细地描述客户的购房需求"
                 @input="handleRequirementsInput"
                 @focus="handleInputFocus"
                 maxlength="600"
@@ -31,7 +31,7 @@
             <!-- 添加客户姓名输入框 -->
             <div class="customer-name-input">
               <el-form-item prop="customerName" :rules="customerNameRules">
-              <el-input 
+                <el-input 
                   v-model="formData.customerName"
                   placeholder="请输入客户姓名（必填，方便你查询结果）"
                   clearable
@@ -42,8 +42,8 @@
                     <el-icon><User /></el-icon>
                   </template>
                 </el-input>
-            </el-form-item>
-          </div>
+              </el-form-item>
+            </div>
           
             <div class="form-actions">
               <template v-if="!hasAnalysisResult">
@@ -79,18 +79,18 @@
                   :disabled="isAnalyzing"
                 ><el-icon><CaretRight /></el-icon> 让AI生成购房建议报告</el-button>
               </template>
-          </div>
+            </div>
           </el-form>
         </div>
-          </div>
-          
+      </div>
+      
       <!-- 右侧参考/结果区 -->
       <div class="content-panel">
         <template v-if="!hasAnalysisResult">
           <div class="reference-content">
             <div class="panel-header">
               <h3 class="panel-title">购房需求描述要点</h3>
-          </div>
+            </div>
             <div class="panel-content">
               <div class="reference-grid">
                 <div v-for="(group, index) in requirementGuide" :key="index" class="reference-group">
@@ -99,9 +99,9 @@
                     <span v-for="(item, idx) in group.items" :key="idx" class="reference-item" :class="getItemClass(group.title, item.label)">
                       <span class="item-label">{{ item.label }}：</span><em>{{ item.example }}</em>
                     </span>
-          </div>
-          </div>
-        </div>
+                  </div>
+                </div>
+              </div>
 
               <div class="example-section">
                 <div class="example-block">
@@ -111,9 +111,9 @@
                     @click="copyExampleText"
                     v-html="'预算总价800-1000万，首付3成（约240万），需按揭贷款。意向天河区珠江新城或海珠区琶洲地铁沿线，重点考察3房2卫户型。购房目的为自住及子女教育，需带省级学位。<br>建面85-100㎡，优先中高楼层（15层以上），要求南向或东南向采光，接受10年内楼龄的房子。装修需精装以上标准，可接受局部翻新。<br>必须满足地铁500米内（3/5/18号线），步行15分钟内有大型商场。医疗配套不作硬性要求，但需规避临高架、加油站、餐饮街、夜市等嘈杂、危险区域。'">
                   </blockquote>
-          </div>
+                </div>
               </div>
-          </div>
+            </div>
           </div>
         </template>
         
@@ -139,7 +139,7 @@
                   分析中 <span class="button-hint">用时{{currentAnalysisTime}}秒</span>
                 </template>
               </el-button>
-          </div>
+            </div>
             <div class="panel-content">
               <div class="reference-grid">
                 <div v-for="(group, index) in requirementGuide" :key="index" class="reference-group">
@@ -178,7 +178,7 @@
                           <span v-if="!isEditing[group.title + item.label]" class="field-text" @click="!isAnalyzing && startEditing(group.title, item.label)" :class="{ 'empty-value': editableResults[group.title][item.label] === '无此信息，建议补充', 'disabled': isAnalyzing }">
                             {{ editableResults[group.title][item.label] }}
                             <el-icon v-show="showEditIcon[group.title + item.label] && !isAnalyzing" class="edit-icon"><EditPen /></el-icon>
-                    </span>
+                          </span>
                           <el-input 
                             v-else
                             v-model="editableResults[group.title][item.label]" 
@@ -196,25 +196,23 @@
                         </div>
                       </template>
                     </span>
-          </div>
-        </div>
-          </div>
-          
-              <div class="example-section">
-                <div class="example-block">
-                  <h4 class="result-title">AI分析结果建议
-                    <span class="advice-hint">
-                      你可在上方直接修改AI的分析结果，再让AI生成建议报告
-                    </span>
-                  </h4>                  
-                  <div class="user-requirement-suggestion" ref="requirementSuggestionRef">
                   </div>
                 </div>
               </div>
+              
+              <div class="analysis-suggestion-section">
+                <h4 class="result-title">AI分析结果建议
+                  <span class="advice-hint">
+                    你可在上方直接修改AI的分析结果，再让AI生成建议报告
+                  </span>
+                </h4>                  
+                <div class="user-requirement-suggestion" ref="requirementSuggestionRef">
+                </div>
+              </div>
             </div>
-        </div>
+          </div>
         </template>
-        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -1452,8 +1450,7 @@ export default {
 </script>
 
 <style scoped>
-/* 添加scoped属性，隔离样式作用域 */
-
+/* ----------------- 基础布局 ----------------- */
 .property-advisor-form {
   width: 100%;
   height: 100%;
@@ -1477,6 +1474,7 @@ export default {
   overflow: hidden;
 }
 
+/* ----------------- 左侧输入面板 ----------------- */
 .input-panel {
   width: 400px; 
   flex-shrink: 0;
@@ -1484,82 +1482,6 @@ export default {
   flex-direction: column;
   overflow: hidden;
   border-right: 1px solid #dcdfe6;
-}
-
-.panel-header {
-  padding: 0;
-  border-bottom: 1px solid #eee;
-  background-color: #f8f9fa;
-  height: 50px;
-  box-sizing: border-box;
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding-left: 20px;
-  padding-right: 20px;
-}
-
-/* 右侧内容面板标题悬浮 */
-.content-panel .panel-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background-color: #f8f9fa;
-  transition: box-shadow 0.3s ease;
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* 当滚动时增强阴影效果 */
-.content-panel .panel-header.scrolled {
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-.panel-title {
-  padding: 0;
-  color: #000000;
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 60px;
-  margin: 0;
-  display: flex;
-  align-items: center;
-}
-
-.analysis-time {
-  font-size: 14px;
-  color: #909399;
-  margin-left: 12px;
-  font-weight: normal;
-}
-
-.advice-hint {
-  font-size: 14px;
-  color: #909399;
-  margin-left: 4px;
-  font-weight: normal;
-}
-.panel-content {
-  padding: 0 20px 15px 20px; /* 调整内边距，减小底部内边距 */
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #dcdfe6 #f5f7fa;
-  flex: 1; /* 使内容区域占据剩余空间 */
-}
-
-.panel-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.panel-content::-webkit-scrollbar-thumb {
-  background-color: #dcdfe6;
-  border-radius: 3px;
-}
-
-.panel-content::-webkit-scrollbar-track {
-  background-color: #f5f7fa;
 }
 
 .description-hint {
@@ -1577,374 +1499,23 @@ export default {
   margin-bottom: 12px;
 }
 
-.form-actions {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 6px;
-  margin-bottom: 16px;
-}
-
-.button-hint {
-  font-size: 12px;
-  margin-left: 4px;
-  opacity: 0.7;
-}
-
-.content-panel {
-  flex: 1;
-  overflow-y: hidden; /* 整个面板不滚动 */
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  border-left: none;
-  height: 100%; /* 确保高度占满可用空间 */
-}
-
-.reference-content,
-.analysis-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%; /* 确保高度占满父容器 */
-  position: relative;
-}
-
-.reference-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px 16px;
-  /* padding-top: 15px; 添加顶部内边距，与标题保持距离 */
-}
-
-.reference-group {
-  min-width: 0;
-}
-
-.reference-group h4 {
-  font-size: 14px;
-  color: #909399;
-  margin-bottom: 12px;
-}
-
-.reference-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.reference-item {
-  font-size: 13px;
-  color: #909399;
-  line-height: 1.5;
-  display: flex;
-  align-items: baseline;
-  word-break: break-all; /* 添加此属性允许所有文本在任意位置换行 */
-  overflow-wrap: break-word; /* 确保长单词/字符串可以换行 */
-}
-
-.reference-item em {
-  color: #a0a9b6;
-  font-style: normal;
-  margin-left: 0px;
-  flex: 1;
-  word-break: break-all; /* 确保示例文本也能正确换行 */
-  overflow-wrap: break-word;
-}
-
-.analysis-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.result-group {
-  margin-bottom: 20px;
-}
-
-.result-group h4 {
-  font-size: 15px;
-  color: #303133;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #ebeef5;
-}
-
-.result-items {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px 24px;
-}
-
-.result-item {
-  font-size: 14px;
-  line-height: 1.5;
-  display: flex;
-  align-items: baseline;
-}
-
-.item-label {
-  color: #606266;
-  font-weight: 500;
-  min-width: 70px;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.item-value {
-  color: #303133;
-  font-weight: 500;
-  flex: 1;
-}
-
-/* 中等屏幕：保持左右布局，但要点变为单列 */
-@media (max-width: 1024px) {
-  .property-advisor-form {
-    overflow: hidden;
-  }
-
-  .form-container {
-    overflow: hidden;
-  display: flex;
-  }
-
-  .input-panel {
-    flex-shrink: 0;
-    height: auto;
-  }
-
-  .content-panel {
-    flex: 1;
-    overflow-y: auto;
-    height: 100%;
-  }
-
-  .reference-grid,
-  .result-items {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
-
-  .reference-group {
-    margin-bottom: 4px;
-  }
-
-  .reference-item {
-    line-height: 1.;
-  }
-  
-  .reference-group h4 {
-    margin-bottom: 8px;
-  }
-}
-
-/* 窄屏：切换为上下布局 */
-@media (max-width: 768px) {
-  .property-advisor-form {
-    padding: 12px;
-    height: auto; /* 允许高度自适应内容 */
-    overflow-y: auto; /* 整个表单区域可滚动 */
-    display: block; /* 使用块级布局 */
-  }
-
-  .form-container {
-    height: auto; /* 自适应高度 */
-    min-height: auto; /* 移除最小高度限制 */
-    display: block; /* 使用块级布局 */
-    overflow: visible; /* 允许内容溢出 */
-  }
-
-  .input-panel {
-    width: 100%;
-    border-right: none;
-    height: auto; /* 自适应高度 */
-    overflow: visible; /* 允许内容溢出 */
-  }
-
-  .content-panel {
-    width: 100%;
-    overflow: visible; /* 允许内容溢出 */
-    height: auto; /* 自适应高度 */
-  }
-
-  .content-panel .panel-header {
-    position: sticky; /* 保持sticky定位 */
-    top: 0;
-    z-index: 10;
-    background-color: #f8f9fa;
-    width: 100%;
-  }
-
-  .content-panel .panel-content {
-    overflow: visible; /* 允许内容溢出 */
-    height: auto; /* 自适应高度 */
-  }
-
-  .reference-content,
-  .analysis-content {
-    height: auto; /* 自适应高度 */
-    overflow: visible; /* 允许内容溢出 */
-  }
-
-  .panel-content {
-    padding: 12px 16px;
-    overflow: visible; /* 移除滚动行为 */
-  }
-
-  /* 确保sticky正常工作 */
-  .reference-content .panel-header,
-  .analysis-content .panel-header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background-color: #f8f9fa;
-  }
-
-  .reference-grid {
-    gap: 4px;
-  }
-
-  .reference-group {
-  margin-bottom: 0;
-}
-
-  .reference-group h4 {
-    margin-bottom: 6px;
-    padding-bottom: 4px;
-  }
-
-  .reference-items {
-    gap: 4px;
-  }
-
-  .reference-item {
-    line-height: 1.4;
-  }
-
-  .example-block {
-    margin-top: 8px;
-  }
-
-  .example-block h4 {
-    margin-bottom: 6px;
-  }
-
-  .example-quote {
-    padding: 10px 12px;
-  }
-}
-
-.example-section {
-  padding-top: 16px;
-}
-
-.example-block {
-  margin-top: 16px;
-}
-
-.example-block h4 {
-  font-size: 14px;
-  color: #a0a9b6;
-  margin-bottom: 8px;
-}
-
-.example-quote {
-  margin: 0;
-  padding: 12px 16px;
-  background-color: #f8f9fb;
-  /* border-left: 4px solid #409eff; */
-  border-radius: 4px;
-  color: #909399;
-  font-size: 13px;
-  line-height: 1.6;
-  white-space: pre-line;
-   /* cursor: pointer; 添加指针样式提示可点击 */
-  transition: background-color 0.2s; /* 添加过渡效果 */
-}
-
-.example-quote:hover {
-  background-color: #ecf5ff80; /* 悬停时的背景色 */
-}
-
-/* 新增样式 */
-.item-found {
-  color: #303133 !important;
-  font-weight: 500;  
-}
-
-.item-found em {
-  color: #303133 !important;
-  font-weight: 500;
-}
-
-.item-not-found {
-  color: rgb(184, 129.6, 48,0.8);
-  /* font-weight: 500; */
-}
-
-.item-not-found em {
-  color: rgb(184, 129.6, 48,0.8);
-}
-
-.result-title {
-  color: #303133 !important;
-  font-weight: 500;
-}
-
-.user-requirement-suggestion {
-  margin: 0;
-  padding: 12px 16px;
-  background-color: #fbf8d2;
-  border-radius: 4px;
-  color: #6b6204;
-  font-size: 13px;
-  line-height: 1.6;
-  /* max-height: 150px; */
-  overflow-y: auto;
-  scrollbar-width: thin;
-  white-space: pre-line;
-}
-
-.user-requirement-suggestion::-webkit-scrollbar {
+/* Textarea滚动条样式 */
+:deep(.el-textarea__inner::-webkit-scrollbar) {
   width: 4px;
 }
 
-.user-requirement-suggestion::-webkit-scrollbar-thumb {
-  background-color: #dcdfe6;
-  border-radius: 2px;
+:deep(.el-textarea__inner::-webkit-scrollbar-thumb) {
+  background-color: rgba(144, 147, 153, 0.3);
+  border-radius: 4px;
 }
 
-/* 新增建议内容样式 - 适用于v-html内容 */
-.user-requirement-suggestion .suggestion-summary {
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-.user-requirement-suggestion .suggestion-main {
-  margin-bottom: 4px;
-  font-weight: 500;
-}
-
-.user-requirement-suggestion .suggestion-subtitle {
-  margin-top: 8px;
-  margin-bottom: 3px;
-  font-weight: 500;
-}
-
-.user-requirement-suggestion .suggestion-item {
-  padding-left: 8px;
-}
-
-.user-requirement-suggestion .enhancement-title {
-  margin-top: 8px;
-  margin-bottom: 3px;
-  font-weight: 500;
+:deep(.el-textarea__inner::-webkit-scrollbar-track) {
+  background-color: transparent;
 }
 
 /* 姓名输入框样式 */
 .customer-name-input {
-  margin-bottom: 20px;
-  margin-top: 10px;
+  margin: 10px 0 20px 0;
 }
 
 .customer-name-input .el-form-item {
@@ -1958,6 +1529,21 @@ export default {
 .customer-name-input .el-input__prefix {
   color: #909399;
   padding-left: 4px;
+}
+
+/* 按钮区域 */
+.form-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 6px;
+  margin-bottom: 16px;
+}
+
+.button-hint {
+  font-size: 12px;
+  margin-left: 4px;
+  opacity: 0.7;
 }
 
 /* 重新分析按钮样式 */
@@ -1986,21 +1572,300 @@ export default {
   opacity: 0.7;
 }
 
-/* 添加可编辑结果的样式 */
+/* ----------------- 面板通用样式 ----------------- */
+.panel-header {
+  padding: 0;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+  height: 50px;
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.panel-title {
+  padding: 0;
+  color: #000000;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 60px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.panel-content {
+  padding: 0 20px 15px 20px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #dcdfe6 transparent;
+  flex: 1;
+}
+
+/* ----------------- 右侧内容面板 ----------------- */
+.content-panel {
+  flex: 1;
+  overflow-y: hidden;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.content-panel .panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #f8f9fa;
+  transition: box-shadow 0.3s ease;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.content-panel .panel-header.scrolled {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.reference-content,
+.analysis-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+
+/* 分析时间显示 */
+.analysis-time {
+  font-size: 14px;
+  color: #909399;
+  margin-left: 12px;
+  font-weight: normal;
+}
+
+.advice-hint {
+  font-size: 14px;
+  color: #909399;
+  margin-left: 4px;
+  font-weight: normal;
+}
+
+/* ----------------- 需求参考部分 ----------------- */
+.reference-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+}
+
+.reference-group {
+  min-width: 0;
+}
+
+.reference-group h4 {
+  font-size: 14px;
+  color: #909399;
+  margin-bottom: 12px;
+}
+
+.reference-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reference-item {
+  font-size: 13px;
+  color: #909399;
+  line-height: 1.5;
+  display: flex;
+  align-items: baseline;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+.reference-item em {
+  color: #a0a9b6;
+  font-style: normal;
+  flex: 1;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+.item-found {
+  color: #303133 !important;
+  font-weight: 500;  
+}
+
+.item-found em {
+  color: #303133 !important;
+  font-weight: 500;
+}
+
+.item-not-found {
+  color: rgb(184, 129.6, 48, 0.8);
+}
+
+.item-not-found em {
+  color: rgb(184, 129.6, 48, 0.8);
+}
+
+.item-label {
+  color: #606266;
+  font-weight: 500;
+  min-width: 70px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 示例部分 */
+.example-section {
+  padding-top: 16px;
+}
+
+.example-block {
+  margin-top: 16px;
+}
+
+.example-block h4 {
+  font-size: 14px;
+  color: #a0a9b6;
+  margin-bottom: 8px;
+}
+
+/* 分析建议部分 */
+.analysis-suggestion-section {
+  padding-top: 16px;
+}
+
+.analysis-suggestion-section h4 {
+  font-size: 16px;
+  color: #303133;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.example-quote {
+  margin: 0;
+  padding: 12px 16px;
+  background-color: #f8f9fb;
+  border-radius: 4px;
+  color: #909399;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-line;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.example-quote:hover {
+  background-color: #ecf5ff80;
+}
+
+/* ----------------- 分析结果样式 ----------------- */
+.user-requirement-suggestion {
+  margin: 0;
+  padding: 12px 16px;
+  background-color: #fbf8d2;
+  border-radius: 4px;
+  color: #6b6204;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  white-space: pre-line;
+}
+
+.user-requirement-suggestion::-webkit-scrollbar {
+  width: 4px;
+}
+
+.user-requirement-suggestion::-webkit-scrollbar-thumb {
+  background-color: #dcdfe6;
+  border-radius: 2px;
+}
+
+/* 建议内容样式 */
+.user-requirement-suggestion .suggestion-summary {
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.user-requirement-suggestion .suggestion-main {
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.user-requirement-suggestion .suggestion-subtitle {
+  margin-top: 8px;
+  margin-bottom: 3px;
+  font-weight: 500;
+}
+
+.user-requirement-suggestion .suggestion-item {
+  padding-left: 8px;
+}
+
+.user-requirement-suggestion .enhancement-title {
+  margin-top: 8px;
+  margin-bottom: 3px;
+  font-weight: 500;
+}
+
+/* ----------------- 可编辑区域样式 ----------------- */
 .reference-item .el-input {
   flex: 1;
   width: 100%;
   min-width: 120px;
 }
 
-/* 确保输入框内的文本也能正确换行 */
 .reference-item .el-input input {
   word-break: break-all;
   overflow-wrap: break-word;
 }
 
+/* 可编辑字段样式 */
+.editable-field {
+  position: relative;
+  flex: 1;
+  min-width: 120px;
+}
 
-/* 单选框选项样式 */
+.field-text {
+  display: block;
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border: 1px solid transparent;
+  line-height: 1.3;
+  box-sizing: border-box;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+.field-text:hover {
+  background-color: #f8fafd;
+  border-color: #dcdfe6;
+}
+
+.field-text.disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.edit-icon {
+  font-size: 14px;
+  color: #909399;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+/* ----------------- 金融服务相关样式 ----------------- */
 .radio-options {
   display: flex;
   align-items: center;
@@ -2022,7 +1887,6 @@ export default {
   white-space: nowrap;
 }
 
-/* 调整金融服务相关样式 */
 .finance-option {
   display: flex;
   align-items: center;
@@ -2033,80 +1897,28 @@ export default {
 .finance-dash {
   font-weight: normal;
   padding: 0 8px;
-  color: rgb(184, 129.6, 48,0.8);
+  color: rgb(184, 129.6, 48, 0.8);
 }
 
-@media (max-width: 768px) {
-  .radio-options {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .radio-options span {
-    margin-bottom: 4px;
-  }
-}
-
-/* 可编辑字段样式 */
-.editable-field {
-  position: relative;
-  flex: 1;
-  min-width: 120px;
-}
-
-.field-text {
-  display: block;
-  width: 100%;
-  padding: 5px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border: 1px solid transparent;
-  line-height: 1.3;
-  /* min-height: 32px; */
-  box-sizing: border-box;
-  word-break: break-all; /* 添加此属性允许所有文本（包括非汉字）在任意位置换行 */
-  overflow-wrap: break-word; /* 确保长单词/字符串可以换行 */
-}
-
-.field-text:hover {
-  background-color: #f8fafd;
-  border-color: #dcdfe6;
-}
-
-.edit-icon {
-  font-size: 14px;
-  color: #909399;
-  margin-left: 5px;
-  vertical-align: middle;
-}
-
-/* 禁用状态的样式 */
-.field-text.disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-/* 添加"需求AI分析结果"专用样式 */
+/* ----------------- 分析结果专用样式 ----------------- */
 .analysis-content .reference-grid {
   gap: 5px 16px;
 }
 
 .analysis-content .reference-group h4 {
-  margin-bottom: px;
+  margin-bottom: 8px;
 }
 
 .analysis-content .reference-items {
-  gap: 0px;
+  gap: 0;
 }
 
 .analysis-content .reference-item {
   line-height: 2;
-  word-break: break-all; /* 确保分析结果中的文本换行 */
+  word-break: break-all;
   overflow-wrap: break-word;
 }
 
-/* 添加额外的换行规则，确保各种情况下都能正确换行 */
 .analysis-content .editable-field {
   word-break: break-all;
   overflow-wrap: break-word;
@@ -2124,7 +1936,121 @@ export default {
   margin-bottom: 8px;
 }
 
-.analysis-content .panel-content {
-  padding: 0 20px 15px 20px;
+/* ----------------- 响应式布局 ----------------- */
+/* 中等屏幕：保持左右布局，但要点变为单列 */
+@media (max-width: 1024px) {
+  .reference-grid,
+  .result-items {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .reference-group {
+    margin-bottom: 4px;
+  }
+  
+  .reference-group h4 {
+    margin-bottom: 8px;
+  }
+  
+  .reference-item {
+    line-height: 1.5;
+  }
+}
+
+/* 窄屏：切换为上下布局 */
+@media (max-width: 768px) {
+  .property-advisor-form {
+    padding: 12px;
+    height: auto;
+    overflow-y: auto;
+    display: block;
+  }
+
+  .form-container {
+    height: auto;
+    min-height: auto;
+    display: block;
+    overflow: visible;
+  }
+
+  .input-panel {
+    width: 100%;
+    border-right: none;
+    height: auto;
+    overflow: visible;
+  }
+
+  .content-panel {
+    width: 100%;
+    overflow: visible;
+    height: auto;
+  }
+
+  .panel-content {
+    padding: 12px 16px;
+    overflow: visible;
+  }
+  
+  .content-panel .panel-content {
+    overflow: visible;
+    height: auto;
+  }
+
+  .reference-content,
+  .analysis-content {
+    height: auto;
+    overflow: visible;
+  }
+
+  .reference-content .panel-header,
+  .analysis-content .panel-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: #f8f9fa;
+  }
+
+  .reference-grid {
+    gap: 4px;
+  }
+
+  .reference-group {
+    margin-bottom: 0;
+  }
+
+  .reference-group h4 {
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+  }
+
+  .reference-items {
+    gap: 4px;
+  }
+
+  .reference-item {
+    line-height: 1.4;
+  }
+
+  .example-block {
+    margin-top: 8px;
+  }
+
+  .example-block h4 {
+    margin-bottom: 6px;
+  }
+
+  .example-quote {
+    padding: 10px 12px;
+  }
+  
+  .radio-options {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .radio-options span {
+    margin-bottom: 4px;
+  }
 }
 </style>

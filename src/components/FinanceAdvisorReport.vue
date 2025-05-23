@@ -439,10 +439,10 @@ export default {
           content: `我需要融资，具体需求如下：
           - 贷款类型: ${formData.value.loanType || '未指定'}
           - 贷款金额: ${formData.value.loanAmount ? formData.value.loanAmount + '万元' : '未指定'}
-          - 贷款期限: ${formData.value.minLoanTerm}-${formData.value.maxLoanTerm || 0}月
-          - 利率范围: ${formData.value.minInterestRate}-${formData.value.maxInterestRate || 0}%
+          - 贷款期限: ${formData.value.loanTerm || 0}月
+          - 贷款利率: ${formData.value.interestRate || 0}%
           - 还款方式: ${formData.value.repaymentMethod?.join(', ') || '未指定'}
-          - 其他需求: ${formData.value.additionalNotes || '无'}
+          - 其他需求: ${formData.value.requirements || '无'}
           - 关键词: ${getKeywordsText(formData.value.aiKeywords)}`
         };
         
@@ -460,7 +460,7 @@ export default {
           // 模拟AI思考过程
           // 设置完整的AI思考过程数据
           const fullThinkingProcess = `正在分析客户需求：
-"${formData.value.additionalNotes}"
+"${formData.value.requirements}"
 
 思考过程：
 嗯，客户需要融资2000万，用来维持日常经营，每月还款不超过2万。这看起来有点挑战性，因为金额大，还款压力小。首先，我得先搞清楚客户的实际情况。比如，他们是什么行业？经营状况如何？有没有抵押物或者担保？这些都会影响融资渠道的选择。
@@ -714,7 +714,7 @@ P2P或者民间借贷利率太高，每月还款压力大，风险也高，不�
 **融资方式**：${formData.value.loanType === 'mortgage' ? '按揭贷款' : 
            formData.value.loanType === 'secured' ? '抵押贷款' : 
            formData.value.loanType === 'credit' ? '信用贷款' : '未指定'}
-**详细需求描述**：${formData.value.additionalNotes || '用户未提供详细描述'}
+**详细需求描述**：${formData.value.requirements || '用户未提供详细描述'}
 **需求关键词**：${getKeywordsText(formData.value.aiKeywords)}
 **征信情况**：${hasCreditReport.value ? '已提供征信报告，总体良好' : '未提供征信报告'}
 
