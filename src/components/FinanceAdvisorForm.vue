@@ -19,7 +19,7 @@
                 type="textarea"
                 :rows="10"
                 :autosize="{ minRows: 10, maxRows: 12 }"
-                placeholder="请用文字完整描述客户的融资需求，系统将以描述内容为准"
+                placeholder="请用不少于10个字详细地描述客户的融资需求"
                 @focus="handleInputFocus"
                 @input="handleDescriptionInput"
                 @blur="handleDescriptionBlur"
@@ -665,9 +665,20 @@ export default {
     
     // 打开贷款计算器窗口
     const openLoanCalculator = () => {
+      // 检查是否已有计算器窗口打开
+      if (window.loanCalculatorWindow && !window.loanCalculatorWindow.closed) {
+        // 已有窗口，激活它
+        window.loanCalculatorWindow.focus();
+        return;
+      }
+      
       // 计算窗口尺寸和居中位置
       const width = 1000;
-      const height = 850;
+      const defaultHeight = 900;
+      // 使用screen.height获取屏幕高度而不是浏览器窗口高度
+      const maxHeight = screen.height;
+      // 如果屏幕高度足够，使用默认高度；否则使用屏幕的最大高度
+      const height = maxHeight >= defaultHeight ? defaultHeight : maxHeight;
       const left = Math.floor((window.innerWidth - width) / 2);
       const top = Math.floor((window.innerHeight - height) / 2);
       
@@ -681,6 +692,9 @@ export default {
       // 确保窗口成功打开
       if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
         ElMessage.warning('您的浏览器阻止了弹出窗口，请允许弹出窗口后重试');
+      } else {
+        // 保存窗口引用以便后续使用
+        window.loanCalculatorWindow = newWindow;
       }
     }
     
