@@ -76,20 +76,21 @@
               <el-form-item prop="creditReport" class="credit-report-item">
                 <div 
                   class="credit-report-trigger" 
-                  @click="showCreditReportHistory"
+                  @click="toggleCreditReportHistory"
                   :class="{ 
                     'is-disabled': isExtractingKeywords,
-                    'has-value': hasSelectedCreditReport
+                    'has-value': hasSelectedCreditReport,
+                    'is-expanded': showCreditHistory && !hasSelectedCreditReport
                   }"
                 >
                   <span class="trigger-prefix">
-                    <el-icon><Document /></el-icon>
+                    <el-icon><PriceTag /></el-icon>
                   </span>
                   <span class="trigger-text" :class="{ 'has-selected': hasSelectedCreditReport }">
                     {{ selectedCreditReportText }}
                   </span>
                   <span class="trigger-suffix">
-                    <el-icon class="arrow-icon"><ArrowRight /></el-icon>
+                    <el-icon class="arrow-icon" :class="{'is-reverse': showCreditHistory && !hasSelectedCreditReport}"><ArrowRight /></el-icon>
                     <el-icon v-if="hasSelectedCreditReport" class="clear-icon" @click.stop="clearSelectedCreditReport"><Close /></el-icon>
                   </span>
                 </div>
@@ -102,7 +103,7 @@
               <el-button 
                 @click="resetForm" 
                 plain
-                :disabled="!formData.requirements && !formData.name && !formData.businessArea.length"
+                :disabled="!formData.requirements && !formData.name && (!formData.businessArea || !formData.businessArea.length)"
               >重置</el-button>
               <el-button 
                 type="primary" 
@@ -155,53 +156,54 @@
 
       <!-- 右侧内容面板 -->
       <div class="content-panel">
-        <template v-if="!hasAttemptedExtraction && !showCreditHistory">
-          <!-- 引导内容 -->
-          <div class="reference-content">
-            <div class="panel-header">
-              <h2 class="panel-title">融资需求描述建议</h2>
-            </div>
-            <div class="panel-content">
-              <div class="reference-section">                
-                <h4>需求尽可能详细地包含以下信息：</h4>
-                <div class="reference-items">
-                  <span class="reference-item">
-                    <span class="item-label">贷款方式：按揭贷款、抵押贷款、信用贷款、经营贷款、消费贷款等</span>
-                  </span>
-                  <span class="reference-item">
-                    <span class="item-label">融资金额与期限：需要多少资金，使用多长时间</span>
-                  </span>
-                  <span class="reference-item">
-                    <span class="item-label">融资用途：资金将用于哪些方面，例如周转、扩大生产、新项目等</span>
-                  </span>
-                  <span class="reference-item">
-                    <span class="item-label">企业情况：行业、规模、经营时间、近期营收情况</span>
-                  </span>
-                  <span class="reference-item">
-                    <span class="item-label">现有资产：有无房产、车辆等可抵押物</span>
-                  </span>
-                  <span class="reference-item">
-                    <span class="item-label">特殊要求：放款速度、利率要求、还款方式偏好</span>
-                  </span>
-                </div>
+        <!-- 遮罩层 -->
+        <div class="drawer-overlay" v-show="showCreditHistory" @click="backToRequirementSuggestion"></div>
+        
+        <!-- 引导内容始终保持在背景 -->
+        <div class="reference-content" :class="{ 'is-background': showCreditHistory }" v-show="!hasAttemptedExtraction">
+          <div class="panel-header">
+            <h2 class="panel-title">融资需求描述建议</h2>
+          </div>
+          <div class="panel-content">
+            <div class="reference-section">                
+              <h4>需求尽可能详细地包含以下信息：</h4>
+              <div class="reference-items">
+                <span class="reference-item">
+                  <span class="item-label">贷款方式：按揭贷款、抵押贷款、信用贷款、经营贷款、消费贷款等</span>
+                </span>
+                <span class="reference-item">
+                  <span class="item-label">融资金额与期限：需要多少资金，使用多长时间</span>
+                </span>
+                <span class="reference-item">
+                  <span class="item-label">融资用途：资金将用于哪些方面，例如周转、扩大生产、新项目等</span>
+                </span>
+                <span class="reference-item">
+                  <span class="item-label">企业情况：行业、规模、经营时间、近期营收情况</span>
+                </span>
+                <span class="reference-item">
+                  <span class="item-label">现有资产：有无房产、车辆等可抵押物</span>
+                </span>
+                <span class="reference-item">
+                  <span class="item-label">特殊要求：放款速度、利率要求、还款方式偏好</span>
+                </span>
               </div>
-            
-              <div class="example-section">
-                <div class="example-block">
-                  <h4>融资需求描述参考示例：</h4>
-                  <blockquote 
-                    class="example-quote" 
-                    @click="copyExampleText"
-                    v-html="'我是一家成立了5年的餐饮企业老板，在广州有3家连锁店，月营业额约80万元。<br>现计划申请经营抵押贷款300万元用于新开2家分店，希望能在1个月内放款，期限2年以上，可接受月息最高5厘。<br>目前在广州名下有一套市值约500万元的商品房可以抵押，目前无贷款，也有约50万元应收账款。希望了解银行抵押贷款和企业经营贷款哪个更合适，最快多久能拿到资金。'">
-                  </blockquote>
-                </div>
+            </div>
+          
+            <div class="example-section">
+              <div class="example-block">
+                <h4>融资需求描述参考示例：</h4>
+                <blockquote 
+                  class="example-quote" 
+                  @click="copyExampleText"
+                  v-html="'我是一家成立了5年的餐饮企业老板，在广州有3家连锁店，月营业额约80万元。<br>现计划申请经营抵押贷款300万元用于新开2家分店，希望能在1个月内放款，期限2年以上，可接受月息最高5厘。<br>目前在广州名下有一套市值约500万元的商品房可以抵押，目前无贷款，也有约50万元应收账款。希望了解银行抵押贷款和企业经营贷款哪个更合适，最快多久能拿到资金。'">
+                </blockquote>
               </div>
             </div>
           </div>
-        </template>
-
-        <template v-else-if="showCreditHistory">
-          <!-- 征信报告历史列表 -->
+        </div>
+        
+        <!-- 征信报告历史列表，添加动画效果 -->
+        <div class="credit-history-drawer" :class="{ 'is-visible': showCreditHistory }">
           <div class="credit-history-content full-panel">
             <div class="panel-header">
               <h2 class="panel-title">
@@ -229,7 +231,6 @@
               </div>
             </div>
             <div class="panel-content no-padding">
-              
               <!-- 筛选区域 -->
               <div class="search-filters">
                 <div class="filter-row">
@@ -253,8 +254,8 @@
                     size="small"
                       :disabled="tableDataLoading"
                     >
-                      <el-option v-for="item in creditReportResultOptions" :key="item" :label="item" :value="item" />
-                  </el-select>
+                    <el-option v-for="item in creditReportResultOptions" :key="item" :label="item" :value="item" />
+                </el-select>
                 </div>
                   
                   <!-- 按钮组 -->
@@ -423,70 +424,68 @@
               </div>
             </div>
           </div>
-        </template>
+        </div>
 
-        <template v-else>
-          <!-- 分析结果内容 -->
-          <div class="analysis-content">
-            <div class="panel-header">
-              <h3 class="panel-title">
-                AI关键词提取结果
-                <span class="analysis-time" v-if="extractionDuration">
-                  用时{{ extractionDuration }}秒
-                </span>
-              </h3>
-              <!-- 重新提取按钮 -->
-              <el-button 
-                class="reanalyze-button" 
-                @click="extractKeywords" 
-                :loading="isExtractingKeywords"
-              >
-                <template v-if="!isExtractingKeywords">
-                  重新提取 <span class="button-hint">Shift+Enter</span>
-                </template>
-                <template v-else>
-                  提取中 <span class="button-hint">用时{{currentAnalysisTime}}秒</span>
-                </template>
-              </el-button>
-            </div>
-            <div class="panel-content">
-              <div class="keywords-display">
-                <h4>提取的关键词</h4>
-                <div class="keywords-content" v-if="aiKeywords.length > 0">
-                  <el-tag
-                    v-for="keyword in aiKeywords"
-                    :key="keyword.key"
-                    class="keyword-tag"
-                    :type="keyword.type"
-                  >
-                    {{ keyword.value }}
-                  </el-tag>
-                </div>
-                <div class="keywords-placeholder" v-else>
-                  <template v-if="extractError">
-                    {{ extractError }}
-                  </template>
-                  <template v-else-if="isExtractingKeywords">
-                    <el-icon class="is-loading"><Loading /></el-icon>
-                    AI正在提取关键词中...
-                  </template>
-                </div>
+        <!-- 分析结果内容 -->
+        <div class="analysis-content" v-show="hasAttemptedExtraction">
+          <div class="panel-header">
+            <h3 class="panel-title">
+              AI关键词提取结果
+              <span class="analysis-time" v-if="extractionDuration">
+                用时{{ extractionDuration }}秒
+              </span>
+            </h3>
+            <!-- 重新提取按钮 -->
+            <el-button 
+              class="reanalyze-button" 
+              @click="extractKeywords" 
+              :loading="isExtractingKeywords"
+            >
+              <template v-if="!isExtractingKeywords">
+                重新提取 <span class="button-hint">Shift+Enter</span>
+              </template>
+              <template v-else>
+                提取中 <span class="button-hint">用时{{currentAnalysisTime}}秒</span>
+              </template>
+            </el-button>
+          </div>
+          <div class="panel-content">
+            <div class="keywords-display">
+              <h4>提取的关键词</h4>
+              <div class="keywords-content" v-if="aiKeywords && aiKeywords.length > 0">
+                <el-tag
+                  v-for="keyword in aiKeywords"
+                  :key="keyword.key"
+                  class="keyword-tag"
+                  :type="keyword.type"
+                >
+                  {{ keyword.value }}
+                </el-tag>
               </div>
-              
-              <div class="analysis-suggestion-section">
-                <h4 class="result-title">AI分析结果建议
-                  <!-- <span class="advice-hint">
-                    确认关键词准确后，请让AI生成融资建议报告
-                  </span> -->
-                </h4>                  
-                <div class="user-requirement-suggestion" ref="keywordsSuggestionRef">
-                  <p>AI已成功提取融资需求关键词，点击"让AI生成融资建议报告"获取完整建议。</p>
-                  <p>若对关键词结果不满意，可"重新提取"或点击"新的需求"按钮来重新填写客户融资需求。</p>
-                </div>
+              <div class="keywords-placeholder" v-else>
+                <template v-if="extractError">
+                  {{ extractError }}
+                </template>
+                <template v-else-if="isExtractingKeywords">
+                  <el-icon class="is-loading"><Loading /></el-icon>
+                  AI正在提取关键词中...
+                </template>
+              </div>
+            </div>
+            
+            <div class="analysis-suggestion-section">
+              <h4 class="result-title">AI分析结果建议
+                <!-- <span class="advice-hint">
+                  确认关键词准确后，请让AI生成融资建议报告
+                </span> -->
+              </h4>                  
+              <div class="user-requirement-suggestion" ref="keywordsSuggestionRef">
+                <p>AI已成功提取融资需求关键词，点击"让AI生成融资建议报告"获取完整建议。</p>
+                <p>若对关键词结果不满意，可"重新提取"或点击"新的需求"按钮来重新填写客户融资需求。</p>
               </div>
             </div>
           </div>
-        </template>
+        </div>
       </div>
     </div>
   </div>
@@ -495,7 +494,7 @@
 <script>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { ElNotification, ElMessage, ElMessageBox } from 'element-plus'
-import { User, CaretRight, Money, Loading, Aim, InfoFilled, Location, ArrowRight, Document, Close, CloseBold, Drizzling } from '@element-plus/icons-vue'
+import { User, CaretRight, Money, Loading, Aim, InfoFilled, Location, ArrowRight, Document, Close, CloseBold, Drizzling, Tickets } from '@element-plus/icons-vue'
 import { sendMessage } from '../api/chat'
 import store from '../store'
 
@@ -732,7 +731,7 @@ export default {
       
       // 检查文字长度是否少于10个字
       const trimmedText = formData.requirements.trim();
-      if (trimmedText.length < 10 && !aiKeywords.value.length) {
+      if (trimmedText.length < 10 && aiKeywords.value && !aiKeywords.value.length) {
         extractError.value = '需求描述的文字不应该少于10个字';
       }
     }
@@ -854,7 +853,12 @@ export default {
         hasAttemptedExtraction.value = true;
         
         // 无论右侧面板当前显示什么内容，都切换回AI关键词提取结果页面
-        showCreditHistory.value = false;
+        // 之前是直接设置showCreditHistory.value = false
+        // 现在我们应该平滑地关闭它，利用CSS动画
+        if (showCreditHistory.value) {
+          // 触发一个平滑的关闭动画
+          showCreditHistory.value = false;
+        }
         
         if (response.error) {
           console.error('API返回错误:', response.error);
@@ -932,7 +936,7 @@ export default {
 
     // 检查AI关键词是否有效
     const validateKeywords = () => {
-      if (aiKeywords.value.length === 0) {
+      if (!aiKeywords.value || aiKeywords.value.length === 0) {
         ElNotification({
           title: '无法获取报告',
           message: '需求描述不是有效的融资需求，请调整后重新提取关键词。',
@@ -1054,6 +1058,9 @@ export default {
       formData.name = '';
       formData.businessArea = [];
       formData.creditReport = '';
+      
+      // 清空征信报告选择
+      clearSelectedCreditReport();
       
       // 重置关键词相关状态
       resetExtractionState();
@@ -1486,6 +1493,20 @@ export default {
       showCreditHistory.value = false
     }
 
+    // 切换征信报告历史显示状态
+    const toggleCreditReportHistory = () => {
+      if (isExtractingKeywords.value) return
+      
+      // 如果已有选择，则和原来逻辑相同，直接显示
+      if (hasSelectedCreditReport.value) {
+        showCreditHistory.value = true
+        return
+      }
+      
+      // 否则切换显示状态
+      showCreditHistory.value = !showCreditHistory.value
+    }
+
     // 选中的任务
     const selectedPersonalTask = ref(null);
     const selectedEnterpriseTask = ref(null);
@@ -1709,7 +1730,8 @@ export default {
       showCancelConfirm,
       isCheckboxDisabled,
       handleTaskSelection,
-      initTableSelections
+      initTableSelections,
+      toggleCreditReportHistory
     }
   }
 }
@@ -1870,18 +1892,19 @@ export default {
 
 /* ----------------- 右侧内容面板 ----------------- */
 .content-panel {
-      flex: 1;
+  flex: 1;
   overflow-y: hidden;
   min-width: 0;
   display: flex;
-      flex-direction: column;
+  flex-direction: column;
   height: 100%;
+  position: relative; /* 添加相对定位以支持抽屉的绝对定位 */
 }
 
 .content-panel .panel-header {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 3;
   background-color: #f8f9fa;
   transition: box-shadow 0.3s ease;
   width: 100%;
@@ -1900,6 +1923,8 @@ export default {
       flex-direction: column;
   height: 100%;
   position: relative;
+  opacity: 1;
+  transition: opacity 0.35s ease;
 }
 
 /* 分析时间显示 */
@@ -2251,15 +2276,11 @@ export default {
 }
 
 /* 征信报告分析结果样式 */
-.credit-report-item {
-  margin-top: 4px;
-}
-
 .credit-report-trigger {
   position: relative;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
-  padding: 0 15px;
+  padding: 1px 11px;
   height: 32px;
   line-height: 32px;
   width: 100%;
@@ -2314,8 +2335,9 @@ export default {
 }
 
 .trigger-prefix {
-  color: #909399;
-  margin-right: 5px;
+  color: #a8abb2;
+  margin-right: 8px;
+  margin-left: -1px;
   display: flex;
   align-items: center;
 }
@@ -2327,6 +2349,7 @@ export default {
   white-space: nowrap;
   color: #a8abb2;
   font-size: 14px;
+  padding-right: 10px; /* 添加右侧内边距，避免文本与图标重叠 */
 }
 
 .trigger-text.has-selected {
@@ -2342,6 +2365,15 @@ export default {
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
+}
+
+/* 添加箭头旋转动画 */
+.arrow-icon {
+  transition: transform 0.3s ease;
+}
+
+.arrow-icon.is-reverse {
+  transform: rotate(-180deg);
 }
 
 /* 添加清除图标的悬停效果 */
@@ -2675,5 +2707,77 @@ export default {
 
 .info-icon:hover {
   color: #1b68de;
+}
+
+/* 展开状态的样式 */
+.credit-report-trigger.is-expanded {
+  border-color: #1b68de !important;
+}
+
+.credit-report-trigger.is-expanded:hover {
+  border-color: #1b68de !important;
+}
+
+/* 触发器悬停效果 */
+.credit-report-trigger:hover {
+  border-color: #C0C4CC !important;
+}
+
+/* 征信报告历史列表样式 */
+.credit-history-drawer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: translateX(-100%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 5;
+  background-color: #fff;
+  overflow: hidden;
+  // box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.credit-history-drawer.is-visible {
+  transform: translateX(0);
+}
+
+.credit-history-drawer .panel-header {
+  z-index: 6;
+}
+
+/* 背景内容样式 */
+.reference-content.is-background {
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+/* 确保抽屉内容样式正确 */
+.credit-history-content {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 遮罩层样式 */
+.drawer-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.2);
+  z-index: 4;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.drawer-overlay[style*="display: block"] {
+  opacity: 1;
 }
 </style>
