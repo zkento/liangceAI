@@ -672,7 +672,7 @@ export default {
       }
       
       // 计算窗口尺寸和居中位置
-      const width = 1000;
+      const width = 1010;
       const defaultHeight = 900;
       // 使用screen.height获取屏幕高度而不是浏览器窗口高度
       const maxHeight = screen.height;
