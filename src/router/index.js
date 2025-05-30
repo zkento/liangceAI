@@ -5,6 +5,7 @@ import BusinessCredit from '../pages/BusinessCredit.vue'
 import PropertyAdvice from '../pages/PropertyAdvice.vue'
 import FinanceAdvice from '../pages/FinanceAdvice.vue'
 import LoanCalculator from '../components/LoanCalculator.vue'
+import TaskResultViewer from '../components/TaskResultViewer.vue'
 
 const routes = [
   {
@@ -36,6 +37,11 @@ const routes = [
     path: '/loan-calculator',
     name: 'LoanCalculator',
     component: LoanCalculator
+  },
+  {
+    path: '/task-result',
+    name: 'TaskResult',
+    component: TaskResultViewer
   }
 ]
 

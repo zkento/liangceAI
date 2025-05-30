@@ -1,7 +1,7 @@
 <template>
   <div class="app">
     <el-container>
-      <el-header v-if="!isLoanCalculator">
+      <el-header v-if="!isStandaloneView">
         <div class="header-content">
           <div class="left-section">
             <router-link to="/" class="logo-container">
@@ -19,13 +19,13 @@
           </div>
         </div>
       </el-header>
-      <el-main :class="{ 'loan-calculator-main': isLoanCalculator }">
+      <el-main :class="{ 'standalone-view-main': isStandaloneView }">
         <router-view></router-view>
       </el-main>
     </el-container>
     
     <!-- 历史记录弹层 -->
-    <HistoryPanel v-if="!isLoanCalculator" />
+    <HistoryPanel v-if="!isStandaloneView" />
   </div>
 </template>
 
@@ -48,9 +48,9 @@ export default {
     const store = useStore()
     const route = useRoute()
     
-    // 判断当前路由是否为贷款计算器
-    const isLoanCalculator = computed(() => {
-      return route.path === '/loan-calculator'
+    // 判断当前路由是否为独立视图（贷款计算器或任务结果查看器）
+    const isStandaloneView = computed(() => {
+      return route.path === '/loan-calculator' || route.path === '/task-result'
     })
     
     onMounted(() => {
@@ -59,7 +59,7 @@ export default {
     })
     
     return {
-      isLoanCalculator
+      isStandaloneView
     }
   }
 }
@@ -142,7 +142,7 @@ export default {
   background-color: #f5f7fa;
 }
 
-.loan-calculator-main {
+.standalone-view-main {
   padding: 0;
   background-color: #f5f7fa;
   height: 100vh;

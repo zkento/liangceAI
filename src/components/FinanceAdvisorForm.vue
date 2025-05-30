@@ -1350,123 +1350,32 @@ export default {
     
     // 查看任务结果
     const viewResult = (history) => {
-      // 计算窗口尺寸（宽度95%，高度95%）
-      const width = Math.floor(window.innerWidth * 0.95);
-      const height = Math.floor(window.innerHeight * 0.95);
-      const left = Math.floor((window.innerWidth - width) / 2);
-      const top = Math.floor((window.innerHeight - height) / 2);
+      // 检查是否已有结果窗口打开
+      if (window.taskResultWindow && !window.taskResultWindow.closed) {
+        // 已有窗口，激活它
+        window.taskResultWindow.focus();
+        return;
+      }
       
-      // 打开新窗口
+      // 计算窗口尺寸和居中位置
+      const width = Math.floor(window.screen.width * 0.75);
+      const height = Math.floor(window.screen.height * 0.95);
+      const left = Math.floor((window.screen.width - width) / 2);
+      const top = Math.floor((window.screen.height - height) / 2);
+      
+      // 打开居中显示的新窗口
       const newWindow = window.open(
-        '', 
+        `/task-result?id=${history.id}&type=${encodeURIComponent(history.type)}`, 
         '_blank', 
-        `width=${width},height=${height},left=${left},top=${top},location=no,menubar=no,toolbar=no,resizable=yes`
+        `width=${width},height=${height},left=${left},top=${top}`
       );
       
-      if (newWindow) {
-        // 准备任务数据
-        const taskId = history.id || '未知';
-        const taskType = history.type || '未知任务类型';
-        const submitTime = history.submitTime || '未知';
-        const endTime = history.endTime || '未知';
-        const customerName = history.customerName || '';
-        
-        // 构建HTML内容
-        let html = '';
-        
-        // HTML开头部分
-        html += '<!DOCTYPE html>';
-        html += '<html>';
-        html += '<head>';
-        html += '<title>任务结果 - ' + taskType + '</title>';
-        html += '<meta charset="utf-8">';
-        html += '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
-        
-        // CSS样式
-        html += '<style>';
-        html += 'body { margin: 0; padding: 0; font-family: Arial, sans-serif; height: 100vh; overflow: hidden; background-color: #f5f7fa; }';
-        html += '.task-result-viewer { display: flex; flex-direction: column; height: 100vh; padding: 20px; box-sizing: border-box; overflow-y: auto; }';
-        html += '.result-header { display: flex; justify-content: space-between; align-items: flex-start; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin-bottom: 20px; }';
-        html += '.task-title { font-size: 22px; color: #303133; margin: 0 0 15px 0; font-weight: 600; }';
-        html += '.task-metadata { display: flex; flex-wrap: wrap; gap: 15px; }';
-        html += '.metadata-item { display: flex; align-items: center; }';
-        html += '.metadata-item .label { color: #909399; margin-right: 5px; }';
-        html += '.metadata-item .value { color: #606266; font-weight: 500; }';
-        html += '.actions { display: flex; gap: 10px; }';
-        html += '.result-content { background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); flex: 1; overflow-y: auto; }';
-        html += '.result-placeholder { text-align: center; padding: 50px 20px; background-color: #f8f9fb; border-radius: 8px; border: 1px dashed #dcdfe6; }';
-        html += '.result-placeholder h2 { color: #303133; margin-bottom: 15px; }';
-        html += '.result-placeholder p { color: #606266; margin-bottom: 10px; }';
-        html += '.result-placeholder .note { color: #909399; font-size: 14px; font-style: italic; }';
-        html += 'button { padding: 8px 15px; background-color: #409eff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; }';
-        html += 'button:hover { background-color: #66b1ff; }';
-        html += 'button.default { background-color: #909399; }';
-        html += 'button.default:hover { background-color: #a6a9ad; }';
-        html += '@media print { .task-result-viewer { padding: 0; background-color: white; } .result-header { box-shadow: none; border-bottom: 1px solid #ebeef5; border-radius: 0; } .actions { display: none; } .result-content { box-shadow: none; border-radius: 0; } }';
-        html += '</style>';
-        html += '</head>';
-        
-        // 页面内容开始
-        html += '<body>';
-        html += '<div class="task-result-viewer">';
-        
-        // 头部信息
-        html += '<div class="result-header">';
-        html += '<div class="task-info">';
-        html += '<h1 class="task-title">' + taskType + '</h1>';
-        html += '<div class="task-metadata">';
-        html += '<div class="metadata-item"><span class="label">任务ID：</span><span class="value">' + taskId + '</span></div>';
-        html += '<div class="metadata-item"><span class="label">提交时间：</span><span class="value">' + submitTime + '</span></div>';
-        html += '<div class="metadata-item"><span class="label">完成时间：</span><span class="value">' + endTime + '</span></div>';
-        
-        // 客户姓名（如果有）
-        if (customerName) {
-          html += '<div class="metadata-item"><span class="label">客户姓名：</span><span class="value">' + customerName + '</span></div>';
-        }
-        
-        html += '</div>'; // 结束metadata
-        html += '</div>'; // 结束task-info
-        
-        // 操作按钮
-        html += '<div class="actions">';
-        html += '<button onclick="window.print()">打印</button>';
-        html += '<button class="default" onclick="window.close()">关闭</button>';
-        html += '</div>'; // 结束actions
-        html += '</div>'; // 结束result-header
-        
-        // 结果内容区域
-        html += '<div class="result-content">';
-        
-        // 根据任务类型显示不同内容
-        let placeholderTitle = '';
-        let placeholderDesc = '';
-        
-        if (taskType.includes('个人征信')) {
-          placeholderTitle = '个人征信报告分析结果';
-          placeholderDesc = '此处将显示个人征信报告的分析结果内容';
-        } else if (taskType.includes('企业征信')) {
-          placeholderTitle = '企业征信报告分析结果';
-          placeholderDesc = '此处将显示企业征信报告的分析结果内容';
-        } else {
-          placeholderTitle = '未知征信报告类型';
-          placeholderDesc = '暂不支持显示该类型任务的结果: ' + taskType;
-        }
-        
-        // 添加占位内容
-        html += '<div class="result-placeholder">';
-        html += '<h2>' + placeholderTitle + '</h2>';
-        html += '<p>' + placeholderDesc + '</p>';
-        html += '<p class="note">具体内容展示格式待定，将根据后续需求进行调整</p>';
-        html += '</div>'; // 结束result-placeholder
-        
-        html += '</div>'; // 结束result-content
-        html += '</div>'; // 结束task-result-viewer
-        html += '</body>';
-        html += '</html>';
-        
-        // 写入HTML内容到窗口
-        newWindow.document.write(html);
-        newWindow.document.close();
+      // 确保窗口成功打开
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        ElMessage.warning('您的浏览器阻止了弹出窗口，请允许弹出窗口后重试');
+      } else {
+        // 保存窗口引用以便后续使用
+        window.taskResultWindow = newWindow;
       }
     }
     
