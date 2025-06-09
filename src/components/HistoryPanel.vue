@@ -1,4 +1,4 @@
-<!-- 最后修改记录时间 -> 2025-04-28 16:00:00 -->
+<!-- 最后修改记录时间 -> 2024-04-29 15:30:00 -->
 <template>
   <teleport to="body">
     <!-- 历史任务列表面板 -->
@@ -237,8 +237,12 @@
               <el-table-column prop="customerName" label="客户姓名" min-width="155" show-overflow-tooltip/>
               <el-table-column label="上传的文件" min-width="190">
                 <template #default="scope">
+                  <!-- 处理融资顾问报告和买家顾问报告不支持上传文件的情况 -->
+                  <template v-if="scope.row.type === '融资顾问报告' || scope.row.type === '买家顾问报告'">
+                    <span class="no-file">-</span>
+                  </template>
                   <!-- 统一处理单文件和多文件情况 -->
-                  <template v-if="(scope.row.uploadFiles && scope.row.uploadFiles.length) || scope.row.uploadFile">
+                  <template v-else-if="(scope.row.uploadFiles && scope.row.uploadFiles.length) || scope.row.uploadFile">
                     <div 
                       class="file-cell" 
                       v-for="(file, index) in scope.row.uploadFiles && scope.row.uploadFiles.length ? scope.row.uploadFiles : [scope.row.uploadFile]" 
@@ -456,8 +460,12 @@
             <div class="info-item">
               <span class="label">上传文件：</span>
               <span class="value file-value">
+                <!-- 处理融资顾问报告和买家顾问报告不支持上传文件的情况 -->
+                <template v-if="currentHistory.type === '融资顾问报告' || currentHistory.type === '买家顾问报告'">
+                  <span class="no-file">-</span>
+                </template>
                 <!-- 统一处理单文件和多文件情况 -->
-                <template v-if="(currentHistory.uploadFiles && currentHistory.uploadFiles.length) || currentHistory.uploadFile">
+                <template v-else-if="(currentHistory.uploadFiles && currentHistory.uploadFiles.length) || currentHistory.uploadFile">
                   <div class="file-list">
                     <div 
                       class="file-item" 
@@ -1502,6 +1510,11 @@ export default {
     
     // 查看文件方法
     const viewUploadedFile = (file) => {
+      // 如果是融资顾问报告或买家顾问报告类型，不执行任何操作
+      if (currentHistory.value && (currentHistory.value.type === '融资顾问报告' || currentHistory.value.type === '买家顾问报告')) {
+        return;
+      }
+      
       // 获取文件名（可能是对象或字符串）
       const fileName = file.name || file;
       
