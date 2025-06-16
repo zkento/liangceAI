@@ -967,7 +967,7 @@ export default {
       { label: '等额本息', value: 'equal_principal_interest' },
       { label: '等额本金', value: 'equal_principal' },
       { label: '先息后本', value: 'interest_first' },
-      { label: '一次性还本付息', value: 'lump_sum' },
+      { label: '一次还本付息', value: 'lump_sum' },
     ]);
     
     // 组合贷款当前显示的贷款类型
@@ -1208,7 +1208,7 @@ export default {
           repaymentOptions.value = [
             { label: '等额本息', value: 'equal_principal_interest' },
             { label: '先息后本', value: 'interest_first' },            
-            { label: '一次性还本付息', value: 'lump_sum' },
+            { label: '一次还本付息', value: 'lump_sum' },
           ];
           break;
       }
@@ -1431,7 +1431,7 @@ export default {
           }
           break;
           
-        case 'lump_sum': // 一次性还本付息
+        case 'lump_sum': // 一次还本付息
           const totalInterestAmount = loanAmountValue * monthlyInterestRate * loanTerm;
           totalInterest = totalInterestAmount;
           totalRepayment = loanAmountValue + totalInterest;
